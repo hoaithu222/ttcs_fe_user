@@ -1,0 +1,60 @@
+{
+  "light": {
+    "primary": "#0071E3",
+    "primary-hover": "#005BB5",
+    "secondary": "#00B8A9",
+    "secondary-hover": "#009F91",
+
+    "background-base": "#F7F9FC",
+    "background-card": "#FFFFFF",
+    "background-input": "#F0F2F5",
+    "background-header": "#FFFFFF",
+    "background-footer": "#F7F9FC",
+
+    "border": "#E1E4E8",
+    "divider": "#E5E7EB",
+
+    "text-primary": "#1F2937",
+    "text-secondary": "#6B7280",
+    "text-tertiary": "#9CA3AF",
+    "text-inverse": "#FFFFFF",
+
+    "success": "#10B981",
+    "success-bg": "#ECFDF5",
+    "warning": "#F59E0B",
+    "warning-bg": "#FFFBEB",
+    "error": "#EF4444",
+    "error-bg": "#FEF2F2",
+
+    "overlay": "rgba(0,0,0,0.3)"
+  },
+  "dark": {
+    "primary": "#4FA3FF",
+    "primary-hover": "#2C82E8",
+    "secondary": "#00D1C1",
+    "secondary-hover": "#00B2A7",
+
+    "background-base": "#18191A",
+    "background-card": "#242526",
+    "background-input": "#3A3B3C",
+    "background-header": "#1E1F20",
+    "background-footer": "#18191A",
+
+    "border": "#3E4042",
+    "divider": "#4A4B4D",
+
+    "text-primary": "#E4E6EB",
+    "text-secondary": "#B0B3B8",
+    "text-tertiary": "#8A8D91",
+    "text-inverse": "#FFFFFF",
+
+    "success": "#22C55E",
+    "success-bg": "#052D1A",
+    "warning": "#F59E0B",
+    "warning-bg": "#3A2B08",
+    "error": "#DC2626",
+    "error-bg": "#3A0F0F",
+
+    "overlay": "rgba(0,0,0,0.6)"
+  }
+}

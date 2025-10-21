@@ -1,0 +1,53 @@
+/* This file is generated. DO NOT EDIT.
+ * Edit "colors.json" instead.
+ */
+
+:root {
+  --color-primary: #0071E3;
+  --color-primary-hover: #005BB5;
+  --color-secondary: #00B8A9;
+  --color-secondary-hover: #009F91;
+  --color-background-base: #F7F9FC;
+  --color-background-card: #FFFFFF;
+  --color-background-input: #F0F2F5;
+  --color-background-header: #FFFFFF;
+  --color-background-footer: #F7F9FC;
+  --color-border: #E1E4E8;
+  --color-divider: #E5E7EB;
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
+  --color-success: #10B981;
+  --color-success-bg: #ECFDF5;
+  --color-warning: #F59E0B;
+  --color-warning-bg: #FFFBEB;
+  --color-error: #EF4444;
+  --color-error-bg: #FEF2F2;
+  --color-overlay: rgba(0,0,0,0.3);
+}
+
+.dark {
+  --color-primary: #4FA3FF;
+  --color-primary-hover: #2C82E8;
+  --color-secondary: #00D1C1;
+  --color-secondary-hover: #00B2A7;
+  --color-background-base: #18191A;
+  --color-background-card: #242526;
+  --color-background-input: #3A3B3C;
+  --color-background-header: #1E1F20;
+  --color-background-footer: #18191A;
+  --color-border: #3E4042;
+  --color-divider: #4A4B4D;
+  --color-text-primary: #E4E6EB;
+  --color-text-secondary: #B0B3B8;
+  --color-text-tertiary: #8A8D91;
+  --color-text-inverse: #FFFFFF;
+  --color-success: #22C55E;
+  --color-success-bg: #052D1A;
+  --color-warning: #F59E0B;
+  --color-warning-bg: #3A2B08;
+  --color-error: #DC2626;
+  --color-error-bg: #3A0F0F;
+  --color-overlay: rgba(0,0,0,0.6);
+}

@@ -1,0 +1,14 @@
+{
+  "body-14": {
+    "fontSize": "14px",
+    "lineHeight": "20px"
+  },
+  "caption-12": {
+    "fontSize": "12px",
+    "lineHeight": "16px"
+  },
+  "h2": {
+    "fontSize": "24px",
+    "lineHeight": "32px"
+  }
+}

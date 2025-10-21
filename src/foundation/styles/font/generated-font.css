@@ -1,0 +1,63 @@
+:root.desktop {
+  --text-body-14: 14px/20px 400;
+  --text-body-14-medium: 14px/20px 500;
+  --text-body-14-semibold: 14px/20px 600;
+  --text-body-14-bold: 14px/20px 700;
+  --text-caption-12: 12px/16px 400;
+  --text-caption-12-medium: 12px/16px 500;
+  --text-caption-12-semibold: 12px/16px 600;
+  --text-caption-12-bold: 12px/16px 700;
+  --text-h2: 24px/32px 400;
+  --text-h2-medium: 24px/32px 500;
+  --text-h2-semibold: 24px/32px 600;
+  --text-h2-bold: 24px/32px 700;
+}
+
+.text-body-14 {
+  font: var(--text-body-14);
+}
+
+.text-body-14-medium {
+  font: var(--text-body-14-medium);
+}
+
+.text-body-14-semibold {
+  font: var(--text-body-14-semibold);
+}
+
+.text-body-14-bold {
+  font: var(--text-body-14-bold);
+}
+
+.text-caption-12 {
+  font: var(--text-caption-12);
+}
+
+.text-caption-12-medium {
+  font: var(--text-caption-12-medium);
+}
+
+.text-caption-12-semibold {
+  font: var(--text-caption-12-semibold);
+}
+
+.text-caption-12-bold {
+  font: var(--text-caption-12-bold);
+}
+
+.text-h2 {
+  font: var(--text-h2);
+}
+
+.text-h2-medium {
+  font: var(--text-h2-medium);
+}
+
+.text-h2-semibold {
+  font: var(--text-h2-semibold);
+}
+
+.text-h2-bold {
+  font: var(--text-h2-bold);
+}
+
