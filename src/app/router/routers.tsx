@@ -6,11 +6,15 @@ import { authMiddleware } from "./auth.middleware";
 import AppShell from "@/AppShell";
 import { LoaderFunction } from "react-router-dom";
 import LoginLayout from "@/layout/LoginLayout";
+import NotFound from "@/layout/NotFound";
+import NotPermisstion from "@/layout/NotPermisstion";
 
 // map layout name thành component layout tương ứng
 const layoutMap = {
   main: MainLayout,
   auth: LoginLayout,
+  notFound: NotFound,
+  notPermisstion: NotPermisstion,
 };
 
 // gom các router theo layout trở thành nhánh trong router tree

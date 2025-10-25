@@ -3,7 +3,7 @@ import { setLanguage } from "@/app/store/slices/language";
 import { Language } from "@/app/store/slices/language/types";
 import { toggleTheme } from "@/app/store/slices/theme";
 import { themeRootSelector } from "@/app/store/slices/theme/selectors";
-import { Button } from "@/components/ui/button";
+import Button from "@/foundation/components/buttons/Button";
 import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 

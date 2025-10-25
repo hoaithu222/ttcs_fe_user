@@ -1,15 +1,15 @@
 import { lazy } from "react";
+import AuthPage from "@/features/Auth/AuthPage";
 
 const HomePage = lazy(() => import("@/features/Home/HomePage"));
-const LoginPage = lazy(() => import("@/features/Auth/Login"));
 
 const defaultOptions = {
-  requireAuth: true,
+  requireAuth: false,
   hideInMenu: false,
 };
 const defaultAuthOptions = {
   ...defaultOptions,
-  requireAuth: true,
+  requireAuth: false,
 };
 
 export const ROUTE = {
@@ -19,10 +19,22 @@ export const ROUTE = {
     layout: "main",
     options: defaultOptions,
   },
-  login: {
+  auth: {
     path: "/login",
-    element: <LoginPage />,
-    layout: "login",
+    element: <AuthPage />,
+    layout: "auth",
+    options: defaultAuthOptions,
+  },
+  register: {
+    path: "/register",
+    element: <AuthPage />,
+    layout: "auth",
+    options: defaultAuthOptions,
+  },
+  forgotPassword: {
+    path: "/forgot-password",
+    element: <AuthPage />,
+    layout: "auth",
     options: defaultAuthOptions,
   },
 } satisfies Record<
