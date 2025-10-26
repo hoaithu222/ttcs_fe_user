@@ -206,6 +206,43 @@ export abstract class UserHttpClient {
     const { response, config } = error;
     const originalRequest = config as MetaConfig;
 
+    // Log error in dev mode
+    if (MODE === "dev") {
+      console.error("[UserHttpClient] Response error:", error);
+    }
+
+    // Check if response has standard error format with skipToast flag
+    if (
+      response?.data &&
+      typeof response.data === "object" &&
+      response.data.hasOwnProperty("success")
+    ) {
+      const errorData = response.data as {
+        success: false;
+        message: string;
+        skipToast?: boolean;
+        code?: number;
+        errors?: any[];
+      };
+
+      // Only show toast if skipToast is not true
+      if (!errorData.skipToast) {
+        toastUtils.error(errorData.message);
+      }
+
+      // Create standardized error object
+      const standardError: ErrorData = {
+        message: errorData.message,
+        name: "API_ERROR",
+        code: `ERROR_${errorData.code || response?.status}`,
+        httpStatus: response?.status,
+        requestId: config?.headers?.["x-request-id"] as string,
+        originalError: error,
+      };
+
+      return Promise.reject(standardError);
+    }
+
     // Handle 401 Unauthorized - Token refresh logic
     if (response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
@@ -283,10 +320,7 @@ export abstract class UserHttpClient {
       }
     }
 
-    if (MODE === "dev") {
-      console.error("[UserHttpClient] Response error:", error);
-    }
-
+    // Handle non-standard error responses (network errors, etc.)
     const errData = (response?.data as Partial<ErrorData>) || {};
     const serverCode = errData.code;
     const clientCode =
@@ -296,9 +330,18 @@ export abstract class UserHttpClient {
           ? `error.${serverCode}`
           : "";
 
+    // Show toast for network/server errors
+    if (status) {
+      if (status >= 500 && status < 600) {
+        toastUtils.error("Server error occurred. Please try again later.");
+      } else if (status === 0 || !status) {
+        toastUtils.error("Network error. Please check your connection.");
+      }
+    }
+
     const errorData: ErrorData = {
       httpStatus: status,
-      requestId: config.headers["x-request-id"] as string,
+      requestId: config?.headers?.["x-request-id"] as string,
       message: errData.message || String(status),
       code: clientCode,
       name: errData.name || "ERROR",
