@@ -64,7 +64,11 @@ class UserAuthApiService extends UserHttpClient {
 
   // Logout user
   async logout(): Promise<ApiSuccess<void>> {
-    const response = await this.post(USER_AUTH_ENDPOINTS.LOGOUT);
+    // Get refresh token from localStorage
+    const refreshToken = localStorage.getItem("refreshToken");
+    const response = await this.post(USER_AUTH_ENDPOINTS.LOGOUT, {
+      token: refreshToken,
+    });
     return response.data;
   }
 

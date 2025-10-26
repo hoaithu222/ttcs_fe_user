@@ -18,6 +18,7 @@ import {
   refreshTokenFailed,
 } from "./auth.slice";
 import { tokenUtils } from "@/shared/utils/token.utils";
+import { toastUtils } from "@/shared/utils/toast.utils";
 
 // Login saga
 function* handleLogin(action: PayloadAction<LoginRequest>): Generator<any, void, any> {
@@ -29,6 +30,9 @@ function* handleLogin(action: PayloadAction<LoginRequest>): Generator<any, void,
       tokenUtils.setTokens(response.data.user.accessToken, response.data.user.refreshToken);
 
       yield put(loginSuccess(response.data.user));
+
+      // Show success toast
+      toastUtils.success(response.message || "Đăng nhập thành công!");
     } else {
       yield put(loginFailed());
     }
@@ -45,6 +49,11 @@ function* handleRegister(action: PayloadAction<any>): Generator<any, void, any> 
 
     if (response.success) {
       yield put(registerSuccess());
+
+      // Show success toast
+      toastUtils.success(
+        response.message || "Đăng ký thành công! Vui lòng kiểm tra email để xác thực."
+      );
     } else {
       yield put(registerFailed());
     }
@@ -62,6 +71,9 @@ function* handleForgotPassword(action: PayloadAction<string>): Generator<any, vo
 
     if (response.success) {
       yield put(forgotPasswordSuccess());
+
+      // Show success toast
+      toastUtils.success(response.message || "Email đặt lại mật khẩu đã được gửi!");
     } else {
       yield put(forgotPasswordFailed());
     }
@@ -74,17 +86,23 @@ function* handleForgotPassword(action: PayloadAction<string>): Generator<any, vo
 // Logout saga
 function* handleLogout(): Generator<any, void, any> {
   try {
-    yield call(authAPI.logout);
+    const response: any = yield call(authAPI.logout);
 
     // Xóa tokens khỏi localStorage
     tokenUtils.clearTokens();
 
     yield put(logoutSuccess());
+
+    // Show success toast
+    toastUtils.success(response?.message || "Đăng xuất thành công!");
   } catch (error) {
     console.error("Logout error:", error);
     // Vẫn logout ngay cả khi API call thất bại
     tokenUtils.clearTokens();
     yield put(logoutSuccess());
+
+    // Show success toast even on error
+    toastUtils.success("Đăng xuất thành công!");
   }
 }
 

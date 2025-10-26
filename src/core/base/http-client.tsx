@@ -12,9 +12,13 @@ import { USER_PRODUCTS_ENDPOINTS } from "@/core/api/products/path";
 import authApi from "@/core/api/auth";
 import { toastUtils } from "@/shared/utils/toast.utils";
 
-// Mock logout function - replace with actual implementation
+// Logout function - clear tokens and redirect
 const logoutRequest = () => {
   console.log("Logout requested");
+  // Clear tokens from localStorage
+  tokenStorage.clearTokens();
+  // Clear any other auth-related data
+  localStorage.removeItem("persist:root");
   // Redirect to login page
   window.location.href = "/login";
 };
@@ -212,35 +216,42 @@ export abstract class UserHttpClient {
     }
 
     // Check if response has standard error format with skipToast flag
-    if (
-      response?.data &&
-      typeof response.data === "object" &&
-      response.data.hasOwnProperty("success")
-    ) {
-      const errorData = response.data as {
-        success: false;
-        message: string;
-        skipToast?: boolean;
-        code?: number;
-        errors?: any[];
-      };
+    if (response?.data && typeof response.data === "object" && !Array.isArray(response.data)) {
+      const errorData = response.data as any;
 
-      // Only show toast if skipToast is not true
-      if (!errorData.skipToast) {
-        toastUtils.error(errorData.message);
+      // Check if this is a standard error response
+      if (errorData.success === false || errorData.hasOwnProperty("success")) {
+        // Log error response in dev mode
+        if (MODE === "dev") {
+          console.log("[UserHttpClient] Standard error response:", errorData);
+        }
+
+        const message = errorData.message || "An error occurred";
+
+        // Only show toast if skipToast is not true
+        if (!errorData.skipToast) {
+          toastUtils.error(message);
+          if (MODE === "dev") {
+            console.log("[UserHttpClient] Showing toast for error:", message);
+          }
+        } else {
+          if (MODE === "dev") {
+            console.log("[UserHttpClient] Skipping toast for error:", message);
+          }
+        }
+
+        // Create standardized error object
+        const standardError: ErrorData = {
+          message: message,
+          name: "API_ERROR",
+          code: `ERROR_${errorData.code || response?.status}`,
+          httpStatus: response?.status,
+          requestId: config?.headers?.["x-request-id"] as string,
+          originalError: error,
+        };
+
+        return Promise.reject(standardError);
       }
-
-      // Create standardized error object
-      const standardError: ErrorData = {
-        message: errorData.message,
-        name: "API_ERROR",
-        code: `ERROR_${errorData.code || response?.status}`,
-        httpStatus: response?.status,
-        requestId: config?.headers?.["x-request-id"] as string,
-        originalError: error,
-      };
-
-      return Promise.reject(standardError);
     }
 
     // Handle 401 Unauthorized - Token refresh logic
