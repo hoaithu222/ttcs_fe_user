@@ -1,23 +1,6 @@
 // Store types
-export interface RootState {
-  language: {
-    current: string;
-    available: string[];
-  };
-  theme: {
-    mode: "light" | "dark";
-    colors: Record<string, string>;
-  };
-  toast: {
-    messages: Array<{
-      id: string;
-      type: "success" | "error" | "warning" | "info";
-      message: string;
-      duration?: number;
-    }>;
-  };
-  auth: any; // Will be properly typed when auth slice is imported
-}
+// RootState is now exported from index.ts
+// Keeping this file for other types
 
 export enum ReduxStateType {
   INIT = "INIT",

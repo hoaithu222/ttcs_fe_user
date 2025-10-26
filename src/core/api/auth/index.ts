@@ -16,11 +16,12 @@ import type {
   RefreshTokenResponse,
 } from "./type";
 import { UserHttpClient } from "@/core/base/http-client";
+import { API_BASE_URL } from "@/app/config/env.config";
 
 // Authentication API service for users
 class UserAuthApiService extends UserHttpClient {
   constructor() {
-    super(import.meta.env.VITE_API_BASE_URL || "");
+    super(API_BASE_URL);
   }
 
   // Register new user
@@ -101,7 +102,7 @@ class UserAuthApiService extends UserHttpClient {
 // OTP API service for users
 class UserOtpApiService extends UserHttpClient {
   constructor() {
-    super(import.meta.env.VITE_API_BASE_URL || "");
+    super(API_BASE_URL);
   }
 
   // Request OTP
@@ -120,14 +121,14 @@ class UserOtpApiService extends UserHttpClient {
 // Social Authentication API service for users
 class UserSocialAuthApiService extends UserHttpClient {
   constructor() {
-    super(import.meta.env.VITE_API_BASE_URL || "");
+    super(API_BASE_URL);
   }
 
   // Google OAuth
   google = {
     login: (): string => {
       // Return Google OAuth URL for redirect
-      return `${import.meta.env.VITE_API_BASE_URL || ""}${USER_SOCIAL_AUTH_ENDPOINTS.GOOGLE}`;
+      return `${API_BASE_URL}${USER_SOCIAL_AUTH_ENDPOINTS.GOOGLE}`;
     },
     callback: async (): Promise<ApiSuccess<SocialLoginResponseData>> => {
       const response = await this.get(USER_SOCIAL_AUTH_ENDPOINTS.GOOGLE_CALLBACK);
@@ -139,7 +140,7 @@ class UserSocialAuthApiService extends UserHttpClient {
   facebook = {
     login: (): string => {
       // Return Facebook OAuth URL for redirect
-      return `${import.meta.env.VITE_API_BASE_URL || ""}${USER_SOCIAL_AUTH_ENDPOINTS.FACEBOOK}`;
+      return `${API_BASE_URL}${USER_SOCIAL_AUTH_ENDPOINTS.FACEBOOK}`;
     },
     callback: async (): Promise<ApiSuccess<SocialLoginResponseData>> => {
       const response = await this.get(USER_SOCIAL_AUTH_ENDPOINTS.FACEBOOK_CALLBACK);
@@ -151,7 +152,7 @@ class UserSocialAuthApiService extends UserHttpClient {
   github = {
     login: (): string => {
       // Return GitHub OAuth URL for redirect
-      return `${import.meta.env.VITE_API_BASE_URL || ""}${USER_SOCIAL_AUTH_ENDPOINTS.GITHUB}`;
+      return `${API_BASE_URL}${USER_SOCIAL_AUTH_ENDPOINTS.GITHUB}`;
     },
     callback: async (): Promise<ApiSuccess<SocialLoginResponseData>> => {
       const response = await this.get(USER_SOCIAL_AUTH_ENDPOINTS.GITHUB_CALLBACK);

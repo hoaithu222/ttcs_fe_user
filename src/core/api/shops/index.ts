@@ -11,11 +11,12 @@ import type {
   ApiSuccess,
 } from "./type";
 import { UserHttpClient } from "@/core/base/http-client";
+import { API_BASE_URL } from "@/app/config/env.config";
 
 // Shops API service for users
 class UserShopsApiService extends UserHttpClient {
   constructor() {
-    super(import.meta.env.VITE_API_BASE_URL || "");
+    super(API_BASE_URL);
   }
 
   // Get shops list

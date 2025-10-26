@@ -1,32 +1,60 @@
-// Toast utility functions
+import { store } from "@/app/store";
+import { addToast, removeToast, clearAllToasts } from "@/app/store/slices/toast";
+
+/**
+ * Toast utility functions to dispatch toast messages to Redux store
+ */
 export const toastUtils = {
   /**
    * Show success toast
    */
-  success: (message: string, _duration: number = 3000): void => {
-    // Implementation would depend on your toast library
-    console.log(`Success: ${message}`);
+  success: (message: string, duration: number = 3000): void => {
+    store.dispatch(
+      addToast({
+        type: "success",
+        message,
+        duration,
+      })
+    );
   },
 
   /**
    * Show error toast
    */
-  error: (message: string, _duration: number = 5000): void => {
-    console.error(`Error: ${message}`);
+  error: (message: string, duration: number = 5000): void => {
+    store.dispatch(
+      addToast({
+        type: "error",
+        message,
+        duration,
+      })
+    );
   },
 
   /**
    * Show warning toast
    */
-  warning: (message: string, _duration: number = 4000): void => {
-    console.warn(`Warning: ${message}`);
+  warning: (message: string, duration: number = 4000): void => {
+    store.dispatch(
+      addToast({
+        type: "warning",
+        message,
+        duration,
+      })
+    );
   },
 
   /**
    * Show info toast
    */
-  info: (message: string, _duration: number = 3000): void => {
-    console.info(`Info: ${message}`);
+  info: (message: string, duration: number = 3000): void => {
+    store.dispatch(
+      addToast({
+        type: "info",
+        message,
+        duration,
+      })
+    );
   },
 
   /**
@@ -34,7 +62,14 @@ export const toastUtils = {
    */
   loading: (message: string): string => {
     const id = Math.random().toString(36).substr(2, 9);
-    console.log(`Loading: ${message} (ID: ${id})`);
+    store.dispatch(
+      addToast({
+        id,
+        type: "info",
+        message,
+        duration: 0, // Don't auto-dismiss loading toasts
+      })
+    );
     return id;
   },
 
@@ -42,14 +77,14 @@ export const toastUtils = {
    * Dismiss toast by ID
    */
   dismiss: (id: string): void => {
-    console.log(`Dismissed toast: ${id}`);
+    store.dispatch(removeToast(id));
   },
 
   /**
    * Clear all toasts
    */
   clear: (): void => {
-    console.log("Cleared all toasts");
+    store.dispatch(clearAllToasts());
   },
 
   /**
@@ -67,8 +102,14 @@ export const toastUtils = {
       };
     } = {}
   ): void => {
-    const { type = "info", duration = 3000, position = "top", action } = options;
-    console.log(`Custom toast [${type}]: ${message}`, { duration, position, action });
+    const { type = "info", duration = 3000 } = options;
+    store.dispatch(
+      addToast({
+        type,
+        message,
+        duration,
+      })
+    );
   },
 
   /**

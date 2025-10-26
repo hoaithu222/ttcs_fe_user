@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import { Outlet } from "react-router-dom";
 import ToastContainer from "./widgets/toast/ToastContainer";
 
@@ -13,9 +14,15 @@ import ToastContainer from "./widgets/toast/ToastContainer";
 const AppShell = () => {
   // Warning tuyệt đổi không thêm localStorage ở đây
   return (
-    <div className="w-screen h-screen">
+    <div
+      className={clsx(
+        "box-border flex flex-col w-screen min-h-screen text-center rounded-lg bg-background-base"
+      )}
+    >
       {/* Outlet se được render layout tương ứng với router hiện tại (main,login,extension) */}
-      <Outlet />
+      <div className="flex overflow-hidden flex-col flex-1">
+        <Outlet />
+      </div>
       {/* Các Modal,Toast,Dialog,Tooltip,Popover, sẽ được render ở đây */}
       <ToastContainer />
     </div>

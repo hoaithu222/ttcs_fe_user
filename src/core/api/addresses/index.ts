@@ -7,11 +7,12 @@ import type {
   ApiSuccess,
 } from "./type";
 import { UserHttpClient } from "@/core/base/http-client";
+import { API_BASE_URL } from "@/app/config/env.config";
 
 // Addresses API service for users
 class UserAddressesApiService extends UserHttpClient {
   constructor() {
-    super(import.meta.env.VITE_API_BASE_URL || "");
+    super(API_BASE_URL);
   }
 
   // Get addresses list

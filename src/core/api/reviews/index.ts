@@ -9,11 +9,12 @@ import type {
   ApiSuccess,
 } from "./type";
 import { UserHttpClient } from "@/core/base/http-client";
+import { API_BASE_URL } from "@/app/config/env.config";
 
 // Reviews API service for users
 class UserReviewsApiService extends UserHttpClient {
   constructor() {
-    super(import.meta.env.VITE_API_BASE_URL || "");
+    super(API_BASE_URL);
   }
 
   // Get product reviews

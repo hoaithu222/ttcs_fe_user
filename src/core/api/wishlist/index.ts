@@ -1,11 +1,12 @@
 import { USER_WISHLIST_ENDPOINTS, buildEndpoint } from "./path";
 import type { WishlistResponse, WishlistCheckResponse, ApiSuccess } from "./type";
 import { UserHttpClient } from "@/core/base/http-client";
+import { API_BASE_URL } from "@/app/config/env.config";
 
 // Wishlist API service for users
 class UserWishlistApiService extends UserHttpClient {
   constructor() {
-    super(import.meta.env.VITE_API_BASE_URL || "");
+    super(API_BASE_URL);
   }
 
   // Get wishlist

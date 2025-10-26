@@ -3,9 +3,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import clsx from "clsx";
 import { VariableSizeList as List, ListChildComponentProps } from "react-window";
+import { Search, X } from "lucide-react";
 
 import Divider from "@/foundation/components/layout/Divider";
-import Icon from "@/foundation/components/icons/Icon";
 import Input, { FieldInputProps } from "@/foundation/components/input/Input";
 import { stripDiacritics } from "@/shared/utils/string.utils";
 import { showToastByCode } from "@/shared/utils/toast.utils";
@@ -414,17 +414,27 @@ const SearchInput: React.FC<SearchInputProps> = ({
     if (isAutoFocus) inputRef.current?.focus();
   }, [isAutoFocus]);
 
+  const iconSizeClasses = {
+    xs: "w-3 h-3",
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6",
+    xl: "w-8 h-8",
+    base: "w-5 h-5",
+  };
+
   const renderIconLeft = () =>
-    hideIconLeft ? null : (iconLeft ?? <Icon name="SearchOutlined" size={iconSize} />);
+    hideIconLeft ? null : (iconLeft ?? <Search className={iconSizeClasses[iconSize]} />);
   const renderIconRight = () =>
     hideIconRight
       ? null
       : (iconRight ?? (
-          <Icon
+          <X
             onClick={() => handleClearIcon({} as React.MouseEvent<SVGSVGElement>)}
-            name="CloseOutlined"
-            size={iconSize}
-            className={clsx(value ? "opacity-100" : "opacity-0")}
+            className={clsx(
+              iconSizeClasses[iconSize],
+              value ? "opacity-100 cursor-pointer" : "opacity-0 pointer-events-none"
+            )}
           />
         ));
 
@@ -514,10 +524,16 @@ const SearchInput: React.FC<SearchInputProps> = ({
         iconRight={renderIconRight()}
         sizeInput={sizeInput}
         maxLength={maxLength}
+        spellCheck={false}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
         className={clsx(
+          "flex items-center", // Ensure proper alignment
           isFocused ? "bg-neutral-0" : "bg-neutral-1",
-          "px-3 w-full rounded-lg border transition-colors border-neutral-3",
-          "text-body-14 placeholder:text-neutral-4 hover:border-neutral-5 focus:border-primary-6",
+          "px-3 w-full rounded-xl border-2 transition-all duration-200 border-neutral-3",
+          "text-body-14 placeholder:text-neutral-4",
+          "hover:border-primary-5 focus:border-primary-6 focus:ring-2 focus:ring-primary-6/20",
           inputClassName
         )}
         data-testid={testId}

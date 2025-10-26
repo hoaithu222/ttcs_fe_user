@@ -7,6 +7,8 @@ import axios, {
 import { v4 as uuidv4 } from "uuid";
 
 import { MODE, API_TIMEOUT } from "@/app/config/env.config";
+import { USER_AUTH_ENDPOINTS, USER_OTP_ENDPOINTS } from "@/core/api/auth/path";
+import { USER_PRODUCTS_ENDPOINTS } from "@/core/api/products/path";
 import authApi from "@/core/api/auth";
 import { toastUtils } from "@/shared/utils/toast.utils";
 
@@ -19,15 +21,15 @@ const logoutRequest = () => {
 
 // Simple token storage using localStorage
 const tokenStorage = {
-  getAccessToken: (): string | null => localStorage.getItem("access_token"),
-  getRefreshToken: (): string | null => localStorage.getItem("refresh_token"),
+  getAccessToken: (): string | null => localStorage.getItem("accessToken"),
+  getRefreshToken: (): string | null => localStorage.getItem("refreshToken"),
   setTokens: (accessToken: string, refreshToken: string): void => {
-    localStorage.setItem("access_token", accessToken);
-    localStorage.setItem("refresh_token", refreshToken);
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
   },
   clearTokens: (): void => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
   },
   hasTokens: (): boolean => {
     return !!(tokenStorage.getAccessToken() && tokenStorage.getRefreshToken());
@@ -136,6 +138,16 @@ export abstract class UserHttpClient {
     return Promise.reject(error);
   };
 
+  private shouldBypassRcValidation(url: string | undefined): boolean {
+    if (!url) return false;
+    // Bypass RC validation for auth, OTP, and products endpoints
+    return (
+      Object.values(USER_AUTH_ENDPOINTS).some((path) => url === path) ||
+      Object.values(USER_OTP_ENDPOINTS).some((path) => url === path) ||
+      Object.values(USER_PRODUCTS_ENDPOINTS).some((path) => url.includes(path.replace(":id", "")))
+    );
+  }
+
   private handleResponse = (response: AxiosResponse<any>): AxiosResponse<any> => {
     const { config, data } = response;
     const { url } = config as MetaConfig;
@@ -161,8 +173,8 @@ export abstract class UserHttpClient {
       return response;
     }
 
-    // RC validation
-    if (data?.rc !== 1) {
+    // RC validation (bypass for auth endpoints)
+    if (!this.shouldBypassRcValidation(url) && data?.rc !== 1) {
       const isInvalidSession = data.rs === "FOException.InvalidSessionException";
 
       if (isInvalidSession) {

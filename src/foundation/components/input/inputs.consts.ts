@@ -160,8 +160,21 @@ export const INPUT_CONSTANTS = {
 
 // Export individual constants for backward compatibility
 export const InputSize = INPUT_CONSTANTS.SIZES;
-export const INPUT_SIZE = INPUT_CONSTANTS.SIZES;
-export const TEXT_SIZE = INPUT_CONSTANTS.SIZES;
+export const INPUT_SIZE = {
+  xs: "h-8",
+  sm: "h-9",
+  md: "h-10",
+  lg: "h-11",
+  xl: "h-12",
+  full: "h-10",
+} as const;
+
+// Actual CSS classes for text sizes
+export const TEXT_SIZE = {
+  small: "text-caption-12",
+  medium: "text-body-14",
+  large: "text-body-16",
+} as const;
 
 // Size mapping for backward compatibility
 export const SIZE_MAPPING = {

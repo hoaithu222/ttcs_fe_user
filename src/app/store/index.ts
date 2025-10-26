@@ -22,9 +22,8 @@ runSageMiddleware(); // rõ ràng và đúng thời điểm
 export const persistor = persistStore(store);
 
 // định nghĩa sau khi store đã đc tạo
-
+// RootState được export từ index.ts
 export type RootState = ReturnType<typeof store.getState>;
-
 export type AppDispatch = typeof store.dispatch;
 
 export const useAppDispatch = () => useDispatch<AppDispatch>();

@@ -7,7 +7,7 @@ export const USER_AUTH_ENDPOINTS = {
   FORGOT_PASSWORD: "/auth/forgot-password",
   RESET_PASSWORD: "/auth/reset-password",
   LOGOUT: "/auth/logout",
-  REFRESH_TOKEN: "/auth/refresh-token",
+  REFRESH_TOKEN: "/auth/refresh",
   PROFILE: "/auth/profile",
   UPDATE_PROFILE: "/auth/profile",
   CHANGE_PASSWORD: "/auth/change-password",
