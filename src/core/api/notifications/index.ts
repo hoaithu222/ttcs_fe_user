@@ -6,11 +6,11 @@ import type {
   UnreadCountResponse,
   ApiSuccess,
 } from "./type";
-import { UserHttpClient } from "@/core/base/http-client";
+import { VpsHttpClient } from "@/core/base/http-client";
 import { API_BASE_URL } from "@/app/config/env.config";
 
 // Notifications API service for users
-class UserNotificationsApiService extends UserHttpClient {
+class UserNotificationsApiService extends VpsHttpClient {
   constructor() {
     super(API_BASE_URL);
   }

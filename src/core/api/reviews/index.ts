@@ -8,11 +8,11 @@ import type {
   ReviewStats,
   ApiSuccess,
 } from "./type";
-import { UserHttpClient } from "@/core/base/http-client";
+import { VpsHttpClient } from "@/core/base/http-client";
 import { API_BASE_URL } from "@/app/config/env.config";
 
 // Reviews API service for users
-class UserReviewsApiService extends UserHttpClient {
+class UserReviewsApiService extends VpsHttpClient {
   constructor() {
     super(API_BASE_URL);
   }

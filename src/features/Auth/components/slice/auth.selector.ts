@@ -15,6 +15,8 @@ export const selectIsLoadingRegister = createSelector(
   (state) => state.isLoadingRegister
 );
 
+export const selectRegisterStatus = createSelector([authSelector], (state) => state.registerStatus);
+
 export const selectIsLoadingForgotPassword = createSelector(
   [authSelector],
   (state) => state.isLoadingForgotPassword
@@ -30,4 +32,39 @@ export const selectUser = createSelector([authSelector], (state) => state.user);
 export const selectLogoutStatus = createSelector(
   [authSelector],
   (state) => state.logout.logoutStatus
+);
+
+export const selectForgotPasswordStatus = createSelector(
+  [authSelector],
+  (state) => state.forgotPassword.forgotPasswordStatus
+);
+
+export const selectForgotPasswordStep = createSelector(
+  [authSelector],
+  (state) => state.forgotPassword.stepForgotPassword
+);
+
+export const selectForgotPasswordEmail = createSelector(
+  [authSelector],
+  (state) => state.forgotPassword.email
+);
+
+export const selectForgotPasswordOtp = createSelector(
+  [authSelector],
+  (state) => state.forgotPassword.otp
+);
+
+export const selectForgotPasswordNewPassword = createSelector(
+  [authSelector],
+  (state) => state.forgotPassword.newPassword
+);
+
+export const selectForgotPasswordConfirmPassword = createSelector(
+  [authSelector],
+  (state) => state.forgotPassword.confirmPassword
+);
+
+export const selectForgotPasswordState = createSelector(
+  [authSelector],
+  (state) => state.forgotPassword
 );

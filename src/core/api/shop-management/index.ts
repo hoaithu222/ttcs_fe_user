@@ -14,11 +14,11 @@ import type {
   ShopOrdersResponse,
   ApiSuccess,
 } from "./type";
-import { UserHttpClient } from "@/core/base/http-client";
+import { VpsHttpClient } from "@/core/base/http-client";
 import { API_BASE_URL } from "@/app/config/env.config";
 
 // Shop Management API service
-class ShopManagementApiService extends UserHttpClient {
+class ShopManagementApiService extends VpsHttpClient {
   constructor() {
     super(API_BASE_URL);
   }

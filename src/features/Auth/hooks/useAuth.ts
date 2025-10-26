@@ -5,6 +5,12 @@ import {
   logoutUser,
   register,
   forgotPassword,
+  resetRegisterStatus,
+  setForgotPasswordStep,
+  setForgotPasswordOtp,
+  setForgotPasswordNewPassword,
+  setForgotPasswordConfirmPassword,
+  resetForgotPassword,
 } from "@/features/Auth/components/slice/auth.slice";
 import { LoginRequest } from "@/core/api/auth/type";
 import { useNavigate } from "react-router-dom";
@@ -13,9 +19,17 @@ import {
   selectIsAuthenticated,
   selectIsLoadingLogin,
   selectIsLoadingRegister,
+  selectRegisterStatus,
   selectIsLoadingForgotPassword,
   selectUser,
   selectLogoutStatus,
+  selectForgotPasswordStatus,
+  selectForgotPasswordStep,
+  selectForgotPasswordEmail,
+  selectForgotPasswordOtp,
+  selectForgotPasswordNewPassword,
+  selectForgotPasswordConfirmPassword,
+  selectForgotPasswordState,
 } from "@/features/Auth/components/slice/auth.selector";
 import { tokenUtils } from "@/shared/utils/token.utils";
 import { ReduxStateType } from "@/app/store/types";
@@ -33,15 +47,40 @@ export const useAuth = () => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const isLoadingLogin = useAppSelector(selectIsLoadingLogin);
   const isLoadingRegister = useAppSelector(selectIsLoadingRegister);
+  const registerStatus = useAppSelector(selectRegisterStatus);
   const isLoadingForgotPassword = useAppSelector(selectIsLoadingForgotPassword);
   const user = useAppSelector(selectUser);
   const logoutStatus = useAppSelector(selectLogoutStatus);
 
-  // Redirect sau khi login thành công
+  // Forgot password state
+  const forgotPasswordStatus = useAppSelector(selectForgotPasswordStatus);
+  const forgotPasswordStep = useAppSelector(selectForgotPasswordStep);
+  const forgotPasswordEmail = useAppSelector(selectForgotPasswordEmail);
+  const forgotPasswordOtp = useAppSelector(selectForgotPasswordOtp);
+  const forgotPasswordNewPassword = useAppSelector(selectForgotPasswordNewPassword);
+  const forgotPasswordConfirmPassword = useAppSelector(selectForgotPasswordConfirmPassword);
+  const forgotPasswordState = useAppSelector(selectForgotPasswordState);
+
+  // Redirect sau khi login thành công (chỉ khi đang ở trang auth)
   useEffect(() => {
+    console.log("[useAuth] Check redirect:", { isAuthenticated, user: !!user, userData: user });
+
     if (isAuthenticated && user) {
-      console.log("Redirecting to home after login success");
-      navigate(ROUTE.home.path);
+      const currentPath = window.location.pathname;
+      const authPaths = [ROUTE.auth.path, ROUTE.register.path, ROUTE.forgotPassword.path];
+
+      console.log(
+        "[useAuth] Current path:",
+        currentPath,
+        "Is auth path:",
+        authPaths.includes(currentPath)
+      );
+
+      // Chỉ redirect khi đang ở trang auth
+      if (authPaths.includes(currentPath)) {
+        console.log("[useAuth] Redirecting to home after login success");
+        navigate(ROUTE.home.path);
+      }
     }
   }, [isAuthenticated, user, navigate]);
 
@@ -62,6 +101,11 @@ export const useAuth = () => {
 
   // Kiểm tra token khi component mount
   useEffect(() => {
+    // Skip nếu đang authenticate (login success)
+    if (isAuthenticated) {
+      return;
+    }
+
     const accessToken = localStorage.getItem("accessToken");
     const refreshToken = localStorage.getItem("refreshToken");
 
@@ -81,7 +125,7 @@ export const useAuth = () => {
         dispatch({ type: "auth/refreshToken" });
       }
     }
-  }, [dispatch]);
+  }, [dispatch, isAuthenticated]);
 
   const onSubmitLogin = useCallback(
     async (credentials: LoginRequest) => {
@@ -133,14 +177,61 @@ export const useAuth = () => {
     dispatch({ type: "auth/refreshToken" });
   }, [dispatch]);
 
+  // Forgot password actions
+  const setStep = useCallback(
+    (step: "email" | "otp" | "resetPassword") => {
+      dispatch(setForgotPasswordStep(step));
+    },
+    [dispatch]
+  );
+
+  const setOtp = useCallback(
+    (otp: string) => {
+      dispatch(setForgotPasswordOtp(otp));
+    },
+    [dispatch]
+  );
+
+  const setNewPassword = useCallback(
+    (password: string) => {
+      dispatch(setForgotPasswordNewPassword(password));
+    },
+    [dispatch]
+  );
+
+  const setConfirmPassword = useCallback(
+    (password: string) => {
+      dispatch(setForgotPasswordConfirmPassword(password));
+    },
+    [dispatch]
+  );
+
+  const onResetForgotPassword = useCallback(() => {
+    dispatch(resetForgotPassword());
+  }, [dispatch]);
+
+  const onResetRegisterStatus = useCallback(() => {
+    dispatch(resetRegisterStatus());
+  }, [dispatch]);
+
   return {
     // State
     isAuthenticated,
     isLoadingLogin,
     isLoadingRegister,
+    registerStatus,
     isLoadingForgotPassword,
     user,
     logoutStatus,
+
+    // Forgot password state
+    forgotPasswordStatus,
+    forgotPasswordStep,
+    forgotPasswordEmail,
+    forgotPasswordOtp,
+    forgotPasswordNewPassword,
+    forgotPasswordConfirmPassword,
+    forgotPasswordState,
 
     // Actions
     onSubmitLogin,
@@ -148,6 +239,14 @@ export const useAuth = () => {
     onSubmitForgotPassword,
     onLogout,
     refreshToken,
+    resetRegisterStatus: onResetRegisterStatus,
+
+    // Forgot password actions
+    setForgotPasswordStep: setStep,
+    setForgotPasswordOtp: setOtp,
+    setForgotPasswordNewPassword: setNewPassword,
+    setForgotPasswordConfirmPassword: setConfirmPassword,
+    resetForgotPassword: onResetForgotPassword,
   };
 };
 

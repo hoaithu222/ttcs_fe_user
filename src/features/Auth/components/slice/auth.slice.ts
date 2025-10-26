@@ -12,6 +12,15 @@ const initialState: IAuthState = {
   isLoadingLogin: false,
   isLoadingRegister: false,
   isLoadingForgotPassword: false,
+  registerStatus: ReduxStateType.INIT,
+  forgotPassword: {
+    forgotPasswordStatus: ReduxStateType.INIT,
+    stepForgotPassword: "email",
+    email: "",
+    otp: "",
+    newPassword: "",
+    confirmPassword: "",
+  },
   logout: {
     logoutStatus: ReduxStateType.INIT,
   },
@@ -42,9 +51,14 @@ export const { slice, reducer } = createResettableSlice({
       state.user = null;
     },
     loginSuccess: (state, action) => {
+      console.log("[auth.slice] loginSuccess - user payload:", action.payload);
       state.isLoadingLogin = false;
       state.isAuthenticated = true;
       state.user = action.payload;
+      console.log("[auth.slice] loginSuccess - Updated state:", {
+        isAuthenticated: state.isAuthenticated,
+        user: state.user,
+      });
     },
     loginFailed: (state) => {
       state.isLoadingLogin = false;
@@ -53,22 +67,55 @@ export const { slice, reducer } = createResettableSlice({
     },
     register: (state, _action: PayloadAction<any>) => {
       state.isLoadingRegister = true;
+      state.registerStatus = ReduxStateType.LOADING;
       state.user = null;
     },
     registerSuccess: (state) => {
       state.isLoadingRegister = false;
+      state.registerStatus = ReduxStateType.SUCCESS;
     },
     registerFailed: (state) => {
       state.isLoadingRegister = false;
+      state.registerStatus = ReduxStateType.ERROR;
     },
-    forgotPassword: (state, _action: PayloadAction<string>) => {
+    resetRegisterStatus: (state) => {
+      state.registerStatus = ReduxStateType.INIT;
+    },
+    forgotPassword: (state, action: PayloadAction<string>) => {
       state.isLoadingForgotPassword = true;
+      state.forgotPassword.forgotPasswordStatus = ReduxStateType.LOADING;
+      state.forgotPassword.email = action.payload;
+      state.forgotPassword.stepForgotPassword = "email";
     },
     forgotPasswordSuccess: (state) => {
       state.isLoadingForgotPassword = false;
+      state.forgotPassword.forgotPasswordStatus = ReduxStateType.SUCCESS;
     },
     forgotPasswordFailed: (state) => {
       state.isLoadingForgotPassword = false;
+      state.forgotPassword.forgotPasswordStatus = ReduxStateType.ERROR;
+    },
+    setForgotPasswordStep: (state, action: PayloadAction<"email" | "otp" | "resetPassword">) => {
+      state.forgotPassword.stepForgotPassword = action.payload;
+    },
+    setForgotPasswordOtp: (state, action: PayloadAction<string>) => {
+      state.forgotPassword.otp = action.payload;
+    },
+    setForgotPasswordNewPassword: (state, action: PayloadAction<string>) => {
+      state.forgotPassword.newPassword = action.payload;
+    },
+    setForgotPasswordConfirmPassword: (state, action: PayloadAction<string>) => {
+      state.forgotPassword.confirmPassword = action.payload;
+    },
+    resetForgotPassword: (state) => {
+      state.forgotPassword = {
+        forgotPasswordStatus: ReduxStateType.INIT,
+        stepForgotPassword: "email",
+        email: "",
+        otp: "",
+        newPassword: "",
+        confirmPassword: "",
+      };
     },
     logoutUser: (state) => {
       state.isAuthenticated = false;
@@ -116,9 +163,15 @@ export const {
   register,
   registerSuccess,
   registerFailed,
+  resetRegisterStatus,
   forgotPassword,
   forgotPasswordSuccess,
   forgotPasswordFailed,
+  setForgotPasswordStep,
+  setForgotPasswordOtp,
+  setForgotPasswordNewPassword,
+  setForgotPasswordConfirmPassword,
+  resetForgotPassword,
   logoutUser,
   logoutSuccess,
   logoutFailed,

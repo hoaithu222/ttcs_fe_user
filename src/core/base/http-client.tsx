@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from "uuid";
 import { MODE, API_TIMEOUT } from "@/app/config/env.config";
 import { USER_AUTH_ENDPOINTS, USER_OTP_ENDPOINTS } from "@/core/api/auth/path";
 import { USER_PRODUCTS_ENDPOINTS } from "@/core/api/products/path";
-import authApi from "@/core/api/auth";
+import { authAPI } from "@/core/api/auth";
 import { toastUtils } from "@/shared/utils/toast.utils";
 
 // Logout function - clear tokens and redirect
@@ -94,7 +94,7 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-export abstract class UserHttpClient {
+export abstract class VpsHttpClient {
   protected instance: AxiosInstance;
 
   private readonly maxRetryCount = 2;
@@ -137,7 +137,7 @@ export abstract class UserHttpClient {
 
   private handleRequestError = (error: any) => {
     if (MODE === "dev") {
-      console.error("[UserHttpClient] Request error:", error);
+      console.error("[VpsHttpClient] Request error:", error);
     }
     return Promise.reject(error);
   };
@@ -170,6 +170,31 @@ export abstract class UserHttpClient {
       });
     }
 
+    // Check for standard response format - show success toast only
+    if (
+      data &&
+      typeof data === "object" &&
+      !Array.isArray(data) &&
+      data.hasOwnProperty("success")
+    ) {
+      // Check if this is a success response - show toast if message exists
+      if (data.success === true && data.message) {
+        toastUtils.success(data.message);
+        if (MODE === "dev") {
+          console.log("[VpsHttpClient] Showing success toast:", data.message);
+        }
+      }
+      // Error responses are handled in handleResponseError
+
+      // Log response for debugging
+      if (MODE === "dev") {
+        console.log("[VpsHttpClient] Response data:", {
+          success: data.success,
+          message: data.message,
+        });
+      }
+    }
+
     // Handle special RC codes
     if (data?.rc === -6017) {
       response.data = normalizeNullStringsDeep(response.data);
@@ -178,7 +203,10 @@ export abstract class UserHttpClient {
     }
 
     // RC validation (bypass for auth endpoints)
-    if (!this.shouldBypassRcValidation(url) && data?.rc !== 1) {
+    // Check both `rc` and `code` fields for backward compatibility
+    const rcCode = data?.rc ?? data?.code;
+    // Only validate RC if it exists and is not 1
+    if (!this.shouldBypassRcValidation(url) && rcCode !== undefined && rcCode !== 1) {
       const isInvalidSession = data.rs === "FOException.InvalidSessionException";
 
       if (isInvalidSession) {
@@ -187,10 +215,10 @@ export abstract class UserHttpClient {
         }, 100);
       }
 
-      const errorMessage = data.rs || `Có lỗi xảy ra (${data.rc})`;
+      const errorMessage = data.rs || `Có lỗi xảy ra (${rcCode})`;
       const commonError = this.createError(response, {
-        code: `ERROR_${data.rc}`,
-        name: `ERROR_${data.rc}`,
+        code: `ERROR_${rcCode}`,
+        name: `ERROR_${rcCode}`,
         userMessage: errorMessage,
       });
 
@@ -212,32 +240,32 @@ export abstract class UserHttpClient {
 
     // Log error in dev mode
     if (MODE === "dev") {
-      console.error("[UserHttpClient] Response error:", error);
+      console.error("[VpsHttpClient] Response error:", error);
     }
 
     // Check if response has standard error format with skipToast flag
     if (response?.data && typeof response.data === "object" && !Array.isArray(response.data)) {
       const errorData = response.data as any;
 
+      console.log("[VpsHttpClient] Full error response:", errorData);
+
       // Check if this is a standard error response
       if (errorData.success === false || errorData.hasOwnProperty("success")) {
-        // Log error response in dev mode
-        if (MODE === "dev") {
-          console.log("[UserHttpClient] Standard error response:", errorData);
-        }
-
         const message = errorData.message || "An error occurred";
 
+        console.log("[VpsHttpClient] Error details:", {
+          message,
+          skipToast: errorData.skipToast,
+          success: errorData.success,
+          status: response?.status,
+        });
+
         // Only show toast if skipToast is not true
-        if (!errorData.skipToast) {
+        if (errorData.skipToast === undefined || errorData.skipToast === false) {
           toastUtils.error(message);
-          if (MODE === "dev") {
-            console.log("[UserHttpClient] Showing toast for error:", message);
-          }
+          console.log("[VpsHttpClient] ✅ Showing error toast:", message);
         } else {
-          if (MODE === "dev") {
-            console.log("[UserHttpClient] Skipping toast for error:", message);
-          }
+          console.log("[VpsHttpClient] ❌ Skipping toast (skipToast=true):", message);
         }
 
         // Create standardized error object
@@ -251,6 +279,18 @@ export abstract class UserHttpClient {
         };
 
         return Promise.reject(standardError);
+      }
+    }
+
+    // If response.data exists but doesn't have success field, it might be a legacy error
+    // Show toast for any error response that doesn't match standard format
+    if (response?.data && typeof response.data === "object" && !Array.isArray(response.data)) {
+      const errData = response.data as any;
+
+      // Only process if it's actually an error (status >= 400)
+      if (response.status >= 400 && errData.message) {
+        toastUtils.error(errData.message);
+        console.log("[VpsHttpClient] ✅ Showing toast for non-standard error:", errData.message);
       }
     }
 
@@ -281,7 +321,7 @@ export abstract class UserHttpClient {
         }
 
         // Call refresh token API
-        const response = await authApi.refreshToken(refreshToken);
+        const response = await authAPI.refreshToken(refreshToken);
         const refreshData = response.data;
 
         if (!refreshData) {

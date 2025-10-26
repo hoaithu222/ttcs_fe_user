@@ -15,11 +15,11 @@ import type {
   ApiSuccess,
   RefreshTokenResponse,
 } from "./type";
-import { UserHttpClient } from "@/core/base/http-client";
+import { VpsHttpClient } from "@/core/base/http-client";
 import { API_BASE_URL } from "@/app/config/env.config";
 
 // Authentication API service for users
-class UserAuthApiService extends UserHttpClient {
+class UserAuthApiService extends VpsHttpClient {
   constructor() {
     super(API_BASE_URL);
   }
@@ -104,7 +104,7 @@ class UserAuthApiService extends UserHttpClient {
 }
 
 // OTP API service for users
-class UserOtpApiService extends UserHttpClient {
+class UserOtpApiService extends VpsHttpClient {
   constructor() {
     super(API_BASE_URL);
   }
@@ -123,7 +123,7 @@ class UserOtpApiService extends UserHttpClient {
 }
 
 // Social Authentication API service for users
-class UserSocialAuthApiService extends UserHttpClient {
+class UserSocialAuthApiService extends VpsHttpClient {
   constructor() {
     super(API_BASE_URL);
   }

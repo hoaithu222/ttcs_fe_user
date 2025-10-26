@@ -6,11 +6,11 @@ import type {
   AddressListResponse,
   ApiSuccess,
 } from "./type";
-import { UserHttpClient } from "@/core/base/http-client";
+import { VpsHttpClient } from "@/core/base/http-client";
 import { API_BASE_URL } from "@/app/config/env.config";
 
 // Addresses API service for users
-class UserAddressesApiService extends UserHttpClient {
+class UserAddressesApiService extends VpsHttpClient {
   constructor() {
     super(API_BASE_URL);
   }

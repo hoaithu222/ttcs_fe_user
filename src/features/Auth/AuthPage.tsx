@@ -26,7 +26,10 @@ const AuthPage = () => {
   }, [location.pathname]);
 
   // Nếu đã đăng nhập thì chuyển hướng đến trang chủ
+  console.log("[AuthPage] isAuthenticated:", isAuthenticated);
+
   if (isAuthenticated) {
+    console.log("[AuthPage] Redirecting to home");
     return <Navigate to={NAVIGATION_CONFIG.home.path} />;
   }
 

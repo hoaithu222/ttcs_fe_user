@@ -9,11 +9,11 @@ import type {
   ProductSearchResponse,
   ApiSuccess,
 } from "./type";
-import { UserHttpClient } from "@/core/base/http-client";
+import { VpsHttpClient } from "@/core/base/http-client";
 import { API_BASE_URL } from "@/app/config/env.config";
 
 // Products API service for users
-class UserProductsApiService extends UserHttpClient {
+class UserProductsApiService extends VpsHttpClient {
   constructor() {
     super(API_BASE_URL);
   }

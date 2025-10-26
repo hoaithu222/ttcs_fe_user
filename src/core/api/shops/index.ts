@@ -10,11 +10,11 @@ import type {
   NearbyShopsResponse,
   ApiSuccess,
 } from "./type";
-import { UserHttpClient } from "@/core/base/http-client";
+import { VpsHttpClient } from "@/core/base/http-client";
 import { API_BASE_URL } from "@/app/config/env.config";
 
 // Shops API service for users
-class UserShopsApiService extends UserHttpClient {
+class UserShopsApiService extends VpsHttpClient {
   constructor() {
     super(API_BASE_URL);
   }

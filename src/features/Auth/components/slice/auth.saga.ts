@@ -18,26 +18,42 @@ import {
   refreshTokenFailed,
 } from "./auth.slice";
 import { tokenUtils } from "@/shared/utils/token.utils";
-import { toastUtils } from "@/shared/utils/toast.utils";
 
 // Login saga
 function* handleLogin(action: PayloadAction<LoginRequest>): Generator<any, void, any> {
   try {
+    console.log("[Login Saga] Starting login with credentials:", action.payload);
+
     const response: any = yield call(authAPI.login, action.payload);
 
+    console.log("[Login Saga] Full response:", JSON.stringify(response, null, 2));
+    console.log("[Login Saga] Response.success:", response.success);
+    console.log("[Login Saga] Response.data:", response.data);
+
     if (response.success) {
+      // Backend trả về: response.data.user (user object nằm trong data.user)
+      const userData = response.data.user;
+
+      console.log("[Login Saga] User data from response:", userData);
+
       // Lưu tokens vào localStorage
-      tokenUtils.setTokens(response.data.user.accessToken, response.data.user.refreshToken);
+      tokenUtils.setTokens(userData.accessToken, userData.refreshToken);
+      console.log("[Login Saga] Tokens saved to localStorage");
 
-      yield put(loginSuccess(response.data.user));
+      // Loại bỏ password và các field không cần thiết khỏi user object
+      const { password, __v, ...cleanUser } = userData;
 
-      // Show success toast
-      toastUtils.success(response.message || "Đăng nhập thành công!");
+      console.log("[Login Saga] Clean user:", cleanUser);
+
+      yield put(loginSuccess(cleanUser));
+      console.log("[Login Saga] loginSuccess action dispatched");
+      // Toast sẽ được hiện tự động từ interceptor khi response.success = true
     } else {
+      console.log("[Login Saga] Login failed - success is not true");
       yield put(loginFailed());
     }
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("[Login Saga] Login error:", error);
     yield put(loginFailed());
   }
 }
@@ -45,15 +61,23 @@ function* handleLogin(action: PayloadAction<LoginRequest>): Generator<any, void,
 // Register saga
 function* handleRegister(action: PayloadAction<any>): Generator<any, void, any> {
   try {
-    const response: any = yield call(authAPI.register, action.payload);
+    // Transform payload from frontend format to backend format
+    // Frontend: { fullName, email, password, confirmPassword }
+    // Backend: { name, email, password }
+    const transformedPayload = {
+      name: action.payload.fullName || action.payload.name,
+      email: action.payload.email,
+      password: action.payload.password,
+    };
+
+    console.log("[Register Saga] Original payload:", action.payload);
+    console.log("[Register Saga] Transformed payload:", transformedPayload);
+
+    const response: any = yield call(authAPI.register, transformedPayload);
 
     if (response.success) {
       yield put(registerSuccess());
-
-      // Show success toast
-      toastUtils.success(
-        response.message || "Đăng ký thành công! Vui lòng kiểm tra email để xác thực."
-      );
+      // Toast sẽ được hiện tự động từ interceptor khi response.success = true
     } else {
       yield put(registerFailed());
     }
@@ -71,9 +95,7 @@ function* handleForgotPassword(action: PayloadAction<string>): Generator<any, vo
 
     if (response.success) {
       yield put(forgotPasswordSuccess());
-
-      // Show success toast
-      toastUtils.success(response.message || "Email đặt lại mật khẩu đã được gửi!");
+      // Toast sẽ được hiện tự động từ interceptor khi response.success = true
     } else {
       yield put(forgotPasswordFailed());
     }
@@ -86,23 +108,18 @@ function* handleForgotPassword(action: PayloadAction<string>): Generator<any, vo
 // Logout saga
 function* handleLogout(): Generator<any, void, any> {
   try {
-    const response: any = yield call(authAPI.logout);
+    yield call(authAPI.logout);
 
     // Xóa tokens khỏi localStorage
     tokenUtils.clearTokens();
 
     yield put(logoutSuccess());
-
-    // Show success toast
-    toastUtils.success(response?.message || "Đăng xuất thành công!");
+    // Toast sẽ được hiện tự động từ interceptor khi response.success = true
   } catch (error) {
     console.error("Logout error:", error);
     // Vẫn logout ngay cả khi API call thất bại
     tokenUtils.clearTokens();
     yield put(logoutSuccess());
-
-    // Show success toast even on error
-    toastUtils.success("Đăng xuất thành công!");
   }
 }
 

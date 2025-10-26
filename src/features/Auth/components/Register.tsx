@@ -3,10 +3,11 @@ import logo from "@/assets/image/logo.png";
 import Button from "@/foundation/components/buttons/Button";
 import { User, Lock, Sparkles, Mail, UserPlus } from "lucide-react";
 import FloatingInput from "@/foundation/components/input/FloatingInput";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "@/features/Auth/hooks/useAuth";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
+import { ReduxStateType } from "@/app/store/types";
 
 interface RegisterRequest {
   email: string;
@@ -16,7 +17,7 @@ interface RegisterRequest {
 }
 
 const Register = () => {
-  const { isLoadingRegister, onSubmitRegister } = useAuth();
+  const { isLoadingRegister, registerStatus, onSubmitRegister, resetRegisterStatus } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState<RegisterRequest>({
     email: "",
@@ -32,6 +33,16 @@ const Register = () => {
   const handleLogin = () => {
     navigate(NAVIGATION_CONFIG.login.path);
   };
+
+  // Redirect to login page when register is successful
+  useEffect(() => {
+    if (registerStatus === ReduxStateType.SUCCESS) {
+      // Reset register status
+      resetRegisterStatus();
+      // Redirect to login page
+      navigate(NAVIGATION_CONFIG.login.path);
+    }
+  }, [registerStatus, navigate, resetRegisterStatus]);
 
   const isFormValid =
     data.email &&
@@ -84,7 +95,7 @@ const Register = () => {
             <h2 className="text-3xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-600 to-green-800 lg:text-4xl">
               Tạo tài khoản mới
             </h2>
-            <p className="text-gray-600 text-lg">Tham gia cùng chúng tôi ngay hôm nay</p>
+            <p className="text-lg text-gray-600">Tham gia cùng chúng tôi ngay hôm nay</p>
 
             {/* Decorative line */}
             <div className="flex justify-center items-center mt-6">
@@ -165,7 +176,7 @@ const Register = () => {
 
               {/* Password match validation */}
               {data.confirmPassword && data.password !== data.confirmPassword && (
-                <p className="text-red-500 text-sm">Mật khẩu không khớp</p>
+                <p className="text-sm text-red-500">Mật khẩu không khớp</p>
               )}
             </div>
 
@@ -216,7 +227,7 @@ const Register = () => {
               <button
                 type="button"
                 onClick={handleLogin}
-                className="text-green-600 hover:text-green-800 font-semibold transition-colors duration-200"
+                className="font-semibold text-green-600 transition-colors duration-200 hover:text-green-800"
               >
                 Đăng nhập ngay
               </button>

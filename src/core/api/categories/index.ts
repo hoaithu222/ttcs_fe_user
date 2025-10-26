@@ -7,11 +7,11 @@ import type {
   PopularCategoriesResponse,
   ApiSuccess,
 } from "./type";
-import { UserHttpClient } from "@/core/base/http-client";
+import { VpsHttpClient } from "@/core/base/http-client";
 import { API_BASE_URL } from "@/app/config/env.config";
 
 // Categories API service for users
-class UserCategoriesApiService extends UserHttpClient {
+class UserCategoriesApiService extends VpsHttpClient {
   constructor() {
     super(API_BASE_URL);
   }
