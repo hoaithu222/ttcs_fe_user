@@ -1,5 +1,6 @@
 import React from "react";
 import { LucideIcon } from "lucide-react";
+import { icons } from "@/assets/icons";
 
 export interface IconProps {
   icon?: LucideIcon;
@@ -29,11 +30,11 @@ const Icon: React.FC<IconProps> = ({
   color,
   onClick,
   disabled = false,
-  name, // Accept name prop but don't use it
+  name,
   role,
   "aria-label": ariaLabel,
   "data-testid": dataTestId,
-  testId, // Accept testId prop for backward compatibility
+  testId,
   onKeyDown,
   tabIndex,
   key,
@@ -63,15 +64,28 @@ const Icon: React.FC<IconProps> = ({
     "data-testid": dataTestId || testId,
     onKeyDown,
     tabIndex,
-    key,
     ...rest,
   };
 
-  if (!IconComponent) {
-    return <span {...iconProps}>{name || "Icon"}</span>;
+  // Handle custom SVG icons from assets/icons
+  if (name && icons[name as keyof typeof icons]) {
+    const CustomIcon = icons[name as keyof typeof icons];
+    if (typeof CustomIcon === "string") {
+      // Handle SVG string
+      return <img src={CustomIcon} alt={name} {...iconProps} />;
+    } else {
+      // Handle React component
+      return <CustomIcon {...iconProps} />;
+    }
   }
 
-  return <IconComponent {...iconProps} />;
+  // Handle Lucide icons
+  if (IconComponent) {
+    return <IconComponent {...iconProps} />;
+  }
+
+  // Fallback
+  return <span {...iconProps}>{name || "Icon"}</span>;
 };
 
 export default Icon;

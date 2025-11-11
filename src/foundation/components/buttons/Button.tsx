@@ -78,45 +78,45 @@ const Button = ({
     full: "rounded-full",
   };
 
-  // Color-based variant classes
+  // Color-based variant classes aligned with colors.json tokens
+  // primary-* (blue scale), success, error, brand
   const colorVariants = {
     blue: {
-      solid: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
-      outline: "border-2 border-blue-600 text-blue-600 hover:bg-blue-50 focus:ring-blue-500",
-      ghost: "text-blue-600 hover:bg-blue-50 focus:ring-blue-500",
+      solid: "bg-primary-6 text-button-text hover:bg-primary-7 focus:ring-primary-6",
+      outline: "border-2 border-primary-6 text-primary-6 hover:bg-primary-10 focus:ring-primary-6",
+      ghost: "text-primary-6 hover:bg-primary-10 focus:ring-primary-6",
     },
     red: {
-      solid: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
-      outline: "border-2 border-red-600 text-red-600 hover:bg-red-50 focus:ring-red-500",
-      ghost: "text-red-600 hover:bg-red-50 focus:ring-red-500",
+      solid: "bg-error text-button-text hover:bg-error/90 focus:ring-error",
+      outline: "border-2 border-error text-error hover:bg-error/10 focus:ring-error",
+      ghost: "text-error hover:bg-error/10 focus:ring-error",
     },
     green: {
-      solid: "bg-green-600 text-white hover:bg-green-700 focus:ring-green-500",
-      outline: "border-2 border-green-600 text-green-600 hover:bg-green-50 focus:ring-green-500",
-      ghost: "text-green-600 hover:bg-green-50 focus:ring-green-500",
+      solid: "bg-success text-button-text hover:bg-success/90 focus:ring-success",
+      outline: "border-2 border-success text-success hover:bg-success/10 focus:ring-success",
+      ghost: "text-success hover:bg-success/10 focus:ring-success",
     },
     purple: {
-      solid: "bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500",
-      outline:
-        "border-2 border-purple-600 text-purple-600 hover:bg-purple-50 focus:ring-purple-500",
-      ghost: "text-purple-600 hover:bg-purple-50 focus:ring-purple-500",
+      solid: "bg-brand text-button-text hover:bg-primary-6 focus:ring-brand",
+      outline: "border-2 border-brand text-brand hover:bg-primary-10 focus:ring-brand",
+      ghost: "text-brand hover:bg-primary-10 focus:ring-brand",
     },
-  };
+  } as const;
 
   // Gradient classes
   const gradientClasses = {
     "blue-purple":
-      "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 focus:ring-purple-500",
+      "bg-gradient-to-r from-primary-6 to-brand text-button-text hover:from-primary-7 hover:to-primary-6 focus:ring-primary-6",
     "pink-orange":
       "bg-gradient-to-r from-pink-500 to-orange-500 text-white hover:from-pink-600 hover:to-orange-600 focus:ring-pink-500",
     "green-blue":
-      "bg-gradient-to-r from-green-500 to-blue-500 text-white hover:from-green-600 hover:to-blue-600 focus:ring-green-500",
+      "bg-gradient-to-r from-success to-primary-6 text-button-text hover:from-success/90 hover:to-primary-7 focus:ring-success",
     "purple-pink":
       "bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 focus:ring-purple-500",
     "orange-red":
       "bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700 focus:ring-orange-500",
     "cyan-blue":
-      "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700 focus:ring-cyan-500",
+      "bg-gradient-to-r from-cyan-500 to-primary-6 text-button-text hover:from-cyan-600 hover:to-primary-7 focus:ring-cyan-500",
   };
 
   // Determine variant classes

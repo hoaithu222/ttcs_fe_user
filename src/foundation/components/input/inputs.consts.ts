@@ -121,45 +121,44 @@ export const INPUT_CONSTANTS = {
 
   // Focus styles
   FOCUS_STYLES: {
-    RING: "focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+    RING: "focus:ring-2 focus:ring-primary-6 focus:ring-offset-2",
     OUTLINE: "focus:outline-none",
-    BORDER: "focus:border-blue-500",
+    BORDER: "focus:border-primary-6",
   },
 
   // Disabled styles
   DISABLED_STYLES: {
     OPACITY: "opacity-50",
     CURSOR: "cursor-not-allowed",
-    BACKGROUND: "bg-gray-100",
+    BACKGROUND: "bg-neutral-1",
   },
 
   // Error styles
   ERROR_STYLES: {
-    BORDER: "border-red-500",
-    TEXT: "text-red-600",
-    BACKGROUND: "bg-red-50",
-    RING: "ring-red-500",
+    BORDER: "border-error",
+    TEXT: "text-error",
+    BACKGROUND: "bg-error/10",
+    RING: "ring-error",
   },
 
   // Success styles
   SUCCESS_STYLES: {
-    BORDER: "border-green-500",
-    TEXT: "text-green-600",
-    BACKGROUND: "bg-green-50",
-    RING: "ring-green-500",
+    BORDER: "border-success",
+    TEXT: "text-success",
+    BACKGROUND: "bg-success/10",
+    RING: "ring-success",
   },
 
   // Warning styles
   WARNING_STYLES: {
-    BORDER: "border-yellow-500",
-    TEXT: "text-yellow-600",
-    BACKGROUND: "bg-yellow-50",
-    RING: "ring-yellow-500",
+    BORDER: "border-warning",
+    TEXT: "text-warning",
+    BACKGROUND: "bg-warning/10",
+    RING: "ring-warning",
   },
 };
 
-// Export individual constants for backward compatibility
-export const InputSize = INPUT_CONSTANTS.SIZES;
+// Actual CSS classes for input sizes
 export const INPUT_SIZE = {
   xs: "h-8",
   sm: "h-9",
@@ -171,32 +170,43 @@ export const INPUT_SIZE = {
 
 // Actual CSS classes for text sizes
 export const TEXT_SIZE = {
+  // canonical keys
   small: "text-caption-12",
   medium: "text-body-14",
   large: "text-body-16",
+  // legacy uppercase aliases to support existing usages
+  SMALL: "text-caption-12",
+  MEDIUM: "text-body-14",
+  LARGE: "text-body-16",
 } as const;
+
+// Export individual constants for backward compatibility
+export const InputSize = INPUT_SIZE;
 
 // Size mapping for backward compatibility
 export const SIZE_MAPPING = {
-  small: INPUT_CONSTANTS.SIZES.SMALL,
-  medium: INPUT_CONSTANTS.SIZES.MEDIUM,
-  large: INPUT_CONSTANTS.SIZES.LARGE,
-  sm: INPUT_CONSTANTS.SIZES.SMALL,
-  md: INPUT_CONSTANTS.SIZES.MEDIUM,
-  lg: INPUT_CONSTANTS.SIZES.LARGE,
+  small: INPUT_SIZE.sm,
+  medium: INPUT_SIZE.md,
+  large: INPUT_SIZE.lg,
+  sm: INPUT_SIZE.sm,
+  md: INPUT_SIZE.md,
+  lg: INPUT_SIZE.lg,
+  xs: INPUT_SIZE.xs,
+  xl: INPUT_SIZE.xl,
+  full: INPUT_SIZE.full,
 };
 
 // Helper function to get size class
 export const getSizeClass = (size: string): string => {
-  return SIZE_MAPPING[size as keyof typeof SIZE_MAPPING] || INPUT_CONSTANTS.SIZES.MEDIUM;
+  return SIZE_MAPPING[size as keyof typeof SIZE_MAPPING] || INPUT_SIZE.md;
 };
 
-// Base CSS classes
+// Base CSS classes using design system colors
 export const BASE_INPUT_CLASS =
-  "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
+  "w-full px-3 py-2 border border-neutral-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-6 focus:border-primary-6 bg-background-input hover:border-neutral-5 transition-colors";
 export const BASE_INPUT_CLASS_ACTION =
-  "w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
-export const BASE_POSITION_CLASS = "relative";
-export const DISABLED_INPUT_CLASS = "opacity-50 cursor-not-allowed bg-gray-100";
-export const ERROR_INPUT_CLASS = "border-red-500 focus:ring-red-500 focus:border-red-500";
-export const ERROR_TEXT_CLASS = "text-red-600 text-sm mt-1";
+  "w-full px-3 py-2 border border-neutral-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-6 focus:border-primary-6 bg-background-input hover:border-neutral-5 transition-colors";
+export const BASE_POSITION_CLASS = "relative flex items-center";
+export const DISABLED_INPUT_CLASS = "opacity-50 cursor-not-allowed bg-neutral-1";
+export const ERROR_INPUT_CLASS = "border-error focus:ring-error focus:border-error";
+export const ERROR_TEXT_CLASS = "text-error text-caption-12 mt-1";

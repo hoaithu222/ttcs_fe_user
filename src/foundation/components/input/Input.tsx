@@ -149,10 +149,10 @@ const Input = React.forwardRef<HTMLInputElement, FieldInputProps>(
     // Lấy class cho text + placeholder
     const textClass =
       textSize === "small"
-        ? TEXT_SIZE.SMALL
+        ? TEXT_SIZE.small
         : textSize === "large"
-          ? TEXT_SIZE.LARGE
-          : TEXT_SIZE.MEDIUM;
+          ? TEXT_SIZE.large
+          : TEXT_SIZE.medium;
 
     // Lấy class size (height/width) từ INPUT_SIZE map, nếu không nằm trong map thì dùng luôn chuỗi truyền vào
     const sizeClass = (INPUT_SIZE[sizeInput as keyof typeof INPUT_SIZE] ?? sizeInput).trim();
@@ -297,9 +297,9 @@ const Input = React.forwardRef<HTMLInputElement, FieldInputProps>(
         <div ref={regionRef} data-testid={testId} className="w-full">
           {/* Label */}
           {label && (
-            <Form.Label htmlFor={inputId} className="block text-body-13 text-neutral-9">
+            <Form.Label htmlFor={inputId} className="block mb-1 text-body-13 text-neutral-9">
               {label}
-              {required && <span className="text-red-5">*</span>}
+              {required && <span className="text-error">*</span>}
             </Form.Label>
           )}
 
@@ -320,7 +320,7 @@ const Input = React.forwardRef<HTMLInputElement, FieldInputProps>(
                 aria-describedby={ariaDescribedBy}
                 disabled={disabled}
                 className={clsx(
-                  "size-full border-none bg-transparent p-0 outline-none focus:ring-0",
+                  "p-0 bg-transparent border-none outline-none size-full focus:ring-0",
                   textClass,
                   "text-neutral-9 placeholder:text-neutral-4",
                   inputCustomClass

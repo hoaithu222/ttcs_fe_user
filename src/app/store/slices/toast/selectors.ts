@@ -1,7 +1,8 @@
 import { createSelector } from "@reduxjs/toolkit";
-import { RootState } from "../../types";
+import type { RootState } from "@/app/store";
+import type { ToastState } from "./types";
 
-const toastSelector = (state: RootState) => state.toast;
+const toastSelector = (state: RootState): ToastState => state.toast;
 
 export const selectToastMessages = createSelector([toastSelector], (state) => state.messages);
 

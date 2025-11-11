@@ -21,3 +21,4 @@ const SearchIcon: React.FC<SearchIconProps> = ({ color = "currentColor", ...prop
 
 export default SearchIcon;
 
+

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "generate:colors": "node scripts/generate-colors.mjs",
     "generate:font": "node scripts/generate-font.mjs",

@@ -7,9 +7,6 @@ import axios, {
 import { v4 as uuidv4 } from "uuid";
 
 import { MODE, API_TIMEOUT } from "@/app/config/env.config";
-import { USER_AUTH_ENDPOINTS, USER_OTP_ENDPOINTS } from "@/core/api/auth/path";
-import { USER_PRODUCTS_ENDPOINTS } from "@/core/api/products/path";
-import { authAPI } from "@/core/api/auth";
 import { toastUtils } from "@/shared/utils/toast.utils";
 
 // Logout function - clear tokens and redirect
@@ -101,11 +98,16 @@ export abstract class VpsHttpClient {
   private readonly maxRetryDurationMs = 2000; // tối đa 2 giây retry tổng
 
   constructor(baseURL: string) {
+    if (!baseURL) {
+      throw new Error("VpsHttpClient requires a valid baseURL");
+    }
+
     this.instance = axios.create({
       baseURL,
       headers: { "Content-Type": "application/json" },
       timeout: API_TIMEOUT,
     });
+
     this.initializeInterceptors();
   }
 
@@ -115,11 +117,18 @@ export abstract class VpsHttpClient {
 
   /** ----- Interceptors ----- */
   private initializeInterceptors() {
-    this.instance.interceptors.request.use(this.handleRequest, this.handleRequestError);
-    this.instance.interceptors.response.use(this.handleResponse, this.handleResponseError);
+    // Bind methods to ensure proper 'this' context
+    this.instance.interceptors.request.use(
+      (req: MetaConfig) => this.handleRequest(req),
+      (error: any) => this.handleRequestError(error)
+    );
+    this.instance.interceptors.response.use(
+      (response: AxiosResponse<any>) => this.handleResponse(response),
+      (error: any) => this.handleResponseError(error)
+    );
   }
 
-  private handleRequest = (req: MetaConfig): MetaConfig => {
+  private handleRequest(req: MetaConfig): MetaConfig {
     const headers = new axios.AxiosHeaders(req.headers);
     headers.set("x-request-id", uuidv4());
     headers.set("accept-language", localStorage.getItem("i18nextLng") || "vi");
@@ -128,31 +137,26 @@ export abstract class VpsHttpClient {
     const accessToken = tokenStorage.getAccessToken();
     if (accessToken) {
       headers.set("Authorization", `Bearer ${accessToken}`);
+      if (MODE === "dev") {
+        console.log(`[VpsHttpClient] Adding Authorization header for ${req.method} ${req.url}`);
+      }
+    } else {
+      console.warn(`[VpsHttpClient] No access token found for ${req.method} ${req.url}`);
     }
 
     req.headers = headers;
     req.metadata = { startTime: Date.now(), retryStartTime: Date.now() };
     return req;
-  };
+  }
 
-  private handleRequestError = (error: any) => {
+  private handleRequestError(error: any) {
     if (MODE === "dev") {
       console.error("[VpsHttpClient] Request error:", error);
     }
     return Promise.reject(error);
-  };
-
-  private shouldBypassRcValidation(url: string | undefined): boolean {
-    if (!url) return false;
-    // Bypass RC validation for auth, OTP, and products endpoints
-    return (
-      Object.values(USER_AUTH_ENDPOINTS).some((path) => url === path) ||
-      Object.values(USER_OTP_ENDPOINTS).some((path) => url === path) ||
-      Object.values(USER_PRODUCTS_ENDPOINTS).some((path) => url.includes(path.replace(":id", "")))
-    );
   }
 
-  private handleResponse = (response: AxiosResponse<any>): AxiosResponse<any> => {
+  private handleResponse(response: AxiosResponse<any>): AxiosResponse<any> {
     const { config, data } = response;
     const { url } = config as MetaConfig;
 
@@ -161,80 +165,61 @@ export abstract class VpsHttpClient {
       console.log(`[API Response] ${config.method?.toUpperCase()} ${url}:`, data);
     }
 
-    // Handle dummy data
-    if (data?.data?.[0]?.DUMMY === "X") {
-      throw this.createError(response, {
-        code: "ERROR_DUMMY_DATA",
-        name: "ERROR_DUMMY_DATA",
-        userMessage: "Dữ liệu không hợp lệ",
-      });
-    }
+    // Check if response has error structure
+    if (!data.success && data.success !== false) {
+      // Old format with 'rc' field - normalize for backward compatibility
+      const responseCode = data.code ?? data.rc;
 
-    // Check for standard response format - show success toast only
-    if (
-      data &&
-      typeof data === "object" &&
-      !Array.isArray(data) &&
-      data.hasOwnProperty("success")
-    ) {
-      // Check if this is a success response - show toast if message exists
-      if (data.success === true && data.message) {
-        toastUtils.success(data.message);
-        if (MODE === "dev") {
-          console.log("[VpsHttpClient] Showing success toast:", data.message);
-        }
-      }
-      // Error responses are handled in handleResponseError
-
-      // Log response for debugging
-      if (MODE === "dev") {
-        console.log("[VpsHttpClient] Response data:", {
-          success: data.success,
-          message: data.message,
+      // If response code exists and not success (1), treat as error
+      if (responseCode !== undefined && responseCode !== 1) {
+        const errorMessage = data.message || data.rs || `Có lỗi xảy ra (${responseCode})`;
+        const commonError = this.createError(response, {
+          code: `ERROR_${responseCode}`,
+          name: `ERROR_${responseCode}`,
+          userMessage: errorMessage,
         });
+
+        const isInvalidSession =
+          data.message === "FOException.InvalidSessionException" ||
+          data.rs === "FOException.InvalidSessionException";
+
+        if (isInvalidSession) {
+          setTimeout(() => {
+            logoutRequest();
+          }, 100);
+        } else {
+          toastUtils.error(errorMessage);
+        }
+
+        throw commonError;
       }
     }
 
-    // Handle special RC codes
-    if (data?.rc === -6017) {
-      response.data = normalizeNullStringsDeep(response.data);
-      data.rc = 1;
-      return response;
-    }
+    // Check for error responses with success: false
+    if (data.success === false) {
+      const errorMessage = data.message || "Có lỗi xảy ra";
+      const errorCode = data.code || 0;
 
-    // RC validation (bypass for auth endpoints)
-    // Check both `rc` and `code` fields for backward compatibility
-    const rcCode = data?.rc ?? data?.code;
-    // Only validate RC if it exists and is not 1
-    if (!this.shouldBypassRcValidation(url) && rcCode !== undefined && rcCode !== 1) {
-      const isInvalidSession = data.rs === "FOException.InvalidSessionException";
-
-      if (isInvalidSession) {
-        setTimeout(() => {
-          logoutRequest();
-        }, 100);
-      }
-
-      const errorMessage = data.rs || `Có lỗi xảy ra (${rcCode})`;
       const commonError = this.createError(response, {
-        code: `ERROR_${rcCode}`,
-        name: `ERROR_${rcCode}`,
+        code: `ERROR_${errorCode}`,
+        name: `ERROR_${errorCode}`,
         userMessage: errorMessage,
       });
 
-      if (!isInvalidSession) {
+      // Don't show toast if skipToast flag is set
+      if (!data.skipToast) {
         toastUtils.error(errorMessage);
       }
 
       throw commonError;
     }
 
-    // Normalize response data
+    // Normalize response data for successful responses
     response.data = normalizeNullStringsDeep(response.data);
     return response;
-  };
+  }
 
-  private handleResponseError = async (error: any) => {
+  private async handleResponseError(error: any) {
     const { response, config } = error;
     const originalRequest = config as MetaConfig;
 
@@ -247,25 +232,25 @@ export abstract class VpsHttpClient {
     if (response?.data && typeof response.data === "object" && !Array.isArray(response.data)) {
       const errorData = response.data as any;
 
-      console.log("[VpsHttpClient] Full error response:", errorData);
-
       // Check if this is a standard error response
       if (errorData.success === false || errorData.hasOwnProperty("success")) {
+        // Log error response in dev mode
+        if (MODE === "dev") {
+          console.log("[VpsHttpClient] Standard error response:", errorData);
+        }
+
         const message = errorData.message || "An error occurred";
 
-        console.log("[VpsHttpClient] Error details:", {
-          message,
-          skipToast: errorData.skipToast,
-          success: errorData.success,
-          status: response?.status,
-        });
-
         // Only show toast if skipToast is not true
-        if (errorData.skipToast === undefined || errorData.skipToast === false) {
+        if (!errorData.skipToast) {
           toastUtils.error(message);
-          console.log("[VpsHttpClient] ✅ Showing error toast:", message);
+          if (MODE === "dev") {
+            console.log("[VpsHttpClient] Showing toast for error:", message);
+          }
         } else {
-          console.log("[VpsHttpClient] ❌ Skipping toast (skipToast=true):", message);
+          if (MODE === "dev") {
+            console.log("[VpsHttpClient] Skipping toast for error:", message);
+          }
         }
 
         // Create standardized error object
@@ -282,18 +267,6 @@ export abstract class VpsHttpClient {
       }
     }
 
-    // If response.data exists but doesn't have success field, it might be a legacy error
-    // Show toast for any error response that doesn't match standard format
-    if (response?.data && typeof response.data === "object" && !Array.isArray(response.data)) {
-      const errData = response.data as any;
-
-      // Only process if it's actually an error (status >= 400)
-      if (response.status >= 400 && errData.message) {
-        toastUtils.error(errData.message);
-        console.log("[VpsHttpClient] ✅ Showing toast for non-standard error:", errData.message);
-      }
-    }
-
     // Handle 401 Unauthorized - Token refresh logic
     if (response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
@@ -302,6 +275,9 @@ export abstract class VpsHttpClient {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
+            if (!this.instance) {
+              throw new Error("Cannot retry queued request: instance is null");
+            }
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return this.instance.request(originalRequest);
           })
@@ -320,15 +296,15 @@ export abstract class VpsHttpClient {
           throw new Error("No refresh token available");
         }
 
-        // Call refresh token API
-        const response = await authAPI.refreshToken(refreshToken);
-        const refreshData = response.data;
+        // Call refresh token API - dynamic import to avoid circular dependency
+        const { authAPI } = await import("@/core/api/auth");
+        const refreshResponse = await authAPI.refreshToken(refreshToken);
 
-        if (!refreshData) {
+        if (!refreshResponse || !refreshResponse.data) {
           throw new Error("Invalid refresh token response");
         }
 
-        const { accessToken, refreshToken: newRefreshToken } = refreshData;
+        const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data;
 
         // Update stored tokens
         tokenStorage.setTokens(accessToken, newRefreshToken);
@@ -340,6 +316,9 @@ export abstract class VpsHttpClient {
         processQueue(null, accessToken);
 
         // Retry the original request
+        if (!this.instance) {
+          throw new Error("Cannot retry request: instance is null");
+        }
         return this.instance.request(originalRequest);
       } catch (refreshError) {
         // Refresh failed, clear tokens and redirect to login
@@ -399,7 +378,7 @@ export abstract class VpsHttpClient {
       originalError: error,
     };
     return Promise.reject(errorData);
-  };
+  }
 
   /** Helper để tạo ErrorData chuẩn */
   private createError(
@@ -431,6 +410,9 @@ export abstract class VpsHttpClient {
 
   /** ----- Public API methods (trả về nguyên response, không phải chỉ data) ----- */
   public async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    if (!this.instance) {
+      throw new Error("VpsHttpClient instance is not initialized. Cannot make GET request.");
+    }
     return this.instance.get<T>(url, config);
   }
 
@@ -439,6 +421,9 @@ export abstract class VpsHttpClient {
     data?: D,
     config?: AxiosRequestConfig
   ): Promise<AxiosResponse<T>> {
+    if (!this.instance) {
+      throw new Error("VpsHttpClient instance is not initialized. Cannot make POST request.");
+    }
     return this.instance.post<T>(url, data, config);
   }
 
@@ -447,6 +432,9 @@ export abstract class VpsHttpClient {
     data?: D,
     config?: AxiosRequestConfig
   ): Promise<AxiosResponse<T>> {
+    if (!this.instance) {
+      throw new Error("VpsHttpClient instance is not initialized. Cannot make PUT request.");
+    }
     return this.instance.put<T>(url, data, config);
   }
 
@@ -455,6 +443,9 @@ export abstract class VpsHttpClient {
     data?: D,
     config?: AxiosRequestConfig
   ): Promise<AxiosResponse<T>> {
+    if (!this.instance) {
+      throw new Error("VpsHttpClient instance is not initialized. Cannot make PATCH request.");
+    }
     return this.instance.patch<T>(url, data, config);
   }
 
@@ -462,6 +453,9 @@ export abstract class VpsHttpClient {
     url: string,
     config?: AxiosRequestConfig
   ): Promise<AxiosResponse<T>> {
+    if (!this.instance) {
+      throw new Error("VpsHttpClient instance is not initialized. Cannot make DELETE request.");
+    }
     return this.instance.delete<T>(url, config);
   }
 }

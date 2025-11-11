@@ -4,6 +4,7 @@ export interface Category {
   name: string;
   description?: string;
   image?: string;
+  banner?: string;
   slug: string;
   parentId?: string;
   isActive: boolean;

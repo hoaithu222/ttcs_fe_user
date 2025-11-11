@@ -140,18 +140,14 @@ const Empty = ({
     >
       <div className={`${sizeSettings.spacing}`}>
         {/* Icon with animation */}
-        <div
-          className={`mx-auto ${sizeSettings.iconSize} text-gray-300 relative`}
-        >
-          <div className={`${animated ? "animate-pulse" : ""}`}>
-            {displayIcon}
-          </div>
+        <div className={`mx-auto ${sizeSettings.iconSize} text-gray-300 relative`}>
+          <div className={`${animated ? "animate-pulse" : ""}`}>{displayIcon}</div>
 
           {/* Floating dots animation */}
           {animated && (
             <>
               <div
-                className="absolute w-2 h-2 bg-blue-200 rounded-full -top-2 -right-2 animate-bounce"
+                className="absolute -top-2 -right-2 w-2 h-2 bg-blue-200 rounded-full animate-bounce"
                 style={{ animationDelay: "0s", animationDuration: "2s" }}
               ></div>
               <div
@@ -159,7 +155,7 @@ const Empty = ({
                 style={{ animationDelay: "0.5s", animationDuration: "2s" }}
               ></div>
               <div
-                className="absolute w-1 h-1 bg-green-200 rounded-full top-1/2 -right-3 animate-bounce"
+                className="absolute -right-3 top-1/2 w-1 h-1 bg-green-200 rounded-full animate-bounce"
                 style={{ animationDelay: "1s", animationDuration: "2s" }}
               ></div>
             </>
@@ -194,9 +190,9 @@ const Empty = ({
 
       {/* Background decoration */}
       {animated && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute w-32 h-32 rounded-full top-1/4 left-1/4 bg-gradient-to-r from-blue-50 to-purple-50 opacity-30 animate-float"></div>
-          <div className="absolute w-24 h-24 rounded-full bottom-1/3 right-1/4 bg-gradient-to-r from-green-50 to-blue-50 opacity-20 animate-float-delayed"></div>
+        <div className="overflow-hidden absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full opacity-30 animate-float"></div>
+          <div className="absolute right-1/4 bottom-1/3 w-24 h-24 bg-gradient-to-r from-green-50 to-blue-50 rounded-full opacity-20 animate-float-delayed"></div>
         </div>
       )}
     </div>

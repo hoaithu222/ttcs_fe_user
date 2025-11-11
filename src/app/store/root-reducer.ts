@@ -3,6 +3,8 @@ import languageReducer from "./slices/language";
 import themeReducer from "./slices/theme";
 import authReducer from "@/features/Auth/components/slice/auth.slice";
 import { toastReducer } from "./slices/toast";
+import homeReducer from "@/features/Home/slice/home.slice";
+import profileReducer from "@/features/Profile/slice/profile.slice";
 import { AppReducerType } from "./types";
 
 export const rootReducer = combineReducers({
@@ -10,4 +12,6 @@ export const rootReducer = combineReducers({
   [AppReducerType.THEME]: themeReducer,
   [AppReducerType.AUTH]: authReducer,
   [AppReducerType.TOAST]: toastReducer,
+  home: homeReducer,
+  profile: profileReducer,
 });

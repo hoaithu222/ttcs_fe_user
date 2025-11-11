@@ -28,6 +28,7 @@ import {
   TEXT_SIZE,
 } from "./inputs.consts";
 import type { InputSize } from "./inputs.consts";
+import { ArrowDownNarrowWideIcon } from "lucide-react";
 
 export interface Option {
   value: string;
@@ -144,7 +145,6 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       truncatePlaceholder = true,
       customHeight,
       activeClassName,
-      downArrowIcon = "DownArrow",
       defaultOpen = false,
       fallback = "",
       allow = false,
@@ -198,14 +198,16 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       if (groups) {
         return groups.map((group) => (
           <React.Fragment key={group.label}>
-            <SelectPrimitive.Label className="px-3 py-1">{group.label}</SelectPrimitive.Label>
+            <SelectPrimitive.Label className="px-3 py-1 text-neutral-9">
+              {group.label}
+            </SelectPrimitive.Label>
             {group.options.map((opt) => (
               <SelectPrimitive.Item
                 key={opt.value}
                 value={opt.value}
                 className={clsx(
-                  "relative flex select-none items-center px-3 py-2 outline-none",
-                  "text-neutral-9 hover:bg-purple-2 focus:bg-purple-2",
+                  "flex relative items-center px-3 py-2 outline-none select-none",
+                  "text-neutral-9 hover:bg-background-2 focus:bg-background-2",
                   itemClassName
                 )}
                 data-testid={`${testId}-item-${opt.value}`}
@@ -222,7 +224,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           value={opt.value}
           className={clsx(
             "relative flex select-none items-center px-3 py-2 outline-none",
-            "text-neutral-9 hover:bg-purple-2 focus:bg-purple-2",
+            "text-neutral-9 hover:bg-background-2 focus:bg-background-2",
             `${opt.value === valueFilter && "hidden"}`,
             itemClassName
           )}
@@ -268,8 +270,8 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             data-testid={testId}
           >
             {label && (
-              <div className="flex items-center gap-1 mb-1">
-                <Form.Label htmlFor={selectId} className="block">
+              <div className="flex gap-1 items-center mb-1">
+                <Form.Label htmlFor={selectId} className="block text-neutral-9">
                   {label}
                   {required && <span className="text-red-5">*</span>}
                 </Form.Label>
@@ -297,22 +299,22 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                     : BASE_INPUT_CLASS_ACTION,
                 sizeClass,
                 textSize === "small"
-                  ? TEXT_SIZE.SMALL
+                  ? TEXT_SIZE.small
                   : textSize === "large"
-                    ? TEXT_SIZE.LARGE
-                    : TEXT_SIZE.MEDIUM,
+                    ? TEXT_SIZE.large
+                    : TEXT_SIZE.medium,
                 triggerClassName
               )}
             >
-              <div className="flex items-center justify-between w-full">
+              <div className="flex justify-between items-center w-full">
                 {iconLeftStart ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex gap-2 items-center">
                     {iconLeft && <span className="shrink-0">{iconLeft}</span>}
                     <div
                       className={clsx(
-                        "bg-transparent text-left outline-none",
+                        "text-left bg-transparent outline-none",
                         placeholderClassName,
-                        normalizedValue ? `${activeClassName} text-neutral-9` : "text-neutral-4",
+                        normalizedValue ? `${activeClassName} text-neutral-9` : "text-neutral-6",
                         truncatePlaceholder ? "truncate" : "whitespace-nowrap"
                       )}
                     >
@@ -327,9 +329,9 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
 
                     <div
                       className={clsx(
-                        "bg-transparent text-left outline-none",
+                        "text-left bg-transparent outline-none",
                         placeholderClassName,
-                        normalizedValue ? `${activeClassName} text-neutral-9` : "text-neutral-4",
+                        normalizedValue ? `${activeClassName} text-neutral-9` : "text-neutral-6",
                         truncatePlaceholder ? "truncate" : "whitespace-nowrap"
                       )}
                     >
@@ -339,7 +341,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                   </>
                 )}
 
-                <div className="flex items-center gap-2 ml-2">
+                <div className="flex gap-2 items-center ">
                   {clearable && normalizedValue ? (
                     <Icon
                       name="CloseOutlined"
@@ -353,7 +355,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                     <span className="shrink-0">{iconRight}</span>
                   ) : (
                     <SelectPrimitive.Icon>
-                      <Icon name={downArrowIcon} className="text-neutral-6" size={sizeIcon} />
+                      <ArrowDownNarrowWideIcon className="w-5 h-5 text-neutral-6" />
                     </SelectPrimitive.Icon>
                   )}
                 </div>
@@ -367,12 +369,12 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             <SelectPrimitive.Portal>
               <SelectPrimitive.Content
                 className={clsx(
-                  "z-[85] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md bg-background-popup text-neutral-9 shadow-lg",
+                  "z-[85] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md bg-background-1 text-neutral-9 shadow-lg border border-divider-1",
                   textSize === "small"
-                    ? TEXT_SIZE.SMALL
+                    ? TEXT_SIZE.small
                     : textSize === "large"
-                      ? TEXT_SIZE.LARGE
-                      : TEXT_SIZE.MEDIUM,
+                      ? TEXT_SIZE.large
+                      : TEXT_SIZE.medium,
                   contentClassName
                 )}
                 side={side}

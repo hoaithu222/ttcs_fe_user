@@ -17,44 +17,31 @@ import {
   refreshTokenSuccess,
   refreshTokenFailed,
 } from "./auth.slice";
-import { tokenUtils } from "@/shared/utils/token.utils";
+import { toastUtils } from "@/shared/utils/toast.utils";
 
 // Login saga
 function* handleLogin(action: PayloadAction<LoginRequest>): Generator<any, void, any> {
   try {
-    console.log("[Login Saga] Starting login with credentials:", action.payload);
+    const response = yield call(authAPI.login, action.payload);
 
-    const response: any = yield call(authAPI.login, action.payload);
+    if (response.success && response.data) {
+      // Lưu token vào localStorage
+      if (response.data.user.accessToken) {
+        localStorage.setItem("accessToken", response.data.user.accessToken);
+      }
+      if (response.data.user.refreshToken) {
+        localStorage.setItem("refreshToken", response.data.user.refreshToken);
+      }
 
-    console.log("[Login Saga] Full response:", JSON.stringify(response, null, 2));
-    console.log("[Login Saga] Response.success:", response.success);
-    console.log("[Login Saga] Response.data:", response.data);
-
-    if (response.success) {
-      // Backend trả về: response.data.user (user object nằm trong data.user)
-      const userData = response.data.user;
-
-      console.log("[Login Saga] User data from response:", userData);
-
-      // Lưu tokens vào localStorage
-      tokenUtils.setTokens(userData.accessToken, userData.refreshToken);
-      console.log("[Login Saga] Tokens saved to localStorage");
-
-      // Loại bỏ password và các field không cần thiết khỏi user object
-      const { password, __v, ...cleanUser } = userData;
-
-      console.log("[Login Saga] Clean user:", cleanUser);
-
-      yield put(loginSuccess(cleanUser));
-      console.log("[Login Saga] loginSuccess action dispatched");
-      // Toast sẽ được hiện tự động từ interceptor khi response.success = true
+      yield put(loginSuccess(response.data.user));
+      toastUtils.success("Đăng nhập thành công!");
     } else {
-      console.log("[Login Saga] Login failed - success is not true");
       yield put(loginFailed());
+      toastUtils.error(response.message || "Đăng nhập thất bại");
     }
-  } catch (error) {
-    console.error("[Login Saga] Login error:", error);
+  } catch (error: any) {
     yield put(loginFailed());
+    toastUtils.error(error.response?.data?.message || "Đăng nhập thất bại");
   }
 }
 
@@ -70,20 +57,31 @@ function* handleRegister(action: PayloadAction<any>): Generator<any, void, any> 
       password: action.payload.password,
     };
 
-    console.log("[Register Saga] Original payload:", action.payload);
-    console.log("[Register Saga] Transformed payload:", transformedPayload);
-
-    const response: any = yield call(authAPI.register, transformedPayload);
+    const response = yield call(authAPI.register, transformedPayload);
 
     if (response.success) {
       yield put(registerSuccess());
-      // Toast sẽ được hiện tự động từ interceptor khi response.success = true
+      toastUtils.success("Đăng ký thành công");
     } else {
       yield put(registerFailed());
+      // Luôn hiển thị toast lỗi khi đăng ký thất bại, bất kể skipToast flag
+      toastUtils.error(response.message || "Đăng ký thất bại");
     }
-  } catch (error) {
-    console.error("Register error:", error);
+  } catch (error: any) {
     yield put(registerFailed());
+    // Luôn hiển thị toast lỗi khi đăng ký thất bại
+    // Lấy message từ error object (ErrorData có message property)
+    // Hoặc từ response.data nếu error là AxiosError
+    const errorMessage =
+      error?.message ||
+      error?.response?.data?.message ||
+      (error?.originalError?.data &&
+      typeof error.originalError.data === "object" &&
+      !Array.isArray(error.originalError.data)
+        ? error.originalError.data.message
+        : null) ||
+      "Đăng ký thất bại";
+    toastUtils.error(errorMessage);
   }
 }
 
@@ -91,60 +89,92 @@ function* handleRegister(action: PayloadAction<any>): Generator<any, void, any> 
 function* handleForgotPassword(action: PayloadAction<string>): Generator<any, void, any> {
   try {
     const forgotPasswordData: ForgotPasswordRequest = { email: action.payload };
-    const response: any = yield call(authAPI.forgotPassword, forgotPasswordData);
+    const response = yield call(authAPI.forgotPassword, forgotPasswordData);
 
     if (response.success) {
       yield put(forgotPasswordSuccess());
-      // Toast sẽ được hiện tự động từ interceptor khi response.success = true
+      toastUtils.success(response.message || "Email đã được gửi thành công");
     } else {
       yield put(forgotPasswordFailed());
+      toastUtils.error(response.message || "Gửi email thất bại");
     }
-  } catch (error) {
-    console.error("Forgot password error:", error);
+  } catch (error: any) {
     yield put(forgotPasswordFailed());
+    toastUtils.error(error.response?.data?.message || "Gửi email thất bại");
   }
 }
 
 // Logout saga
 function* handleLogout(): Generator<any, void, any> {
   try {
-    yield call(authAPI.logout);
+    console.log("Logout saga started");
 
-    // Xóa tokens khỏi localStorage
-    tokenUtils.clearTokens();
+    // Gọi API logout (nếu có)
+    try {
+      yield call(authAPI.logout);
+      console.log("Logout API call successful");
+    } catch (apiError) {
+      console.warn("Logout API call failed:", apiError);
+      // Tiếp tục logout ngay cả khi API call thất bại
+    }
+
+    // Xóa token khỏi localStorage
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    console.log("Tokens removed from localStorage");
+
+    // Xóa Redux persist data
+    localStorage.removeItem("persist:root");
+    console.log("Redux persist data removed");
 
     yield put(logoutSuccess());
-    // Toast sẽ được hiện tự động từ interceptor khi response.success = true
-  } catch (error) {
-    console.error("Logout error:", error);
-    // Vẫn logout ngay cả khi API call thất bại
-    tokenUtils.clearTokens();
+    toastUtils.success("Đăng xuất thành công");
+    console.log("Logout saga completed successfully - logoutStatus set to SUCCESS");
+  } catch (error: any) {
+    console.error("Logout saga error:", error);
+
+    // Ngay cả khi có lỗi, vẫn xóa tokens và logout
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("persist:root");
+
     yield put(logoutSuccess());
+    toastUtils.success("Đăng xuất thành công");
+    console.log("Logout saga completed with error handling - logoutStatus set to SUCCESS");
   }
 }
 
 // Refresh token saga
 function* handleRefreshToken(): Generator<any, void, any> {
   try {
-    const refreshToken = tokenUtils.getRefreshToken();
+    const refreshToken = localStorage.getItem("refreshToken");
 
     if (!refreshToken) {
       yield put(refreshTokenFailed());
+      yield put(logoutUser());
       return;
     }
 
-    const response: any = yield call(authAPI.refreshToken, refreshToken);
+    const response = yield call(authAPI.refreshToken, refreshToken);
 
-    if (response.success) {
-      // Cập nhật tokens mới
-      tokenUtils.setTokens(response.data.accessToken, response.data.refreshToken);
+    if (response.success && response.data) {
+      // Cập nhật token mới
+      if (response.data.accessToken) {
+        localStorage.setItem("accessToken", response.data.accessToken);
+      }
+      if (response.data.refreshToken) {
+        localStorage.setItem("refreshToken", response.data.refreshToken);
+      }
+
       yield put(refreshTokenSuccess(response.data));
     } else {
       yield put(refreshTokenFailed());
+      yield put(logoutUser());
     }
-  } catch (error) {
-    console.error("Refresh token error:", error);
+  } catch (error: any) {
     yield put(refreshTokenFailed());
+    yield put(logoutUser());
+    toastUtils.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
   }
 }
 

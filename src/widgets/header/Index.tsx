@@ -46,8 +46,8 @@ const Header = () => {
   };
 
   return (
-    <header className="border-b shadow-sm border-border-2 bg-header">
-      <div className="flex justify-between items-center px-6 py-4 h-16">
+    <header className="overflow-visible border-b shadow-sm border-border-2 bg-header">
+      <div className="container flex overflow-visible justify-between items-center mx-auto h-16">
         {/* Left side - Logo/Brand */}
         <div className="flex items-center space-x-4">
           <div
@@ -100,22 +100,22 @@ const Header = () => {
               <IconButton
                 icon={<ShoppingCart className="w-5 h-5" />}
                 variant="ghost"
-                tooltip="Giỏ hàng"
-                ariaLabel="Shopping Cart"
                 notification={true}
+                tooltip="Shopping Cart"
+                onClick={() => navigation(NAVIGATION_CONFIG.cart.path)}
               />
 
               {/* Notifications */}
               <IconButton
                 icon={<Bell className="w-5 h-5" />}
                 variant="ghost"
-                tooltip="Thông báo"
-                ariaLabel="Notifications"
                 notification={true}
+                tooltip="Notifications"
+                ariaLabel="Notifications"
               />
 
               {/* User Profile Dropdown */}
-              <div className="relative" ref={dropdownRef}>
+              <div className="relative z-50" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center px-3 py-2 space-x-3 rounded-lg transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -134,7 +134,19 @@ const Header = () => {
 
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 z-50 py-1 mt-2 w-48 bg-white rounded-lg border border-gray-200 shadow-lg dark:bg-gray-800 dark:border-gray-700">
+                  <div className="absolute right-0 top-full mt-2 z-[100] py-1 w-48 bg-white rounded-lg border border-gray-200 shadow-lg dark:bg-gray-800 dark:border-gray-700">
+                    {/* Quản lý tài khoản */}
+                    <button
+                      onClick={() => {
+                        navigation(`${NAVIGATION_CONFIG.profile.path}?tab=account`);
+                        setIsDropdownOpen(false);
+                      }}
+                      className="flex items-center px-4 py-2 space-x-3 w-full text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>My Account</span>
+                    </button>
+                    <hr className="my-1 border-gray-200 dark:border-gray-700" />
                     <button
                       onClick={() => setIsDropdownOpen(false)}
                       className="flex items-center px-4 py-2 space-x-3 w-full text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"

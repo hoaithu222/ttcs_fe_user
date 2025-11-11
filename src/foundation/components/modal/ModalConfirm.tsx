@@ -6,7 +6,7 @@ import { useNSTranslate } from "@/shared/hooks";
 
 import Button, { ButtonSize } from "../buttons/Button";
 import Icon from "../icons/Icon";
-import IconCircleWrapper from "../icons/IconCircleWrapper";
+import { Info, AlertTriangle, XCircle, CheckCircle } from "lucide-react";
 import Checkbox from "../input/Checkbox";
 import Modal from "./Modal";
 
@@ -42,6 +42,14 @@ interface ConfirmModalProps {
   iconType?: IconType;
   /** Completely custom icon if provided */
   customIcon?: React.ReactNode;
+  /** Render decorative icon container (circle + subtle border) */
+  showDecorIcon?: boolean;
+  /** Override decorative icon container colors (tailwind classes) */
+  decorClasses?: {
+    container?: string;
+    border?: string;
+    glow?: string;
+  };
   /** Whether to hide footer */
   hideFooter?: boolean;
   /** Whether to disable confirm button */
@@ -58,13 +66,13 @@ interface ConfirmModalProps {
   contentCheckbox?: string;
 }
 
-// Default icon mapping
+// Enhanced icon mapping with larger sizes
 const ICON_MAP: Record<IconType, React.ReactNode> = {
-  info: <Icon name="InfoOutlined" className="text-info" size="base" />,
-  infoXl: <Icon name="InfoOutlinedXl" className="text-info" size="xl" />,
-  warning: <Icon name="WarningOutlined" className="text-warning" size="base" />,
-  error: <Icon name="ErrorOutlined" className="text-error" size="base" />,
-  success: <Icon name="SuccessOutlined" className="text-success" size="base" />,
+  info: <Info className="text-info w-12 h-12" strokeWidth={1.5} />,
+  infoXl: <Info className="text-info w-16 h-16" strokeWidth={1.5} />,
+  warning: <AlertTriangle className="text-warning w-12 h-12" strokeWidth={1.5} />,
+  error: <XCircle className="text-error w-12 h-12" strokeWidth={1.5} />,
+  success: <CheckCircle className="text-success w-12 h-12" strokeWidth={1.5} />,
   none: null,
 };
 
@@ -76,7 +84,6 @@ const DefaultFooter: React.FC<{
   onConfirm?: () => void;
   testId: string;
   className?: string;
-  /** Whether to disable confirm button */
   disabled?: boolean;
   fullWidth?: boolean;
   size?: ButtonSize;
@@ -91,8 +98,8 @@ const DefaultFooter: React.FC<{
   fullWidth,
   size = "md",
 }) => (
-  <div className={clsx("flex w-full justify-end gap-3", className)}>
-    <div className={clsx(fullWidth && "flex-1")}>
+  <div className={clsx("flex w-full justify-center gap-3", className)}>
+    <div className={clsx(fullWidth && "flex-1 min-w-[140px]")}>
       <Button
         variant="outlined"
         onClick={onCancel}
@@ -103,7 +110,7 @@ const DefaultFooter: React.FC<{
         {cancelText}
       </Button>
     </div>
-    <div className={clsx(fullWidth && "flex-1")}>
+    <div className={clsx(fullWidth && "flex-1 min-w-[140px]")}>
       <Button
         size={size}
         variant="primary"
@@ -123,7 +130,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onOpenChange,
   title,
   customHeader,
-  showIcon = false,
+  showIcon = true,
   content,
   contentClassName,
   confirmText,
@@ -143,6 +150,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   sizeButtonFooter = "md",
   showRowCheckbox = false,
   contentCheckbox,
+  showDecorIcon = true,
+  decorClasses,
 }) => {
   const t = useNSTranslate();
 
@@ -155,46 +164,68 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const headerNode =
     customHeader ??
     (() => {
-      const hasIcon = showIcon && iconNode;
       const hasClose = showCloseIcon;
-      const hasTitle = Boolean(title);
+      const closeIconColor = "text-neutral-7 hover:text-neutral-9 transition-colors cursor-pointer";
+      const hasIcon = showIcon && iconNode;
 
-      const hasIconRow = hasIcon || (hasClose && !hasTitle);
-      const hasTitleRow = hasTitle;
-      const showCloseInTitleRow = hasClose && hasTitle && !hasIconRow;
-      const closeIconColor = "text-neutral-7";
+      // Decorative classes per iconType using theme colors from colors.json
+      const defaultDecor = {
+        container: "bg-background-1",
+        border:
+          iconType === "warning"
+            ? "border-warning"
+            : iconType === "error"
+              ? "border-error"
+              : iconType === "success"
+                ? "border-success"
+                : iconType === "info" || iconType === "infoXl"
+                  ? "border-primary-6"
+                  : "border-divider-1",
+        glow:
+          iconType === "warning"
+            ? "shadow-[0_0_0_10px_rgba(255,217,61,0.10)]"
+            : iconType === "error"
+              ? "shadow-[0_0_0_10px_rgba(255,107,107,0.10)]"
+              : iconType === "success"
+                ? "shadow-[0_0_0_10px_rgba(45,208,132,0.10)]"
+                : "shadow-[0_0_0_10px_rgba(46,110,191,0.10)]",
+      };
+
+      const decor = {
+        container: decorClasses?.container ?? defaultDecor.container,
+        border: decorClasses?.border ?? defaultDecor.border,
+        glow: decorClasses?.glow ?? defaultDecor.glow,
+      };
 
       return (
-        <div className={clsx("flex flex-col items-start gap-6")}>
-          {/* Row icon + close */}
-          {hasIconRow && (
-            <div className="flex items-center justify-between w-full">
-              <div className="mt-1">
-                {hasIcon && <IconCircleWrapper>{iconNode}</IconCircleWrapper>}
+        <div className="relative w-full flex flex-col items-center text-center gap-4 pt-2">
+          {hasIcon && showDecorIcon && (
+            <div className="relative animate-in zoom-in-50 duration-300">
+              <div
+                className={clsx(
+                  "w-20 h-20 rounded-full border-2 flex items-center justify-center transition-all duration-300",
+                  decor.container,
+                  decor.border,
+                  decor.glow
+                )}
+              >
+                {iconNode}
               </div>
-              {hasClose && !showCloseInTitleRow && (
-                <Icon
-                  name="CloseOutlined"
-                  className={closeIconColor}
-                  size="base"
-                  onClick={onCancel}
-                />
-              )}
             </div>
           )}
-
-          {/* Row title + close (if not shown above) */}
-          {hasTitleRow && (
-            <div className="flex items-center justify-between w-full">
-              <div className="text-title-20-bold text-neutral-9">{title}</div>
-              {showCloseInTitleRow && (
-                <Icon
-                  name="CloseOutlined"
-                  className={closeIconColor}
-                  size="base"
-                  onClick={onCancel}
-                />
-              )}
+          {title && (
+            <div className="px-6 leading-tight text-2xl md:text-3xl font-semibold text-neutral-10">
+              {title}
+            </div>
+          )}
+          {hasClose && (
+            <div className="absolute right-0 top-0 p-1 rounded-full hover:bg-neutral-2 transition-colors">
+              <Icon
+                name="CloseOutlined"
+                className={closeIconColor}
+                size="base"
+                onClick={onCancel}
+              />
             </div>
           )}
         </div>
@@ -229,17 +260,22 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       testId={testId}
       contentClassName="bg-background-popup"
       title={headerNode}
-      headerPadding="pb-2"
+      headerPadding="pb-3"
       footer={footer}
       hideFooter={hideFooter}
       disabled={disabled}
     >
-      <div className={clsx("text-body-14 text-neutral-7", contentClassName)}>{content}</div>
+      <div
+        className={clsx(
+          "text-body-14 text-neutral-7 text-center leading-relaxed px-2",
+          contentClassName
+        )}
+      >
+        {content}
+      </div>
       {showRowCheckbox && (
-        <div className="flex items-center gap-2 mt-4">
-          <div>
-            <Checkbox checked={checked} onCheckedChange={(val) => setChecked(val === true)} />
-          </div>
+        <div className="flex items-center justify-center gap-2 mt-4 p-3 rounded-lg bg-background-1 border border-divider-1">
+          <Checkbox checked={checked} onCheckedChange={(val) => setChecked(val === true)} />
           <div className="text-body-13 text-neutral-9">{contentCheckbox}</div>
         </div>
       )}
