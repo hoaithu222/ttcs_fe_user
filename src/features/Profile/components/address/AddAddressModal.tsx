@@ -4,7 +4,6 @@ import Button from "@/foundation/components/buttons/Button";
 import addressData from "./common/addressData";
 import type { CreateAddressRequest } from "@/core/api/addresses/type";
 import { useProfileAddresses } from "../../hooks/useAddress";
-import MapPickerModal from "./MapPickerModal";
 
 interface AddAddressModalProps {
   onClose: () => void;
@@ -13,8 +12,6 @@ interface AddAddressModalProps {
 const AddAddressModal = ({ onClose }: AddAddressModalProps) => {
   const { createAddress } = useProfileAddresses();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMapOpen, setIsMapOpen] = useState(false);
-  const [pickedCoords, setPickedCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -176,24 +173,10 @@ const AddAddressModal = ({ onClose }: AddAddressModalProps) => {
           <Button variant="ghost" onClick={onClose}>
             Hủy
           </Button>
-          <Button variant="outline" onClick={() => setIsMapOpen(true)}>
-            Chọn trên bản đồ
-          </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? "Đang lưu..." : "Thêm địa chỉ"}
           </Button>
         </div>
-        <MapPickerModal
-          open={isMapOpen}
-          initialCoords={pickedCoords}
-          onCancel={() => setIsMapOpen(false)}
-          onSelect={(coords) => {
-            setPickedCoords(coords);
-            // Gợi ý địa chỉ chi tiết bằng lat/lng (có thể thay bằng reverse geocode sau)
-            setAddressLine1(`Lat: ${coords.lat.toFixed(6)}, Lng: ${coords.lng.toFixed(6)}`);
-            setIsMapOpen(false);
-          }}
-        />
       </Card>
     </div>
   );
