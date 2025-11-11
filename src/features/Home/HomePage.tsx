@@ -5,8 +5,8 @@ import FlashSale from "./components/flash-sale/FlashSale";
 
 const HomePage = () => {
   return (
-    <div className="overflow-x-hidden bg-background-1 min-h-screen">
-      <div className="container mx-auto  space-y-8">
+    <div className="overflow-x-hidden min-h-screen bg-background-1">
+      <div className="container mx-auto space-y-8">
         {/* Banner Section */}
         <BannerHome />
 
