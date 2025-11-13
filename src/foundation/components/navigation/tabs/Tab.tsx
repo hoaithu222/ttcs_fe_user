@@ -110,7 +110,7 @@ const TabsList: React.FC<TabsListProps> = ({
       >
         <div
           className={clsx(
-            !isUnderline ? "rounded-lg bg-neutral-1 p-1" : "gap-x-6",
+            !isUnderline ? "rounded-lg bg-[#121418] p-1" : "gap-x-6",
             fullWidth ? "flex w-full" : "inline-flex"
           )}
         >
@@ -131,8 +131,8 @@ const TabsList: React.FC<TabsListProps> = ({
 TabsList.displayName = "Tabs.List";
 
 enum ACTIVE_TABS_TRIGGER_COLOR_MAP {
-  primary = "data-[state=active]:bg-brand data-[state=active]:text-white data-[state=active]:text-body-14-medium",
-  secondary = "data-[state=active]:bg-button-outlined data-[state=active]:text-base-white data-[state=active]:text-body-14-medium",
+  primary = "data-[state=active]:bg-[#E4B343] data-[state=active]:text-[#1A1D22] data-[state=active]:text-body-14-medium",
+  secondary = "data-[state=active]:bg-[#0F3460] data-[state=active]:text-[#FFFFFF] data-[state=active]:text-body-14-medium",
 }
 
 // --- Trigger ---
@@ -141,7 +141,7 @@ const TabsTrigger: React.FC<TabsTriggerProps> = ({
   className,
   variant = "solid",
   activeColor = "primary",
-  underlineClassName = "after:-bottom-1 after:h-[2px] after:bg-brand",
+  underlineClassName = "after:-bottom-1 after:h-[2px] after:bg-[#E4B343]",
   testId,
   fullWidth = true,
   ...props
@@ -153,10 +153,14 @@ const TabsTrigger: React.FC<TabsTriggerProps> = ({
     variant === "underline"
       ? clsx(
           "after:absolute after:inset-x-0 after:origin-center after:scale-x-0",
-          "hover:text-neutral-10 data-[state=active]:text-neutral-10 data-[state=active]:after:scale-x-100",
+          "hover:text-[#E4E4EC] data-[state=active]:text-[#FFFFFF] data-[state=active]:after:bg-[#E4B343] data-[state=active]:after:scale-x-100",
           underlineClassName
         )
-      : `rounded-lg bg-neutral-1 hover:bg-neutral-2 hover:text-neutral-10 data-[state=active]:text-body-14-medium px-1.5 py-1 ${ACTIVE_TABS_TRIGGER_COLOR_MAP[activeColor]}`;
+      : clsx(
+          "rounded-lg bg-[#121418] px-1.5 py-1 transition-colors",
+          "hover:bg-[#1A1E24] hover:text-[#E4E4EC]",
+          ACTIVE_TABS_TRIGGER_COLOR_MAP[activeColor]
+        );
 
   return (
     <TabsPrimitive.Trigger

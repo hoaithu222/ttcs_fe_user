@@ -14,6 +14,7 @@ export { shopManagementApi } from "./shop-management";
 export { userAttributeTypesApi } from "./attribute-type";
 export { userAttributeValuesApi } from "./attribute-value";
 export { userProductAttributesApi } from "./product-attribute";
+export { imagesApi } from "./images";
 
 // Re-export types (only unique ones to avoid conflicts)
 export type {

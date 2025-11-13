@@ -1,4 +1,14 @@
-import { Bell, User, LogOut, Settings, ChevronDown, Moon, Sun, ShoppingCart } from "lucide-react";
+import {
+  Bell,
+  User,
+  LogOut,
+  Settings,
+  ChevronDown,
+  Moon,
+  Sun,
+  ShoppingCart,
+  ShoppingBagIcon,
+} from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import { useAuth } from "@/features/Auth/hooks/useAuth";
 import { useState, useRef, useEffect } from "react";
@@ -14,14 +24,47 @@ import SearchInput from "@/foundation/components/input/search-input/SearchInput"
 import * as Form from "@radix-ui/react-form";
 import { useNavigate } from "react-router-dom";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
+import { useAppSelector, useAppDispatch } from "@/app/store";
+import {
+  selectShopUiScreens,
+  selectShopFetchStatus,
+  selectShopStatusByUserStatus,
+} from "@/features/Shop/slice/shop.selector";
+import { fetchShopStatusByUserStart } from "@/features/Shop/slice/shop.slice";
+import { ReduxStateType } from "@/app/store/types";
 
 const Header = () => {
   const { user, onLogout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const navigation = useNavigate();
   const { theme } = useSelector((state: RootState) => themeRootSelector(state));
+  const shopUi = useAppSelector(selectShopUiScreens);
+  const shopFetchStatus = useAppSelector(selectShopFetchStatus);
+  const shopStatusByUserStatus = useAppSelector(selectShopStatusByUserStatus);
+
+  const getShopMenuLabel = () => {
+    if (
+      shopFetchStatus === ReduxStateType.LOADING ||
+      shopStatusByUserStatus === ReduxStateType.LOADING
+    )
+      return "Đang tải cửa hàng...";
+    if (shopUi?.showActiveDashboard) return "Vào cửa hàng của tôi";
+    if (shopUi?.showSetup) return "Tiếp tục thiết lập cửa hàng";
+    if (shopUi?.showPendingReview) return "Hồ sơ đang chờ duyệt";
+    if (shopUi?.showSuspended) return "Cửa hàng bị hạn chế";
+    return "Đăng kí bán hàng";
+  };
+
+  // Fetch shop status when user is logged in
+  useEffect(() => {
+    if (user?._id && shopStatusByUserStatus !== ReduxStateType.LOADING) {
+      // Only fetch if not already loading and user exists
+      appDispatch(fetchShopStatusByUserStart({ userId: user._id }));
+    }
+  }, [user?._id, appDispatch]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -154,7 +197,21 @@ const Header = () => {
                       <Settings className="w-4 h-4" />
                       <span>Settings</span>
                     </button>
+                    {/* Đăng kí bán hàng */}
+
                     <hr className="my-1 border-gray-200 dark:border-gray-700" />
+                    <button
+                      onClick={() => {
+                        navigation("/shop");
+                        setIsDropdownOpen(false);
+                      }}
+                      className="flex items-center px-4 py-2 space-x-3 w-full text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <ShoppingBagIcon className="w-4 h-4" />
+                      <span>{getShopMenuLabel()}</span>
+                    </button>
+                    <hr className="my-1 border-gray-200 dark:border-gray-700" />
+
                     <button
                       onClick={handleLogout}
                       className="flex items-center px-4 py-2 space-x-3 w-full text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"

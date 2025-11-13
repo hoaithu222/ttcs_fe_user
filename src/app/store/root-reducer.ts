@@ -5,6 +5,7 @@ import authReducer from "@/features/Auth/components/slice/auth.slice";
 import { toastReducer } from "./slices/toast";
 import homeReducer from "@/features/Home/slice/home.slice";
 import profileReducer from "@/features/Profile/slice/profile.slice";
+import shopReducer from "@/features/Shop/slice/shop.slice";
 import { AppReducerType } from "./types";
 
 export const rootReducer = combineReducers({
@@ -14,4 +15,5 @@ export const rootReducer = combineReducers({
   [AppReducerType.TOAST]: toastReducer,
   home: homeReducer,
   profile: profileReducer,
+  shop: shopReducer,
 });

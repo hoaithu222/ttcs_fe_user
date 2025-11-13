@@ -39,7 +39,7 @@ class UserOrdersApiService extends VpsHttpClient {
   // Cancel order
   async cancelOrder(id: string, reason?: string): Promise<ApiSuccess<Order>> {
     const endpoint = buildEndpoint(USER_ORDERS_ENDPOINTS.CANCEL, { id });
-    const response = await this.post(endpoint, { reason });
+    const response = await this.put(endpoint, { reason });
     return response.data;
   }
 

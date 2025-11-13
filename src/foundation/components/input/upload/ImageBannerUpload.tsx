@@ -129,7 +129,11 @@ const ImageBannerUpdate: React.FC<ImageBannerUpdateProps> = ({
       {/* Label & Description */}
       {(label || description) && (
         <div className="space-y-1">
-          {label && <label className="block text-sm font-semibold text-neutral-9">{label}</label>}
+          {label && (
+            <label htmlFor={testId} className="block text-start mb-2 text-body-13 text-neutral-9">
+              {label}
+            </label>
+          )}
           {description && <p className="text-xs text-neutral-6 leading-relaxed">{description}</p>}
         </div>
       )}

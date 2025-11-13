@@ -18,6 +18,8 @@ import {
   refreshTokenFailed,
 } from "./auth.slice";
 import { toastUtils } from "@/shared/utils/toast.utils";
+import { resetShopState } from "@/features/Shop/slice/shop.slice";
+import { resetProfileState } from "@/features/Profile/slice/profile.slice";
 
 // Login saga
 function* handleLogin(action: PayloadAction<LoginRequest>): Generator<any, void, any> {
@@ -127,6 +129,10 @@ function* handleLogout(): Generator<any, void, any> {
     localStorage.removeItem("persist:root");
     console.log("Redux persist data removed");
 
+    // Reset shop state và profile state khi logout
+    yield put(resetShopState());
+    yield put(resetProfileState());
+
     yield put(logoutSuccess());
     toastUtils.success("Đăng xuất thành công");
     console.log("Logout saga completed successfully - logoutStatus set to SUCCESS");
@@ -137,6 +143,10 @@ function* handleLogout(): Generator<any, void, any> {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("persist:root");
+
+    // Reset shop state và profile state khi logout
+    yield put(resetShopState());
+    yield put(resetProfileState());
 
     yield put(logoutSuccess());
     toastUtils.success("Đăng xuất thành công");

@@ -9,6 +9,12 @@ const CartPage = lazy(() => import("@/features/Cart/CartPage"));
 const OrdersPage = lazy(() => import("@/features/Orders/OrdersPage"));
 const WishlistPage = lazy(() => import("@/features/Wishlist/WishlistPage"));
 const ProfilePage = lazy(() => import("@/features/Profile/ProfilePage"));
+const ShopEntryPage = lazy(() => import("@/features/Shop/ShopEntryPage"));
+const RegisterShopPage = lazy(() => import("@/features/Shop/pages/RegisterShopPage"));
+const ShopReviewPage = lazy(() => import("@/features/Shop/pages/ShopReviewPage"));
+const ShopSetupPage = lazy(() => import("@/features/Shop/pages/ShopSetupPage"));
+const ShopDashboardPage = lazy(() => import("@/features/Shop/pages/ShopDashboardPage"));
+const ShopSuspendedPage = lazy(() => import("@/features/Shop/pages/ShopSuspendedPage"));
 
 const defaultOptions = {
   requireAuth: false,
@@ -87,6 +93,42 @@ export const ROUTE = {
   profile: {
     path: "/profile",
     element: <ProfilePage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  shop: {
+    path: "/shop",
+    element: <ShopEntryPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  shopRegister: {
+    path: "/shop/register",
+    element: <RegisterShopPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  shopReview: {
+    path: "/shop/review",
+    element: <ShopReviewPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  shopSetup: {
+    path: "/shop/setup",
+    element: <ShopSetupPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  shopDashboard: {
+    path: "/shop/dashboard",
+    element: <ShopDashboardPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  shopSuspended: {
+    path: "/shop/suspended",
+    element: <ShopSuspendedPage />,
     layout: "main",
     options: defaultProtectedOptions,
   },

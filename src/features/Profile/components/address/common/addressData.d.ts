@@ -14,4 +14,3 @@ export interface Province {
 }
 declare const addressData: Province[];
 export default addressData;
-

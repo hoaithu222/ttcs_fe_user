@@ -55,6 +55,14 @@ export interface User {
   refreshToken?: string;
   createdAt: string;
   updatedAt: string;
+  // Shop status (added when fetching profile)
+  shopStatus?: "not_registered" | "pending_review" | "approved" | "rejected" | "active" | "blocked" | "suspended";
+  shop?: {
+    id: string;
+    name: string;
+    slug?: string;
+    status: string;
+  } | null;
 }
 
 export interface LoginResponseData {

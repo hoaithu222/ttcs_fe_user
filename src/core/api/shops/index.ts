@@ -8,6 +8,7 @@ import type {
   ShopProductsResponse,
   FollowStatusResponse,
   NearbyShopsResponse,
+  ShopStatusResponse,
   ApiSuccess,
 } from "./type";
 import { VpsHttpClient } from "@/core/base/http-client";
@@ -91,6 +92,13 @@ class UserShopsApiService extends VpsHttpClient {
   // Get nearby shops
   async getNearbyShops(query: NearbyShopsQuery): Promise<ApiSuccess<NearbyShopsResponse>> {
     const response = await this.get(USER_SHOPS_ENDPOINTS.NEARBY, { params: query });
+    return response.data;
+  }
+
+  // Get shop status by user ID
+  async getShopStatusByUserId(userId: string): Promise<ApiSuccess<ShopStatusResponse>> {
+    const endpoint = buildEndpoint(USER_SHOPS_ENDPOINTS.SHOP_STATUS_BY_USER, { userId });
+    const response = await this.get(endpoint);
     return response.data;
   }
 }

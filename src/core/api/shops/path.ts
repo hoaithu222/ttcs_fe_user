@@ -10,6 +10,7 @@ export const USER_SHOPS_ENDPOINTS = {
   REVIEWS: "/shops/:id/reviews",
   FEATURED: "/shops/featured",
   NEARBY: "/shops/nearby",
+  SHOP_STATUS_BY_USER: "/shops/status/user/:userId",
 } as const;
 
 // Generic endpoint builder

@@ -133,6 +133,16 @@ export interface NearbyShopsResponse {
   shops: Array<Shop & { distance: number }>;
 }
 
+export interface ShopStatusResponse {
+  shopStatus: "not_registered" | "pending_review" | "approved" | "rejected" | "active" | "blocked" | "suspended";
+  shop: {
+    id: string;
+    name: string;
+    slug?: string;
+    status: string;
+  } | null;
+}
+
 // API response wrapper
 export interface ApiSuccess<T = any> {
   success: boolean;

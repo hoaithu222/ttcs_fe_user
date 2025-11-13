@@ -37,6 +37,7 @@ export interface TextAreaProps
   autoUppercase?: boolean;
   /** Time to debounce transform text (ms) */
   debounceTransformText?: number;
+  required?: boolean;
 }
 
 const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
@@ -56,6 +57,7 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
       blockSpecialChars = false,
       autoStripDiacritics = false,
       autoUppercase = false,
+      required = false,
       ...props
     },
     ref
@@ -197,9 +199,12 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
         <div ref={regionRef} data-testid={testId} className="w-full">
           {/* Label */}
           {label && (
-            <Form.Label htmlFor={inputId} className="block text-body-13 text-neutral-9">
+            <Form.Label
+              htmlFor={inputId}
+              className="block text-start mb-2 text-body-13 text-neutral-9"
+            >
               {label}
-              {props.required && <span className="text-red-5">*</span>}
+              {required && <span className="text-error">*</span>}
             </Form.Label>
           )}
 
