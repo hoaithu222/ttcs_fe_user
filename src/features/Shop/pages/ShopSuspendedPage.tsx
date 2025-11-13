@@ -6,7 +6,7 @@ import Button from "@/foundation/components/buttons/Button";
 const ShopSuspendedPage = () => {
   return (
     <Section title="Cửa hàng bị hạn chế">
-      <Card className="mx-auto max-w-2xl" paddingX="lg" paddingY="lg" shadow="md">
+      <Card className="container mx-auto my-6" paddingX="lg" paddingY="lg" shadow="md">
         <Card.Body className="flex flex-col items-center space-y-6 text-center">
           {/* Icon Container */}
           <div className="relative">
