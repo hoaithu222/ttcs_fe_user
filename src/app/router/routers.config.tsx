@@ -12,7 +12,6 @@ const ProfilePage = lazy(() => import("@/features/Profile/ProfilePage"));
 const ShopEntryPage = lazy(() => import("@/features/Shop/ShopEntryPage"));
 const RegisterShopPage = lazy(() => import("@/features/Shop/pages/RegisterShopPage"));
 const ShopReviewPage = lazy(() => import("@/features/Shop/pages/ShopReviewPage"));
-const ShopSetupPage = lazy(() => import("@/features/Shop/pages/ShopSetupPage"));
 const ShopDashboardPage = lazy(() => import("@/features/Shop/pages/ShopDashboardPage"));
 const ShopSuspendedPage = lazy(() => import("@/features/Shop/pages/ShopSuspendedPage"));
 
@@ -111,12 +110,6 @@ export const ROUTE = {
   shopReview: {
     path: "/shop/review",
     element: <ShopReviewPage />,
-    layout: "main",
-    options: defaultProtectedOptions,
-  },
-  shopSetup: {
-    path: "/shop/setup",
-    element: <ShopSetupPage />,
     layout: "main",
     options: defaultProtectedOptions,
   },
