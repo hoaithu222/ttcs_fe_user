@@ -18,6 +18,8 @@ import type {
   getProductsStart,
   getOrdersStart,
   updateOrderStatusStart,
+  createProductStart,
+  deleteProductStart,
 } from "./shop.slice";
 import {
   fetchOwnShopSuccess,
@@ -37,6 +39,10 @@ import {
   getOrdersFailure,
   updateOrderStatusSuccess,
   updateOrderStatusFailure,
+  createProductSuccess,
+  createProductFailure,
+  deleteProductSuccess,
+  deleteProductFailure,
 } from "./shop.slice";
 
 type FetchOwnShopAction = ReturnType<typeof fetchOwnShopStart>;
@@ -47,6 +53,8 @@ type UpdateShopAction = ReturnType<typeof updateShopStart>;
 type GetProductsAction = ReturnType<typeof getProductsStart>;
 type GetOrdersAction = ReturnType<typeof getOrdersStart>;
 type UpdateOrderStatusAction = ReturnType<typeof updateOrderStatusStart>;
+type CreateProductAction = ReturnType<typeof createProductStart>;
+type DeleteProductAction = ReturnType<typeof deleteProductStart>;
 
 // Helper function để lấy error message
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -150,6 +158,7 @@ function* updateShopWorker(action: UpdateShopAction): Generator {
     const shop = response?.data || response?.data?.shop;
     if (shop) {
       yield put(updateShopSuccess(shop));
+      yield put(getShopInfoStart()); // Refresh shop info
       yield put(addToast({ type: "success", message: "Cập nhật cửa hàng thành công" }));
     }
   } catch (error: unknown) {
@@ -211,9 +220,50 @@ function* updateOrderStatusWorker(action: UpdateOrderStatusAction): Generator {
     yield call([shopManagementApi, shopManagementApi.updateOrderStatus], orderId, data);
     yield put(updateOrderStatusSuccess());
     yield put(addToast({ type: "success", message: "Cập nhật trạng thái đơn hàng thành công" }));
+    
+    // Refresh orders list
+    const state: any = yield select((rootState: any) => rootState);
+    const currentPage = state?.shop?.orders?.pagination?.page || 1;
+    yield put(getOrdersStart({ page: currentPage, limit: 10 }));
   } catch (error: unknown) {
     const message = getErrorMessage(error, "Failed to update order status");
     yield put(updateOrderStatusFailure(message));
+    yield put(addToast({ type: "error", message }));
+  }
+}
+
+function* createProductWorker(action: CreateProductAction): Generator {
+  try {
+    const response: any = yield call(
+      [shopManagementApi, shopManagementApi.createProduct],
+      action.payload
+    );
+    const product = response?.data || response?.data?.product;
+    if (product) {
+      yield put(createProductSuccess(product));
+      yield put(addToast({ type: "success", message: "Tạo sản phẩm thành công" }));
+    }
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, "Failed to create product");
+    yield put(createProductFailure(message));
+    yield put(addToast({ type: "error", message }));
+  }
+}
+
+function* deleteProductWorker(action: DeleteProductAction): Generator {
+  try {
+    const { productId } = action.payload;
+    yield call([shopManagementApi, shopManagementApi.deleteProduct], productId);
+    yield put(deleteProductSuccess({ productId }));
+    yield put(addToast({ type: "success", message: "Xóa sản phẩm thành công" }));
+    
+    // Refresh products list
+    const state: any = yield select((rootState: any) => rootState);
+    const currentPage = state?.shop?.products?.pagination?.page || 1;
+    yield put(getProductsStart({ page: currentPage, limit: 12 }));
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, "Failed to delete product");
+    yield put(deleteProductFailure(message));
     yield put(addToast({ type: "error", message }));
   }
 }
@@ -228,4 +278,6 @@ export function* shopSaga() {
   yield takeEvery("shop/getProductsStart", getProductsWorker);
   yield takeEvery("shop/getOrdersStart", getOrdersWorker);
   yield takeEvery("shop/updateOrderStatusStart", updateOrderStatusWorker);
+  yield takeEvery("shop/createProductStart", createProductWorker);
+  yield takeEvery("shop/deleteProductStart", deleteProductWorker);
 }

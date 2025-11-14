@@ -87,6 +87,8 @@ const AddressSelector = ({
           options={provinces.map((p) => ({ value: String(p.code), label: p.name }))}
           disabled={disabled}
           required
+          className="overflow-y-auto max-h-40"
+          customHeight={"max-h-40 overflow-y-auto"}
         />
 
         <Select
@@ -99,6 +101,7 @@ const AddressSelector = ({
           options={districts.map((d) => ({ value: String(d.code), label: d.name }))}
           disabled={disabled || !provinceCode}
           required
+          customHeight={"max-h-40 overflow-y-auto"}
         />
 
         <Select
@@ -111,6 +114,7 @@ const AddressSelector = ({
           options={wards.map((w) => ({ value: String(w.code), label: w.name }))}
           disabled={disabled || !districtCode}
           required
+          customHeight={"max-h-40 overflow-y-auto"}
         />
       </div>
     </div>

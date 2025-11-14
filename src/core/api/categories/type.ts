@@ -1,15 +1,26 @@
+// Image subdocument type
+export interface ImageAsset {
+  url: string;
+  publicId: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // Category types for users
 export interface Category {
   _id: string;
   name: string;
   description?: string;
-  image?: string;
-  banner?: string;
-  slug: string;
+  image?: ImageAsset[]; // Array of images
+  image_Background?: ImageAsset; // Background banner image
+  image_Icon?: ImageAsset; // Icon image
+  slug?: string; // Optional slug
   parentId?: string;
   isActive: boolean;
-  sortOrder: number;
+  sortOrder?: number; // Frontend alias
+  order_display?: number; // Backend field name
   productCount?: number;
+  subCategories?: unknown[]; // Embedded subcategories
   createdAt: string;
   updatedAt: string;
 }

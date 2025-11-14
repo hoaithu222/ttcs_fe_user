@@ -1,3 +1,4 @@
+import { createSelector } from "@reduxjs/toolkit";
 import { IShopState, ShopStatus } from "./shop.type";
 import { ReduxStateType } from "@/app/store/types";
 
@@ -53,9 +54,9 @@ export const selectShopStatusByUserStatus = (state: any) =>
 export const selectShopStatusByUserError = (state: any) =>
   selectShopState(state).shopStatusByUser.error;
 
-export const selectShopUiScreens = (state: any) => {
-  const status = selectShopCurrentStatus(state);
-  return {
+export const selectShopUiScreens = createSelector(
+  [selectShopCurrentStatus],
+  (status: ShopStatus) => ({
     showRegistrationLanding:
       status === ShopStatus.PENDING_REGISTRATION || status === ShopStatus.INFORMATION_INPUT,
     showPendingReview: status === ShopStatus.PENDING_REVIEW,
@@ -63,5 +64,5 @@ export const selectShopUiScreens = (state: any) => {
     showSetup: status === ShopStatus.SETUP_IN_PROGRESS,
     showActiveDashboard: status === ShopStatus.ACTIVE,
     showSuspended: status === ShopStatus.SUSPENDED || status === ShopStatus.BLOCKED,
-  };
-};
+  })
+);

@@ -1,7 +1,7 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
 
-export type ButtonColor = "blue" | "red" | "green" | "purple";
+export type ButtonColor = "blue" | "red" | "green" | "purple" | "gray";
 
 export type ButtonGradient =
   | "blue-purple"
@@ -101,6 +101,11 @@ const Button = ({
       outline: "border-2 border-brand text-brand hover:bg-primary-10 focus:ring-brand",
       ghost: "text-brand hover:bg-primary-10 focus:ring-brand",
     },
+    gray: {
+      solid: "bg-neutral-6 text-button-text hover:bg-neutral-7 focus:ring-neutral-6",
+      outline: "border-2 border-neutral-6 text-neutral-7 hover:bg-neutral-2 focus:ring-neutral-6",
+      ghost: "text-neutral-7 hover:bg-neutral-2 focus:ring-neutral-6",
+    },
   } as const;
 
   // Gradient classes
@@ -125,12 +130,18 @@ const Button = ({
       return gradientClasses[gradient];
     }
     if (variant === "outlined") {
-      return colorVariants[color]["outline"];
+      return colorVariants[color]?.["outline"] || colorVariants.blue.outline;
     }
     if (variant === "primary") {
-      return colorVariants[color]["solid"];
+      return colorVariants[color]?.["solid"] || colorVariants.blue.solid;
     }
-    return colorVariants[color][variant as keyof (typeof colorVariants)[typeof color]];
+    // Fallback to blue solid if color or variant is invalid
+    const colorVariant = colorVariants[color];
+    if (!colorVariant) {
+      return colorVariants.blue.solid;
+    }
+    const variantClass = colorVariant[variant as keyof typeof colorVariant];
+    return variantClass || colorVariants.blue.solid;
   };
 
   // Combine all classes

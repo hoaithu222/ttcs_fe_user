@@ -375,7 +375,12 @@ const Input = React.forwardRef<HTMLInputElement, FieldInputProps>(
           {/* Phần hiển thị lỗi (error) */}
           {error && (
             <Form.Message asChild>
-              <p id={errorId} role="alert" aria-live="assertive" className={ERROR_TEXT_CLASS}>
+              <p
+                id={errorId}
+                role="alert"
+                aria-live="assertive"
+                className={`${ERROR_TEXT_CLASS} text-red-5 text-start`}
+              >
                 {error}
               </p>
             </Form.Message>

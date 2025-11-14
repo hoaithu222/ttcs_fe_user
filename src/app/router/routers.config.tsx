@@ -12,8 +12,13 @@ const ProfilePage = lazy(() => import("@/features/Profile/ProfilePage"));
 const ShopEntryPage = lazy(() => import("@/features/Shop/ShopEntryPage"));
 const RegisterShopPage = lazy(() => import("@/features/Shop/pages/RegisterShopPage"));
 const ShopReviewPage = lazy(() => import("@/features/Shop/pages/ShopReviewPage"));
+const ShopReviewManagerPage = lazy(() => import("@/features/Shop/pages/ShopReviewManagerPage"));
 const ShopDashboardPage = lazy(() => import("@/features/Shop/pages/ShopDashboardPage"));
 const ShopSuspendedPage = lazy(() => import("@/features/Shop/pages/ShopSuspendedPage"));
+const ShopInfoPage = lazy(() => import("@/features/Shop/pages/ShopInfoPage"));
+const AddProductPage = lazy(() => import("@/features/Shop/pages/AddProductPage"));
+const ListProductPage = lazy(() => import("@/features/Shop/pages/ListProductPage"));
+const OrderShopPage = lazy(() => import("@/features/Shop/pages/OrderShopPage"));
 
 const defaultOptions = {
   requireAuth: false,
@@ -71,6 +76,12 @@ export const ROUTE = {
     layout: "main",
     options: defaultOptions,
   },
+  categoryDetail: {
+    path: "/categories/:id",
+    element: <CategoriesPage />,
+    layout: "main",
+    options: defaultOptions,
+  },
   cart: {
     path: "/cart",
     element: <CartPage />,
@@ -113,6 +124,12 @@ export const ROUTE = {
     layout: "main",
     options: defaultProtectedOptions,
   },
+  shopReviewManager: {
+    path: "/shop/reviews",
+    element: <ShopReviewManagerPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
   shopDashboard: {
     path: "/shop/dashboard",
     element: <ShopDashboardPage />,
@@ -122,6 +139,36 @@ export const ROUTE = {
   shopSuspended: {
     path: "/shop/suspended",
     element: <ShopSuspendedPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  shopInfo: {
+    path: "/shop/info",
+    element: <ShopInfoPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  shopEntry: {
+    path: "/shop",
+    element: <ShopEntryPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  addProduct: {
+    path: "/shop/add-product",
+    element: <AddProductPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  listProduct: {
+    path: "/shop/list-product",
+    element: <ListProductPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  ordersShopManager: {
+    path: "/shop/orders",
+    element: <OrderShopPage />,
     layout: "main",
     options: defaultProtectedOptions,
   },

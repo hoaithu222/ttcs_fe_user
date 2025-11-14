@@ -77,4 +77,54 @@ export const NAVIGATION_CONFIG: Record<string, NavigationConfig> = {
     name: "Liên hệ",
     requireAuth: false,
   },
+  shop: {
+    path: "/shop/info",
+    name: "Quản lý cửa hàng",
+    requireAuth: true,
+  },
+  shopEntry: {
+    path: "/shop",
+    name: "Cửa hàng",
+    requireAuth: true,
+  },
+  shopRegister: {
+    path: "/shop/register",
+    name: "Đăng ký cửa hàng",
+    requireAuth: true,
+  },
+  shopReview: {
+    path: "/shop/review",
+    name: "Đánh giá cửa hàng",
+    requireAuth: true,
+  },
+  shopReviewManager: {
+    path: "/shop/reviews",
+    name: "Quản lý đánh giá",
+    requireAuth: true,
+  },
+  shopDashboard: {
+    path: "/shop/dashboard",
+    name: "Bảng điều khiển cửa hàng",
+    requireAuth: true,
+  },
+  shopSuspended: {
+    path: "/shop/suspended",
+    name: "Cửa hàng bị khóa",
+    requireAuth: true,
+  },
+  addProduct: {
+    path: "/shop/add-product",
+    name: "Thêm sản phẩm mới",
+    requireAuth: true,
+  },
+  listProduct: {
+    path: "/shop/list-product",
+    name: "Danh sách sản phẩm",
+    requireAuth: true,
+  },
+  ordersShopManager: {
+    path: "/shop/orders",
+    name: "Đơn hàng cửa hàng",
+    requireAuth: true,
+  },
 } satisfies Record<string, NavigationConfig>;

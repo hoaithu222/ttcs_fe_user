@@ -217,7 +217,10 @@ const shopSlice = createSlice({
     },
 
     // Get Products
-    getProductsStart: (state, action: PayloadAction<{ page?: number; limit?: number }>) => {
+    getProductsStart: (
+      state,
+      action: PayloadAction<{ page?: number; limit?: number; search?: string; isActive?: boolean }>
+    ) => {
       state.products.status = ReduxStateType.LOADING;
       state.products.error = null;
       state.products.message = null;
@@ -245,7 +248,10 @@ const shopSlice = createSlice({
     },
 
     // Get Orders
-    getOrdersStart: (state, action: PayloadAction<{ page?: number; limit?: number }>) => {
+    getOrdersStart: (
+      state,
+      action: PayloadAction<{ page?: number; limit?: number; orderStatus?: string }>
+    ) => {
       state.orders.status = ReduxStateType.LOADING;
       state.orders.error = null;
       state.orders.message = null;
@@ -287,6 +293,42 @@ const shopSlice = createSlice({
       state.updateOrderStatus.status = ReduxStateType.ERROR;
       state.updateOrderStatus.error = action.payload;
       state.updateOrderStatus.message = action.payload;
+    },
+
+    // Create Product
+    createProductStart: (state, _action: PayloadAction<any>) => {
+      state.products.status = ReduxStateType.LOADING;
+      state.products.error = null;
+      state.products.message = null;
+    },
+    createProductSuccess: (state, action: PayloadAction<ShopProduct>) => {
+      state.products.status = ReduxStateType.SUCCESS;
+      state.products.data = [action.payload, ...state.products.data];
+      state.products.error = null;
+      state.products.message = null;
+    },
+    createProductFailure: (state, action: PayloadAction<string>) => {
+      state.products.status = ReduxStateType.ERROR;
+      state.products.error = action.payload;
+      state.products.message = action.payload;
+    },
+
+    // Delete Product
+    deleteProductStart: (state, _action: PayloadAction<{ productId: string }>) => {
+      state.products.status = ReduxStateType.LOADING;
+      state.products.error = null;
+      state.products.message = null;
+    },
+    deleteProductSuccess: (state, action: PayloadAction<{ productId: string }>) => {
+      state.products.status = ReduxStateType.SUCCESS;
+      state.products.data = state.products.data.filter((p) => p._id !== action.payload.productId);
+      state.products.error = null;
+      state.products.message = null;
+    },
+    deleteProductFailure: (state, action: PayloadAction<string>) => {
+      state.products.status = ReduxStateType.ERROR;
+      state.products.error = action.payload;
+      state.products.message = action.payload;
     },
 
     // Current status
@@ -392,6 +434,12 @@ export const {
   updateOrderStatusStart,
   updateOrderStatusSuccess,
   updateOrderStatusFailure,
+  createProductStart,
+  createProductSuccess,
+  createProductFailure,
+  deleteProductStart,
+  deleteProductSuccess,
+  deleteProductFailure,
   setCurrentStatus,
   resetCreateShopState,
   fetchShopStatusByUserStart,
