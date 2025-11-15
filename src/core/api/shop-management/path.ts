@@ -4,6 +4,7 @@ export const SHOP_MANAGEMENT_ENDPOINTS = {
   UPDATE_SHOP: "/shops/my-shop",
   CREATE_SHOP: "/shops",
   PRODUCTS: "/shops/my-shop/products",
+  PRODUCT_DETAIL: "/shops/my-shop/products/:productId",
   CREATE_PRODUCT: "/shops/my-shop/products",
   UPDATE_PRODUCT: "/shops/my-shop/products/:productId",
   DELETE_PRODUCT: "/shops/my-shop/products/:productId",

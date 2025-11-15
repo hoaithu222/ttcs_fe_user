@@ -17,6 +17,7 @@ const ShopDashboardPage = lazy(() => import("@/features/Shop/pages/ShopDashboard
 const ShopSuspendedPage = lazy(() => import("@/features/Shop/pages/ShopSuspendedPage"));
 const ShopInfoPage = lazy(() => import("@/features/Shop/pages/ShopInfoPage"));
 const AddProductPage = lazy(() => import("@/features/Shop/pages/AddProductPage"));
+const EditProductPage = lazy(() => import("@/features/Shop/pages/EditProductPage"));
 const ListProductPage = lazy(() => import("@/features/Shop/pages/ListProductPage"));
 const OrderShopPage = lazy(() => import("@/features/Shop/pages/OrderShopPage"));
 
@@ -91,19 +92,19 @@ export const ROUTE = {
   orders: {
     path: "/orders",
     element: <OrdersPage />,
-    layout: "main",
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   wishlist: {
     path: "/wishlist",
     element: <WishlistPage />,
-    layout: "main",
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   profile: {
     path: "/profile",
     element: <ProfilePage />,
-    layout: "main",
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   shop: {
@@ -133,7 +134,7 @@ export const ROUTE = {
   shopDashboard: {
     path: "/shop/dashboard",
     element: <ShopDashboardPage />,
-    layout: "main",
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   shopSuspended: {
@@ -145,31 +146,37 @@ export const ROUTE = {
   shopInfo: {
     path: "/shop/info",
     element: <ShopInfoPage />,
-    layout: "main",
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   shopEntry: {
     path: "/shop",
     element: <ShopEntryPage />,
-    layout: "main",
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   addProduct: {
     path: "/shop/add-product",
     element: <AddProductPage />,
-    layout: "main",
+    layout: "extension",
+    options: defaultProtectedOptions,
+  },
+  editProduct: {
+    path: "/shop/products/:productId/edit",
+    element: <EditProductPage />,
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   listProduct: {
     path: "/shop/list-product",
     element: <ListProductPage />,
-    layout: "main",
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   ordersShopManager: {
     path: "/shop/orders",
     element: <OrderShopPage />,
-    layout: "main",
+    layout: "extension",
     options: defaultProtectedOptions,
   },
 } satisfies Record<

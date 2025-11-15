@@ -6,6 +6,7 @@ import Button from "@/foundation/components/buttons/Button";
 import { Heart, ShoppingCart, Star } from "lucide-react";
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
+import { useAddToCart } from "@/features/Cart/hooks/useAddToCart";
 
 export interface CardProductProps {
   product: Product;
@@ -25,6 +26,7 @@ const CardProduct: React.FC<CardProductProps> = ({
   onAddToCart,
 }) => {
   const navigate = useNavigate();
+  const { addToCart } = useAddToCart();
 
   const handleProductClick = () => {
     navigate(`/products/${product._id}`);
@@ -41,6 +43,9 @@ const CardProduct: React.FC<CardProductProps> = ({
     e.stopPropagation();
     if (onAddToCart) {
       onAddToCart(product._id);
+    } else {
+      // Use custom hook if no callback provided
+      addToCart(product, 1, undefined, { showToast: true });
     }
   };
 

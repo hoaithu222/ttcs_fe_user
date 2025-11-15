@@ -53,6 +53,7 @@ const Button = ({
   children,
   className = "",
   testId,
+  type = "button",
   ...props
 }: ButtonProps) => {
   // Base classes
@@ -165,9 +166,12 @@ const Button = ({
     return icon;
   };
 
+  // Extract type from props if provided, otherwise use default
+  const buttonType = (props as any).type || type;
+
   return (
     <button
-      type="button"
+      type={buttonType}
       className={buttonClasses}
       disabled={disabled || loading}
       data-testid={testId}

@@ -1,30 +1,66 @@
 // Shop Management types
 export interface ShopInfo {
   _id: string;
+  userId?: string;
   name: string;
   description?: string;
   logo?: string;
-  coverImage?: string;
+  banner?: string; // Backend uses 'banner', not 'coverImage'
+  coverImage?: string; // Alias for banner for frontend compatibility
   address?: string;
-  phone?: string;
-  email?: string;
+  phone?: string; // Alias for contactPhone
+  contactPhone?: string; // Backend field name
+  email?: string; // Alias for contactEmail
+  contactEmail?: string; // Backend field name
+  contactName?: string;
   website?: string;
-  ownerId: string;
-  isActive: boolean;
-  isVerified: boolean;
+  ownerId?: string;
+  isActive?: boolean;
+  status?: string; // Backend uses 'status' field
+  isVerified?: boolean;
   rating?: number;
   reviewCount?: number;
-  followersCount?: number;
-  productsCount?: number;
-  createdAt: string;
-  updatedAt: string;
+  followCount?: number; // Backend field name
+  followersCount?: number; // Alias for followCount
+  productCount?: number; // Backend field name
+  productsCount?: number; // Alias for productCount
+  totalRevenue?: number;
+  slug?: string;
+  businessType?: string;
+  taxId?: string;
+  repId?: string;
+  bankName?: string;
+  bankAccount?: string;
+  bankHolder?: string;
+  idCardImages?: string[];
+  businessLicenseImages?: string[];
+  shippingPolicy?: string;
+  returnPolicy?: string;
+  openHour?: string;
+  closeHour?: string;
+  workingDays?: string;
+  facebook?: string;
+  zalo?: string;
+  instagram?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ShopProductVariant {
+  _id?: string;
+  id?: string;
+  attributes: Record<string, string>;
+  price: number;
+  stock: number;
+  image?: string | null | { url: string };
+  sku?: string;
 }
 
 export interface ShopProduct {
   _id: string;
   name: string;
   description?: string;
-  images: string[];
+  images: string[] | Array<{ _id: string; url: string; publicId?: string }>;
   subCategoryId: string;
   categoryId: string;
   price: number;
@@ -39,6 +75,7 @@ export interface ShopProduct {
   reviewCount?: number;
   salesCount?: number;
   viewCount?: number;
+  variants?: ShopProductVariant[];
   createdAt: string;
   updatedAt: string;
 }
@@ -70,6 +107,8 @@ export interface ShopOrder {
   paymentMethod: string;
   paymentStatus: string;
   orderStatus: string;
+  trackingNumber?: string;
+  notes?: string;
   subtotal: number;
   shippingFee: number;
   discount: number;

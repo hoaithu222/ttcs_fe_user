@@ -1,17 +1,39 @@
 // Cart types for users
 export interface CartItem {
   _id: string;
-  productId: string;
-  productName: string;
-  productImage?: string;
-  productPrice: number;
-  productDiscount?: number;
-  finalPrice: number;
+  cartId: string;
+  productId: string | {
+    _id: string;
+    name: string;
+    images: Array<{ url: string; publicId?: string }> | string[];
+    price: number;
+    discount?: number;
+    stock?: number;
+  };
+  variantId?: string | {
+    _id: string;
+    attributes: Record<string, string>;
+    price: number;
+    stock: number;
+    image?: string | null;
+    sku?: string;
+  };
   quantity: number;
-  totalPrice: number;
-  shopId: string;
-  shopName: string;
-  addedAt: string;
+  priceAtTime: number;
+  shopId: string | {
+    _id: string;
+    name: string;
+    logo?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  // Computed fields for frontend
+  productName?: string;
+  productImage?: string;
+  productPrice?: number;
+  finalPrice?: number;
+  totalPrice?: number;
+  shopName?: string;
 }
 
 export interface CartCoupon {
@@ -26,23 +48,28 @@ export interface CartCoupon {
 export interface Cart {
   _id: string;
   userId: string;
-  items: CartItem[];
+  cartItems: CartItem[]; // Backend uses cartItems
+  items?: CartItem[]; // Alias for cartItems for frontend compatibility
+  status?: string;
   coupon?: CartCoupon;
-  subtotal: number;
-  discount: number;
-  couponDiscount: number;
-  shippingFee: number;
-  totalAmount: number;
-  itemCount: number;
-  shopCount: number;
-  createdAt: string;
-  updatedAt: string;
+  subtotal?: number; // Computed
+  discount?: number; // Computed
+  couponDiscount?: number; // Computed
+  shippingFee?: number; // Computed
+  totalAmount?: number; // Computed
+  itemCount?: number; // Computed
+  shopCount?: number; // Computed
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Request types
 export interface AddCartItemRequest {
   productId: string;
+  variantId?: string; // Optional, for products with variants
   quantity: number;
+  priceAtTime: number; // Price at the time of adding to cart
+  shopId: string;
 }
 
 export interface UpdateCartItemRequest {

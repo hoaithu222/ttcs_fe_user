@@ -4,14 +4,17 @@ import { Pencil, CheckCircle2, FolderTree, Edit } from "lucide-react";
 import Input from "@/foundation/components/input/Input";
 import TextArea from "@/foundation/components/input/TextArea";
 import Button from "@/foundation/components/buttons/Button";
-import ImageUpload from "@/foundation/components/input/upload/ImageUpload";
+import ImageUploadMulti from "@/foundation/components/input/upload/ImageUploadMulti";
 import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import CategorySelectionModal from "./CategorySelectionModal";
 import SelectAttribute from "./SelectAttribute";
+import { ProductVariantsManager } from "@/features/Shop/components/products/ProductVariants";
+import type { ProductVariant } from "@/features/Shop/components/products/ProductVariants";
 import { useSelector, useDispatch } from "react-redux";
-import { shopManagementApi } from "@/core/api/shop-management";
+import { ProductService } from "@/features/Shop/api";
 import { userCategoriesApi } from "@/core/api/categories";
+import { imagesApi } from "@/core/api/images";
 import { addToast } from "@/app/store/slices/toast";
 import Loading from "@/foundation/components/loading/Loading";
 import { useNavigate, useParams } from "react-router-dom";
@@ -28,6 +31,7 @@ export default function EditProduct() {
     shop_id: "",
     subcategory_id: "",
     subCategoryId: "",
+    categoryId: "", // Parent category ID for fetching variant attributes
     name: "",
     description: "",
     base_price: 0,
@@ -35,6 +39,7 @@ export default function EditProduct() {
     product_attributes: [] as any[],
     attributes: [] as any[],
     product_variants: [] as any[],
+    variants: [] as ProductVariant[],
     stock_quantity: 0,
     weight: 0,
     is_active: true,
@@ -52,22 +57,46 @@ export default function EditProduct() {
   useEffect(() => {
     const fetchProductData = async () => {
       if (!productId) return;
-      
+
       setLoading(true);
       try {
-        const productsResponse = await shopManagementApi.getProducts({ limit: 1000 });
-        if (productsResponse.success && productsResponse.data) {
-          const products = productsResponse.data.products || [];
-          const product = products.find((p) => p._id === productId);
+        const productResponse = await ProductService.getProduct(productId);
+        if (productResponse.success && productResponse.data) {
+          const product = productResponse.data;
 
           if (product) {
-            const productAttrs = product.attributes || [];
-            const images = product.images || [];
-            
+            const productAttrs = (product as any).attributes || [];
+            // Handle images - can be ObjectIds or populated objects
+            const images = Array.isArray(product.images)
+              ? product.images.map((img: any) => {
+                  // If populated, use url directly
+                  if (typeof img === "object" && img.url) {
+                    return img.url;
+                  }
+                  // If ObjectId string, return as is (will be handled by backend)
+                  return typeof img === "string" ? img : img._id || img;
+                })
+              : [];
+
+            // Convert variants to ProductVariant format
+            const convertedVariants: ProductVariant[] = (product.variants || []).map((v: any) => ({
+              id: v._id || v.id,
+              attributes: v.attributes || {},
+              price: v.price || product.price || 0,
+              stock: v.stock || 0,
+              image: v.image
+                ? typeof v.image === "string"
+                  ? { url: v.image }
+                  : { url: v.image.url || v.image }
+                : null,
+              sku: v.sku || undefined,
+            }));
+
             setData({
-              shop_id: product.shopId || "",
+              shop_id: (product as any).shopId || shopInfo?._id || "",
               subcategory_id: product.subCategoryId || "",
               subCategoryId: product.subCategoryId || "",
+              categoryId: product.categoryId || "",
               name: product.name || "",
               description: product.description || "",
               base_price: product.price || 0,
@@ -75,6 +104,7 @@ export default function EditProduct() {
               product_attributes: productAttrs,
               attributes: productAttrs,
               product_variants: product.variants || [],
+              variants: convertedVariants,
               stock_quantity: product.stock || 0,
               weight: product.weight || 0,
               is_active: product.isActive !== false,
@@ -83,9 +113,16 @@ export default function EditProduct() {
               metaKeywords: product.metaKeywords || "",
             });
 
-            // Set product images
+            // Set product images - convert URLs to image objects
             if (images.length > 0) {
-              setProductImages(images.map((url: string) => ({ url })));
+              setProductImages(
+                images.map((img: any) => {
+                  if (typeof img === "string") {
+                    return { url: img };
+                  }
+                  return { url: img.url || img._id, publicId: img.publicId };
+                })
+              );
             }
 
             // Fetch category info if subcategory_id exists
@@ -93,7 +130,8 @@ export default function EditProduct() {
               try {
                 const categoriesResponse = await userCategoriesApi.getCategories();
                 if (categoriesResponse.success && categoriesResponse.data) {
-                  const categories = categoriesResponse.data.categories || categoriesResponse.data || [];
+                  const categories =
+                    categoriesResponse.data.categories || categoriesResponse.data || [];
                   // Find parent category by checking subcategories
                   for (const cat of categories) {
                     try {
@@ -102,8 +140,12 @@ export default function EditProduct() {
                         const subCats = subCatsResponse.data?.subCategories || [];
                         const foundSub = subCats.find((sub) => sub._id === product.subCategoryId);
                         if (foundSub) {
-                          setAttributes(cat.attributes || []);
+                          setAttributes((cat as any).attributes || []);
                           setSelectedPath(`${cat.name} > ${foundSub.name}`);
+                          setData((prev) => ({
+                            ...prev,
+                            categoryId: cat._id, // Save parent category ID
+                          }));
                           break;
                         }
                       }
@@ -132,19 +174,16 @@ export default function EditProduct() {
   }, [productId, dispatch, navigate]);
 
   useEffect(() => {
-    if (shopInfo?.id) {
+    if (shopInfo?._id) {
       setData((prev) => ({
         ...prev,
-        shop_id: shopInfo.id,
+        shop_id: shopInfo._id,
       }));
     }
   }, [shopInfo]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    let { name, value } = e.target;
-    if (name === "base_price" || name === "stock_quantity" || name === "weight") {
-      value = Number(value);
-    }
+    const { name, value } = e.target;
     setData((prev) => ({
       ...prev,
       [name]: value,
@@ -159,6 +198,15 @@ export default function EditProduct() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Prepare variants data
+      const variantsData = data.variants.map((variant) => ({
+        attributes: variant.attributes,
+        price: variant.price,
+        stock: variant.stock,
+        image: variant.image?.url || null,
+        sku: variant.sku || undefined,
+      }));
+
       const updateData = {
         name: data.name,
         description: data.description,
@@ -169,25 +217,27 @@ export default function EditProduct() {
         isActive: data.is_active,
         subCategoryId: data.subcategory_id || data.subCategoryId,
         attributes: data.product_attributes || data.attributes,
-        variants: data.product_variants,
+        variants: variantsData.length > 0 ? variantsData : data.product_variants,
         warrantyInfo: data.warrantyInfo,
         dimensions: data.dimensions,
         metaKeywords: data.metaKeywords,
       };
 
-      const response = await shopManagementApi.updateProduct(productId!, updateData);
+      const response = await ProductService.updateProduct(productId!, updateData);
       if (response.success) {
         dispatch(addToast({ type: "success", message: "Đã cập nhật sản phẩm thành công" }));
         navigate(NAVIGATION_CONFIG.listProduct.path);
       } else {
-        dispatch(addToast({ type: "error", message: response.message || "Cập nhật sản phẩm thất bại" }));
+        dispatch(
+          addToast({ type: "error", message: response.message || "Cập nhật sản phẩm thất bại" })
+        );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating product:", error);
       dispatch(
         addToast({
           type: "error",
-          message: error instanceof Error ? error.message : "Có lỗi xảy ra khi cập nhật sản phẩm",
+          message: error?.message || "Có lỗi xảy ra khi cập nhật sản phẩm",
         })
       );
     }
@@ -195,8 +245,21 @@ export default function EditProduct() {
   };
 
   const handleImageUpload = async (file: File): Promise<{ url: string; publicId?: string }> => {
-    // TODO: Implement actual image upload API
-    return { url: URL.createObjectURL(file) };
+    try {
+      const result = await imagesApi.uploadImage(file);
+      return {
+        url: result.url,
+        publicId: result.publicId,
+      };
+    } catch (error) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: error instanceof Error ? error.message : "Upload ảnh thất bại",
+        })
+      );
+      throw error;
+    }
   };
 
   if (loading && !data.name) {
@@ -224,26 +287,23 @@ export default function EditProduct() {
           <div className="space-y-4">
             <div className="space-y-2">
               <p className="text-sm font-semibold text-neutral-7">Hình ảnh sản phẩm</p>
-              <ImageUpload
-                label=""
-                value={productImages[0] || null}
-                onChange={(file) => {
-                  if (file) {
-                    setProductImages([file]);
-                    setData((prev) => ({
-                      ...prev,
-                      product_images: [file.url, ...prev.product_images.slice(1)],
-                    }));
-                  } else {
-                    setProductImages([]);
-                    setData((prev) => ({ ...prev, product_images: prev.product_images.slice(1) }));
-                  }
+              <ImageUploadMulti
+                label="Upload nhiều ảnh sản phẩm (tối đa 10 ảnh)"
+                value={productImages}
+                onChange={(images) => {
+                  setProductImages(images || []);
+                  setData((prev) => ({
+                    ...prev,
+                    product_images: (images || []).map((img) => img.url),
+                  }));
                 }}
                 onUpload={handleImageUpload}
-                aspectRatio="square"
-                width="w-full"
-                height="h-48"
+                maxFiles={10}
+                maxSizeInMB={5}
               />
+              <p className="text-xs text-neutral-5">
+                💡 Ảnh đầu tiên sẽ được sử dụng làm ảnh đại diện của sản phẩm
+              </p>
             </div>
 
             <Input
@@ -263,7 +323,9 @@ export default function EditProduct() {
                 onClick={() => setOpenCategory(true)}
               >
                 <FolderTree className="mr-3 w-5 h-5 text-primary-6" />
-                <p className="flex-1 text-neutral-7">{selectedPath || "Vui lòng chọn ngành hàng"}</p>
+                <p className="flex-1 text-neutral-7">
+                  {selectedPath || "Vui lòng chọn ngành hàng"}
+                </p>
                 <Edit className="w-5 h-5 text-neutral-4 hover:text-primary-6 transition-colors" />
               </div>
             </div>
@@ -400,16 +462,43 @@ export default function EditProduct() {
               onChange={handleChange}
               description="Các từ khóa giúp khách hàng dễ dàng tìm thấy sản phẩm của bạn"
             />
-            {attributes?.length > 0 && (
-              <div className="mt-4 p-4 bg-warning/10 rounded-lg border border-warning/20">
-                <p className="text-sm font-medium text-warning-7">
-                  ⚠️ Tính năng biến thể sản phẩm (Màu sắc, Kích thước) đang được phát triển
-                </p>
-                <p className="text-xs text-neutral-6 mt-1">
-                  Bạn có thể thêm biến thể sau khi cập nhật sản phẩm
-                </p>
-              </div>
-            )}
+          </div>
+        </Section>
+
+        {/* Product Variants Section */}
+        <Section>
+          <SectionTitle>Biến thể sản phẩm</SectionTitle>
+          <div className="space-y-4">
+            {(() => {
+              const variantAttributes =
+                attributes?.filter(
+                  (attr: any) =>
+                    attr.name === "Màu sắc" ||
+                    attr.name === "Kích thước" ||
+                    attr.name === "Size" ||
+                    attr.name === "Giới tính"
+                ) || [];
+
+              // Always show ProductVariantsManager, even if no variant attributes
+              // This allows manual variant creation and displays existing variants
+              return (
+                <ProductVariantsManager
+                  variantAttributes={variantAttributes.map((attr: any) => ({
+                    id: attr.id || attr._id,
+                    name: attr.name,
+                    values: attr.values || [],
+                  }))}
+                  variants={data.variants || []}
+                  onChange={(variants) => {
+                    setData((prev) => ({ ...prev, variants }));
+                  }}
+                  basePrice={data.base_price}
+                  baseStock={data.stock_quantity}
+                  onImageUpload={handleImageUpload}
+                  categoryId={data.categoryId}
+                />
+              );
+            })()}
           </div>
         </Section>
 
@@ -457,4 +546,3 @@ export default function EditProduct() {
     </div>
   );
 }
-

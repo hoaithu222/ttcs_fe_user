@@ -7,6 +7,8 @@ import homeReducer from "@/features/Home/slice/home.slice";
 import profileReducer from "@/features/Profile/slice/profile.slice";
 import shopReducer from "@/features/Shop/slice/shop.slice";
 import { categoriesReducer } from "@/features/Categories/slice";
+import productReducer from "@/features/Products/slices/product.slice";
+import cartReducer from "@/features/Cart/slice/Cart.slice";
 import { AppReducerType } from "./types";
 
 export const rootReducer = combineReducers({
@@ -18,4 +20,6 @@ export const rootReducer = combineReducers({
   profile: profileReducer,
   shop: shopReducer,
   categories: categoriesReducer,
+  product: productReducer,
+  cart: cartReducer,
 });

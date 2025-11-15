@@ -8,6 +8,7 @@ import { LoaderFunction } from "react-router-dom";
 import LoginLayout from "@/layout/LoginLayout";
 import NotFound from "@/layout/NotFound";
 import NotPermisstion from "@/layout/NotPermisstion";
+import ExtensionLayout from "@/layout/ExtensionLayout";
 
 // map layout name thành component layout tương ứng
 const layoutMap = {
@@ -15,6 +16,7 @@ const layoutMap = {
   auth: LoginLayout,
   notFound: NotFound,
   notPermisstion: NotPermisstion,
+  extension: ExtensionLayout,
 };
 
 // gom các router theo layout trở thành nhánh trong router tree

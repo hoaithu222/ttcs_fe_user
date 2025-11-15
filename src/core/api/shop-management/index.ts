@@ -47,6 +47,13 @@ class ShopManagementApiService extends VpsHttpClient {
     return response.data;
   }
 
+  // Get product detail
+  async getProduct(productId: string): Promise<ApiSuccess<ShopProduct>> {
+    const endpoint = buildEndpoint(SHOP_MANAGEMENT_ENDPOINTS.PRODUCT_DETAIL, { productId });
+    const response = await this.get(endpoint);
+    return response.data;
+  }
+
   // Create product
   async createProduct(data: CreateProductRequest): Promise<ApiSuccess<ShopProduct>> {
     const response = await this.post(SHOP_MANAGEMENT_ENDPOINTS.CREATE_PRODUCT, data);

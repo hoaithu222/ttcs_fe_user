@@ -114,6 +114,7 @@ export default function CategorySelectionModal({
         ...prev,
         subCategoryId: selectedSubCategory.id,
         subcategory_id: selectedSubCategory.id,
+        categoryId: selectedCategory.id, // Save parent category ID
         category_path: getSelectedPath(),
       }));
       onPathChange(getSelectedPath());
@@ -127,8 +128,18 @@ export default function CategorySelectionModal({
     return `${selectedCategory.name} > ${selectedSubCategory.name}`;
   };
 
-  const filteredCategories = category.filter((cat) =>
-    cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+  // Smart search: search in both categories and subcategories
+  const filteredCategories = category.filter((cat) => {
+    const categoryMatch = cat.name.toLowerCase().includes(searchTerm.toLowerCase());
+    // Also check if any subcategory matches
+    const subcategoryMatch = subCategory.some((sub) =>
+      sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    return categoryMatch || (searchTerm && subcategoryMatch && selectedCategory?.id === cat.id);
+  });
+
+  const filteredSubCategories = subCategory.filter((sub) =>
+    sub.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Fetch categories khi modal mở
@@ -272,10 +283,27 @@ export default function CategorySelectionModal({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm ngành hàng..."
+                placeholder="Tìm kiếm ngành hàng hoặc danh mục con..."
                 className="flex-1 bg-transparent outline-none"
                 style={{ color: "var(--color-neutral-7)" }}
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="flex-shrink-0 p-1 rounded hover:bg-neutral-3 transition-colors"
+                  style={{ color: "var(--color-neutral-5)" }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 
@@ -373,8 +401,8 @@ export default function CategorySelectionModal({
                 >
                   <p className="text-center">Đang tải danh mục con...</p>
                 </div>
-              ) : subCategory.length > 0 ? (
-                subCategory.map((item) => (
+              ) : (searchTerm ? filteredSubCategories : subCategory).length > 0 ? (
+                (searchTerm ? filteredSubCategories : subCategory).map((item) => (
                   <div
                     key={item.id}
                     className={`flex items-center justify-between p-4 cursor-pointer transition-all border-l-4 ${
@@ -421,9 +449,11 @@ export default function CategorySelectionModal({
                   style={{ color: "var(--color-neutral-5)" }}
                 >
                   <p className="text-center">
-                    {selectedCategory
-                      ? "Ngành hàng này chưa có danh mục con"
-                      : "Vui lòng chọn ngành hàng"}
+                    {searchTerm
+                      ? "Không tìm thấy danh mục con phù hợp"
+                      : selectedCategory
+                        ? "Ngành hàng này chưa có danh mục con"
+                        : "Vui lòng chọn ngành hàng"}
                   </p>
                 </div>
               )}

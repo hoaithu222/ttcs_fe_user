@@ -25,6 +25,11 @@ class UserCartApiService extends VpsHttpClient {
   // Add item to cart
   async addItem(data: AddCartItemRequest): Promise<ApiSuccess<CartResponse>> {
     const response = await this.post(USER_CART_ENDPOINTS.ADD_ITEM, data);
+    const cartData = (response.data as any)?.data || response.data;
+    // Map backend response to frontend format
+    if (cartData && cartData.cartItems) {
+      cartData.items = cartData.cartItems;
+    }
     return response.data;
   }
 

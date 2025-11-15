@@ -1,4 +1,14 @@
 // Product types for users
+export interface ProductVariant {
+  _id?: string;
+  id?: string;
+  attributes: Record<string, string>; // { "Màu sắc": "Đỏ", "Kích thước": "M" }
+  price: number;
+  stock: number;
+  image?: string | null | { url: string };
+  sku?: string;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -27,6 +37,7 @@ export interface Product {
   discount?: number;
   finalPrice: number;
   stock?: number;
+  variants?: ProductVariant[];
   warrantyInfo: string;
   weight?: number;
   dimensions: string;

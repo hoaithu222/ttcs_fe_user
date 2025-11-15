@@ -117,6 +117,11 @@ export const NAVIGATION_CONFIG: Record<string, NavigationConfig> = {
     name: "Thêm sản phẩm mới",
     requireAuth: true,
   },
+  editProduct: {
+    path: "/shop/products/:productId/edit",
+    name: "Chỉnh sửa sản phẩm",
+    requireAuth: true,
+  },
   listProduct: {
     path: "/shop/list-product",
     name: "Danh sách sản phẩm",

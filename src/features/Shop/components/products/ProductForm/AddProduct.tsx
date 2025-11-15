@@ -4,15 +4,17 @@ import { Pencil, CheckCircle2, FolderTree, Edit } from "lucide-react";
 import Input from "@/foundation/components/input/Input";
 import TextArea from "@/foundation/components/input/TextArea";
 import Button from "@/foundation/components/buttons/Button";
-import ImageUpload from "@/foundation/components/input/upload/ImageUpload";
+import ImageUploadMulti from "@/foundation/components/input/upload/ImageUploadMulti";
 import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import CategorySelectionModal from "./CategorySelectionModal";
 import SelectAttribute from "./SelectAttribute";
+import { ProductVariantsManager } from "@/features/Shop/components/products/ProductVariants";
+import type { ProductVariant } from "@/features/Shop/components/products/ProductVariants";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { createProductStart } from "@/features/Shop/slice/shop.slice";
-import { shopManagementApi } from "@/core/api/shop-management";
+import { imagesApi } from "@/core/api/images";
 import { addToast } from "@/app/store/slices/toast";
 import { selectShopInfo } from "@/features/Shop/slice/shop.selector";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
@@ -24,6 +26,7 @@ export default function AddProduct() {
 
   const [data, setData] = useState({
     subCategoryId: "",
+    categoryId: "", // Parent category ID for fetching variant attributes
     name: "",
     description: "",
     price: 0,
@@ -36,22 +39,27 @@ export default function AddProduct() {
     metaKeywords: "",
     attributes: [] as any[],
     product_attributes: [] as any[],
+    variants: [] as ProductVariant[],
   });
   const [openCategory, setOpenCategory] = useState(false);
-  const [attributes, setAttributes] = useState([]);
+  const [attributes, setAttributes] = useState<any[]>([]);
   const [selectedPath, setSelectedPath] = useState("");
   const [loading, setLoading] = useState(false);
   const [productImages, setProductImages] = useState<{ url: string; publicId?: string }[]>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    let { name, value } = e.target;
+    const { name, value } = e.target;
     if (name === "price" || name === "stock" || name === "weight") {
-      value = Number(value);
+      setData((prev) => ({
+        ...prev,
+        [name]: Number(value) || 0,
+      }));
+    } else {
+      setData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
     }
-    setData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
   };
 
   const handleClose = () => {
@@ -80,16 +88,27 @@ export default function AddProduct() {
 
     setLoading(true);
     try {
+      // Prepare variants data - keep image URLs, saga will handle conversion
+      const variantsData = data.variants.map((variant) => ({
+        attributes: variant.attributes,
+        price: variant.price,
+        stock: variant.stock,
+        image: variant.image?.url || null,
+        sku: variant.sku || undefined,
+      }));
+
       dispatch(
         createProductStart({
           ...data,
-          categoryId: data.subCategoryId, // TODO: Get from subcategory
+          categoryId: data.categoryId,
+          variants: variantsData.length > 0 ? variantsData : undefined,
         })
       );
 
       // Reset form
       setData({
         subCategoryId: "",
+        categoryId: "",
         name: "",
         description: "",
         price: 0,
@@ -102,9 +121,11 @@ export default function AddProduct() {
         metaKeywords: "",
         attributes: [],
         product_attributes: [],
+        variants: [],
       });
       setSelectedPath("");
       setAttributes([]);
+      setProductImages([]);
 
       navigate(NAVIGATION_CONFIG.listProduct.path);
     } catch (error) {
@@ -120,8 +141,21 @@ export default function AddProduct() {
   };
 
   const handleImageUpload = async (file: File): Promise<{ url: string; publicId?: string }> => {
-    // TODO: Implement actual image upload API
-    return { url: URL.createObjectURL(file) };
+    try {
+      const result = await imagesApi.uploadImage(file);
+      return {
+        url: result.url,
+        publicId: result.publicId,
+      };
+    } catch (error) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: error instanceof Error ? error.message : "Upload ảnh thất bại",
+        })
+      );
+      throw error;
+    }
   };
 
   return (
@@ -141,26 +175,23 @@ export default function AddProduct() {
           <div className="space-y-4">
             <div className="space-y-2">
               <p className="text-sm font-semibold text-neutral-7">Hình ảnh sản phẩm</p>
-              <ImageUpload
-                label=""
-                value={productImages[0] || null}
-                onChange={(file) => {
-                  if (file) {
-                    setProductImages([file]);
-                    setData((prev) => ({
-                      ...prev,
-                      images: [file.url, ...prev.images.slice(1)],
-                    }));
-                  } else {
-                    setProductImages([]);
-                    setData((prev) => ({ ...prev, images: prev.images.slice(1) }));
-                  }
+              <ImageUploadMulti
+                label="Upload nhiều ảnh sản phẩm (tối đa 10 ảnh)"
+                value={productImages}
+                onChange={(images) => {
+                  setProductImages(images || []);
+                  setData((prev) => ({
+                    ...prev,
+                    images: (images || []).map((img) => img.url),
+                  }));
                 }}
                 onUpload={handleImageUpload}
-                aspectRatio="square"
-                width="w-full"
-                height="h-48"
+                maxFiles={10}
+                maxSizeInMB={5}
               />
+              <p className="text-xs text-neutral-5">
+                💡 Ảnh đầu tiên sẽ được sử dụng làm ảnh đại diện của sản phẩm
+              </p>
             </div>
 
             <Input
@@ -180,7 +211,9 @@ export default function AddProduct() {
                 onClick={() => setOpenCategory(true)}
               >
                 <FolderTree className="mr-3 w-5 h-5 text-primary-6" />
-                <p className="flex-1 text-neutral-7">{selectedPath || "Vui lòng chọn ngành hàng"}</p>
+                <p className="flex-1 text-neutral-7">
+                  {selectedPath || "Vui lòng chọn ngành hàng"}
+                </p>
                 <Edit className="w-5 h-5 text-neutral-4 hover:text-primary-6 transition-colors" />
               </div>
             </div>
@@ -297,16 +330,42 @@ export default function AddProduct() {
               onChange={handleChange}
               description="Các từ khóa giúp khách hàng dễ dàng tìm thấy sản phẩm của bạn"
             />
-            {attributes?.length > 0 && (
-              <div className="mt-4 p-4 bg-warning/10 rounded-lg border border-warning/20">
-                <p className="text-sm font-medium text-warning-7">
-                  ⚠️ Tính năng biến thể sản phẩm (Màu sắc, Kích thước) đang được phát triển
-                </p>
-                <p className="text-xs text-neutral-6 mt-1">
-                  Bạn có thể thêm biến thể sau khi tạo sản phẩm
-                </p>
-              </div>
-            )}
+          </div>
+        </Section>
+
+        {/* Product Variants Section */}
+        <Section>
+          <SectionTitle>Biến thể sản phẩm</SectionTitle>
+          <div className="space-y-4">
+            {(() => {
+              const variantAttributes = attributes
+                ? attributes.filter(
+                    (attr: any) =>
+                      attr.name === "Màu sắc" ||
+                      attr.name === "Kích thước" ||
+                      attr.name === "Size" ||
+                      attr.name === "Giới tính"
+                  )
+                : [];
+
+              return (
+                <ProductVariantsManager
+                  variantAttributes={variantAttributes.map((attr: any) => ({
+                    id: attr.id || attr._id,
+                    name: attr.name,
+                    values: attr.values || [],
+                  }))}
+                  variants={data.variants}
+                  onChange={(variants) => {
+                    setData((prev) => ({ ...prev, variants }));
+                  }}
+                  basePrice={data.price}
+                  baseStock={data.stock}
+                  onImageUpload={handleImageUpload}
+                  categoryId={data.categoryId}
+                />
+              );
+            })()}
           </div>
         </Section>
 

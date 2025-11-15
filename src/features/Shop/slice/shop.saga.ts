@@ -1,26 +1,16 @@
 import { call, put, takeEvery, select } from "redux-saga/effects";
-import { userShopsApi } from "@/core/api/shops";
-import type { Shop } from "@/core/api/shops/type";
-import { shopManagementApi } from "@/core/api/shop-management";
-import type {
-  CreateShopRequest,
-  UpdateShopRequest,
-  ShopProductsQuery,
-  ShopOrdersQuery,
-  UpdateOrderStatusRequest,
-} from "@/core/api/shop-management/type";
+import { imagesApi } from "@/core/api/images";
+import { ProductService, ShopService, OrderService } from "@/features/Shop/api";
 import { addToast } from "@/app/store/slices/toast";
 import type {
   fetchOwnShopStart,
-  getShopInfoStart,
   createShopStart,
   updateShopStart,
-  getProductsStart,
-  getOrdersStart,
   updateOrderStatusStart,
   createProductStart,
   deleteProductStart,
 } from "./shop.slice";
+import { getShopInfoStart, getProductsStart, getOrdersStart } from "./shop.slice";
 import {
   fetchOwnShopSuccess,
   fetchOwnShopFailure,
@@ -69,15 +59,11 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 function* fetchOwnShopWorker(action: FetchOwnShopAction): Generator {
   try {
     const { userId, page = 1, limit = 1 } = action.payload || ({} as any);
-    const response: any = yield call([userShopsApi, userShopsApi.getShops], {
-      userId,
-      page,
-      limit,
-    } as any);
-    const items = response?.data?.shops || response?.data?.items || [];
-    const shop: Shop | null = Array.isArray(items) && items.length ? (items[0] as Shop) : null;
+    const response: any = yield call([ShopService, ShopService.getOwnShop], userId, page, limit);
 
-    yield put(fetchOwnShopSuccess({ shop }));
+    if (response.success) {
+      yield put(fetchOwnShopSuccess({ shop: response.data }));
+    }
   } catch (error: unknown) {
     const message = getErrorMessage(error, "Failed to load shop information");
     yield put(fetchOwnShopFailure(message));
@@ -88,10 +74,9 @@ function* fetchOwnShopWorker(action: FetchOwnShopAction): Generator {
 function* fetchShopStatusByUserWorker(action: FetchShopStatusByUserAction): Generator {
   try {
     const { userId } = action.payload;
-    const response: any = yield call([userShopsApi, userShopsApi.getShopStatusByUserId], userId);
-    const data = response?.data || response;
-    if (data) {
-      yield put(fetchShopStatusByUserSuccess(data));
+    const response: any = yield call([ShopService, ShopService.getShopStatusByUserId], userId);
+    if (response.success && response.data) {
+      yield put(fetchShopStatusByUserSuccess(response.data));
     }
   } catch (error: unknown) {
     const message = getErrorMessage(error, "Failed to load shop status");
@@ -102,10 +87,9 @@ function* fetchShopStatusByUserWorker(action: FetchShopStatusByUserAction): Gene
 
 function* getShopInfoWorker(_action: GetShopInfoAction): Generator {
   try {
-    const response: any = yield call([shopManagementApi, shopManagementApi.getShopInfo]);
-    const shop = response?.data || response?.data?.shop;
-    if (shop) {
-      yield put(getShopInfoSuccess(shop));
+    const response: any = yield call([ShopService, ShopService.getShopInfo]);
+    if (response.success && response.data) {
+      yield put(getShopInfoSuccess(response.data));
     }
   } catch (error: unknown) {
     const message = getErrorMessage(error, "Failed to load shop info");
@@ -116,14 +100,10 @@ function* getShopInfoWorker(_action: GetShopInfoAction): Generator {
 
 function* createShopWorker(action: CreateShopAction): Generator {
   try {
-    const response: any = yield call(
-      [shopManagementApi, shopManagementApi.createShop],
-      action.payload
-    );
-    const shop = response?.data || response?.data?.shop;
+    const response: any = yield call([ShopService, ShopService.createShop], action.payload);
 
-    if (shop) {
-      yield put(createShopSuccess(shop));
+    if (response.success && response.data) {
+      yield put(createShopSuccess(response.data));
       yield put(
         addToast({
           type: "success",
@@ -151,13 +131,9 @@ function* createShopWorker(action: CreateShopAction): Generator {
 
 function* updateShopWorker(action: UpdateShopAction): Generator {
   try {
-    const response: any = yield call(
-      [shopManagementApi, shopManagementApi.updateShop],
-      action.payload
-    );
-    const shop = response?.data || response?.data?.shop;
-    if (shop) {
-      yield put(updateShopSuccess(shop));
+    const response: any = yield call([ShopService, ShopService.updateShop], action.payload);
+    if (response.success && response.data) {
+      yield put(updateShopSuccess(response.data));
       yield put(getShopInfoStart()); // Refresh shop info
       yield put(addToast({ type: "success", message: "Cập nhật cửa hàng thành công" }));
     }
@@ -171,16 +147,18 @@ function* updateShopWorker(action: UpdateShopAction): Generator {
 function* getProductsWorker(action: GetProductsAction): Generator {
   try {
     const { page = 1, limit = 10 } = action.payload || {};
-    const response: any = yield call(
-      [shopManagementApi, shopManagementApi.getProducts],
-      action.payload
-    );
-    const data = response?.data || response;
-    if (data) {
+    const response: any = yield call([ProductService, ProductService.getProducts], action.payload);
+
+    if (response.success && response.data) {
       yield put(
         getProductsSuccess({
-          products: data.products || [],
-          pagination: data.pagination || { page, limit, total: 0, totalPages: 0 },
+          products: response.data,
+          pagination: response.meta || {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+          },
         })
       );
     }
@@ -194,16 +172,18 @@ function* getProductsWorker(action: GetProductsAction): Generator {
 function* getOrdersWorker(action: GetOrdersAction): Generator {
   try {
     const { page = 1, limit = 10 } = action.payload || {};
-    const response: any = yield call(
-      [shopManagementApi, shopManagementApi.getOrders],
-      action.payload
-    );
-    const data = response?.data || response;
-    if (data) {
+    const response: any = yield call([OrderService, OrderService.getOrders], action.payload);
+
+    if (response.success && response.data) {
       yield put(
         getOrdersSuccess({
-          orders: data.orders || [],
-          pagination: data.pagination || { page, limit, total: 0, totalPages: 0 },
+          orders: response.data,
+          pagination: response.meta || {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+          },
         })
       );
     }
@@ -217,10 +197,10 @@ function* getOrdersWorker(action: GetOrdersAction): Generator {
 function* updateOrderStatusWorker(action: UpdateOrderStatusAction): Generator {
   try {
     const { orderId, data } = action.payload;
-    yield call([shopManagementApi, shopManagementApi.updateOrderStatus], orderId, data);
+    yield call([OrderService, OrderService.updateOrderStatus], orderId, data);
     yield put(updateOrderStatusSuccess());
     yield put(addToast({ type: "success", message: "Cập nhật trạng thái đơn hàng thành công" }));
-    
+
     // Refresh orders list
     const state: any = yield select((rootState: any) => rootState);
     const currentPage = state?.shop?.orders?.pagination?.page || 1;
@@ -234,13 +214,77 @@ function* updateOrderStatusWorker(action: UpdateOrderStatusAction): Generator {
 
 function* createProductWorker(action: CreateProductAction): Generator {
   try {
-    const response: any = yield call(
-      [shopManagementApi, shopManagementApi.createProduct],
-      action.payload
-    );
-    const product = response?.data || response?.data?.product;
-    if (product) {
-      yield put(createProductSuccess(product));
+    const payload = action.payload;
+    let productData = { ...payload };
+
+    // Upload images and create Image records if images are File objects or blob URLs
+    if (payload.images && Array.isArray(payload.images)) {
+      const imageIds: string[] = [];
+
+      for (const imageItem of payload.images) {
+        // If it's already an ObjectId string, use it directly
+        if (typeof imageItem === "string" && imageItem.match(/^[0-9a-fA-F]{24}$/)) {
+          imageIds.push(imageItem);
+          continue;
+        }
+
+        // If it's a blob URL or File object, we need to upload it
+        // Note: This assumes images were already uploaded via handleImageUpload
+        // and we have the URL. We need to create Image record from URL.
+        if (typeof imageItem === "string") {
+          // If it's a URL (not ObjectId), create Image record
+          try {
+            const imageResponse: any = yield call([imagesApi, imagesApi.createImage], {
+              filename: `product-image-${Date.now()}.jpg`,
+              originalName: `product-image-${Date.now()}.jpg`,
+              mimeType: "image/jpeg",
+              size: 0,
+              url: imageItem,
+            });
+            if (imageResponse?.data?._id) {
+              imageIds.push(imageResponse.data._id);
+            }
+          } catch (err) {
+            console.error("Failed to create image record:", err);
+            // Continue with other images
+          }
+        }
+      }
+
+      if (imageIds.length > 0) {
+        productData.images = imageIds;
+      }
+    }
+
+    // Upload variant images if they exist
+    if (productData.variants && Array.isArray(productData.variants)) {
+      for (const variant of productData.variants) {
+        if (
+          variant.image &&
+          typeof variant.image === "string" &&
+          !variant.image.match(/^[0-9a-fA-F]{24}$/)
+        ) {
+          try {
+            const imageResponse: any = yield call([imagesApi, imagesApi.createImage], {
+              filename: `variant-image-${Date.now()}.jpg`,
+              originalName: `variant-image-${Date.now()}.jpg`,
+              mimeType: "image/jpeg",
+              size: 0,
+              url: variant.image,
+            });
+            if (imageResponse?.data?._id) {
+              variant.image = imageResponse.data._id;
+            }
+          } catch (err) {
+            console.error("Failed to create variant image record:", err);
+          }
+        }
+      }
+    }
+
+    const response: any = yield call([ProductService, ProductService.createProduct], productData);
+    if (response.success && response.data) {
+      yield put(createProductSuccess(response.data));
       yield put(addToast({ type: "success", message: "Tạo sản phẩm thành công" }));
     }
   } catch (error: unknown) {
@@ -253,10 +297,10 @@ function* createProductWorker(action: CreateProductAction): Generator {
 function* deleteProductWorker(action: DeleteProductAction): Generator {
   try {
     const { productId } = action.payload;
-    yield call([shopManagementApi, shopManagementApi.deleteProduct], productId);
+    yield call([ProductService, ProductService.deleteProduct], productId);
     yield put(deleteProductSuccess({ productId }));
     yield put(addToast({ type: "success", message: "Xóa sản phẩm thành công" }));
-    
+
     // Refresh products list
     const state: any = yield select((rootState: any) => rootState);
     const currentPage = state?.shop?.products?.pagination?.page || 1;

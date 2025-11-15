@@ -1,27 +1,15 @@
 import React from "react";
-import Page from "@/foundation/components/layout/Page";
-import Sidebar from "@/features/Shop/components/manager/Sidebar";
-import ShopReview from "@/features/Shop/components/manager/ShopReview";
+import ShopManagerLayout from "@/features/Shop/components/layouts/ShopManagerLayout";
+import { ShopReview } from "@/features/Shop/components/shop-info";
 
 const ShopReviewManagerPage: React.FC = () => {
   return (
-    <Page>
-      <div className="container px-4 py-8 mx-auto">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          {/* Sidebar */}
-          <div className="lg:col-span-3">
-            <Sidebar />
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-9">
-            <ShopReview />
-          </div>
-        </div>
-      </div>
-    </Page>
+    <ShopManagerLayout>
+      <ShopReview />
+    </ShopManagerLayout>
   );
 };
 
 export default ShopReviewManagerPage;
+
 
