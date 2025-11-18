@@ -5,11 +5,24 @@ export interface Payment {
   userId: string;
   amount: number;
   currency: string;
-  method: "cod" | "bank_transfer" | "credit_card" | "paypal";
+  method:
+    | "cod"
+    | "bank_transfer"
+    | "credit_card"
+    | "paypal"
+    | "vnpay"
+    | "momo"
+    | "zalopay"
+    | "test";
   status: "pending" | "processing" | "completed" | "failed" | "cancelled" | "refunded";
   transactionId?: string;
   gatewayResponse?: Record<string, any>;
   paidAt?: string;
+  instructions?: string;
+  qrCode?: string;
+  returnUrl?: string;
+  cancelUrl?: string;
+  expiresAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,7 +30,15 @@ export interface Payment {
 export interface PaymentMethod {
   id: string;
   name: string;
-  type: "cod" | "bank_transfer" | "credit_card" | "paypal";
+  type:
+    | "cod"
+    | "bank_transfer"
+    | "credit_card"
+    | "paypal"
+    | "vnpay"
+    | "momo"
+    | "zalopay"
+    | "test";
   isActive: boolean;
   config?: Record<string, any>;
   icon?: string;

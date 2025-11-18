@@ -115,14 +115,28 @@ const GridViewProduct: React.FC<GridViewProductProps> = ({ data, fetchData }) =>
             {/* Price and Stock */}
             <div className="flex justify-between items-center pt-2 border-t border-border-1">
               <div className="flex flex-col">
-                <span className="font-bold text-lg text-primary-6">
-                  {formatPrice(product.price)}
-                </span>
-                {product.discount && product.discount > 0 && (
-                  <span className="text-xs text-neutral-6 line-through">
-                    {formatPrice(product.price + product.discount)}
-                  </span>
-                )}
+                {(() => {
+                  const discountPercent = Math.min(
+                    Math.max(product.discount ?? 0, 0),
+                    100
+                  );
+                  const hasDiscount = discountPercent > 0;
+                  const finalPrice =
+                    product.finalPrice ??
+                    product.price - (product.price * discountPercent) / 100;
+                  return (
+                    <>
+                      <span className="font-bold text-lg text-primary-6">
+                        {formatPrice(Math.max(0, finalPrice))}
+                      </span>
+                      {hasDiscount && (
+                        <span className="text-xs text-neutral-6 line-through">
+                          {formatPrice(product.price)}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               <div className="flex items-center gap-1.5 px-2 py-1 bg-neutral-1 rounded-md">
                 <Package className="w-4 h-4 text-neutral-6" />

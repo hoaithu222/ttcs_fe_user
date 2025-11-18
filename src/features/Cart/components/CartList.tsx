@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import CartShopGroup from "./CartShopGroup";
 import Empty from "@/foundation/components/empty/Empty";
 import Button from "@/foundation/components/buttons/Button";
 import { CartItem as CartItemType } from "@/core/api/cart/type";
+import ConfirmModal from "@/foundation/components/modal/ModalConfirm";
 
 interface CartListProps {
   items: CartItemType[];
@@ -30,6 +31,8 @@ const CartList: React.FC<CartListProps> = ({
   isLoading = false,
   onContinueShopping,
 }) => {
+  const [shopToRemove, setShopToRemove] = useState<string | null>(null);
+
   // Group items by shop
   const shopGroups = useMemo(() => {
     if (!items || items.length === 0) return [];
@@ -85,42 +88,61 @@ const CartList: React.FC<CartListProps> = ({
   }
 
   const handleRemoveShop = (shopId: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa tất cả sản phẩm của shop này khỏi giỏ hàng?`)) {
-      if (onRemoveShop) {
-        onRemoveShop(shopId);
-      } else {
-        // Fallback: remove all items from this shop
-        const shopItems = items.filter((item) => {
-          const itemShopId =
-            typeof item.shopId === "string"
-              ? item.shopId
-              : typeof item.shopId === "object" && item.shopId
-                ? item.shopId._id
-                : "";
-          return itemShopId === shopId;
-        });
-        shopItems.forEach((item) => onRemove(item._id));
-      }
+    setShopToRemove(shopId);
+  };
+
+  const handleConfirmRemoveShop = () => {
+    if (!shopToRemove) return;
+
+    if (onRemoveShop) {
+      onRemoveShop(shopToRemove);
+    } else {
+      const shopItems = items.filter((item) => {
+        const itemShopId =
+          typeof item.shopId === "string"
+            ? item.shopId
+            : typeof item.shopId === "object" && item.shopId
+              ? item.shopId._id
+              : "";
+        return itemShopId === shopToRemove;
+      });
+      shopItems.forEach((item) => onRemove(item._id));
     }
+
+    setShopToRemove(null);
   };
 
   return (
-    <div className="space-y-6">
-      {shopGroups.map((group) => (
-        <CartShopGroup
-          key={group.shopId}
-          shopId={group.shopId}
-          shopName={group.shopName}
-          shopLogo={group.shopLogo}
-          items={group.items}
-          onQuantityChange={onQuantityChange}
-          onRemove={onRemove}
-          onRemoveShop={handleRemoveShop}
-          onCheckoutShop={onCheckoutShop}
-          isLoading={isLoading}
-        />
-      ))}
-    </div>
+    <>
+      <div className="space-y-6">
+        {shopGroups.map((group) => (
+          <CartShopGroup
+            key={group.shopId}
+            shopId={group.shopId}
+            shopName={group.shopName}
+            shopLogo={group.shopLogo}
+            items={group.items}
+            onQuantityChange={onQuantityChange}
+            onRemove={onRemove}
+            onRemoveShop={handleRemoveShop}
+            onCheckoutShop={onCheckoutShop}
+            isLoading={isLoading}
+          />
+        ))}
+      </div>
+      <ConfirmModal
+        open={!!shopToRemove}
+        onOpenChange={(open) => !open && setShopToRemove(null)}
+        title="Xóa sản phẩm của cửa hàng"
+        content="Bạn có chắc chắn muốn xóa tất cả sản phẩm của cửa hàng này khỏi giỏ hàng?"
+        confirmText="Xóa tất cả"
+        cancelText="Hủy"
+        iconType="warning"
+        onConfirm={handleConfirmRemoveShop}
+        onCancel={() => setShopToRemove(null)}
+        disabled={isLoading}
+      />
+    </>
   );
 };
 

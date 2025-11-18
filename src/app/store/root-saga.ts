@@ -6,6 +6,7 @@ import { shopSaga } from "@/features/Shop/slice/shop.saga";
 import { categoriesSaga } from "@/features/Categories/slice/categories.saga";
 import { productSaga } from "@/features/Products/slices/product.saga";
 import { cartSaga } from "@/features/Cart/slice/Cart.saga";
+import { paymentSaga } from "@/features/Payment/slice/payment.saga";
 
 export const rootSage = function* () {
   try {
@@ -17,6 +18,7 @@ export const rootSage = function* () {
       categoriesSaga(),
       productSaga(),
       cartSaga(),
+      paymentSaga(),
     ]);
   } catch (error) {
     console.error(error);

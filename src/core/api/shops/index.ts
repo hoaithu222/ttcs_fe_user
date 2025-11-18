@@ -34,14 +34,14 @@ class UserShopsApiService extends VpsHttpClient {
   }
 
   // Follow shop
-  async followShop(id: string): Promise<ApiSuccess<void>> {
+  async followShop(id: string): Promise<ApiSuccess<FollowStatusResponse>> {
     const endpoint = buildEndpoint(USER_SHOPS_ENDPOINTS.FOLLOW, { id });
     const response = await this.post(endpoint);
     return response.data;
   }
 
   // Unfollow shop
-  async unfollowShop(id: string): Promise<ApiSuccess<void>> {
+  async unfollowShop(id: string): Promise<ApiSuccess<FollowStatusResponse>> {
     const endpoint = buildEndpoint(USER_SHOPS_ENDPOINTS.UNFOLLOW, { id });
     const response = await this.delete(endpoint);
     return response.data;

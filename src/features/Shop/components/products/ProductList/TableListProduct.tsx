@@ -137,14 +137,29 @@ const TableListProduct: React.FC<TableListProductProps> = ({ data, fetchData }) 
                   </td>
                   <td className="p-4 text-left">
                     <div className="flex flex-col gap-1">
-                      <span className="font-semibold text-primary-6">
-                        {formatPrice(product.price)}
-                      </span>
-                      {product.discount && product.discount > 0 && (
-                        <span className="text-xs text-neutral-6 line-through">
-                          {formatPrice(product.price + product.discount)}
-                        </span>
-                      )}
+                      {(() => {
+                        const discountPercent = Math.min(
+                          Math.max(product.discount ?? 0, 0),
+                          100
+                        );
+                        const hasDiscount = discountPercent > 0;
+                        const finalPrice =
+                          product.finalPrice ??
+                          product.price -
+                            (product.price * discountPercent) / 100;
+                        return (
+                          <>
+                            <span className="font-semibold text-primary-6">
+                              {formatPrice(Math.max(0, finalPrice))}
+                            </span>
+                            {hasDiscount && (
+                              <span className="text-xs text-neutral-6 line-through">
+                                {formatPrice(product.price)}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </td>
                   <td className="p-4 text-center">

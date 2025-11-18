@@ -1,11 +1,18 @@
 // Product types for users
+export interface ProductImage {
+  _id?: string;
+  id?: string;
+  url?: string;
+  publicId?: string;
+}
+
 export interface ProductVariant {
   _id?: string;
   id?: string;
   attributes: Record<string, string>; // { "Màu sắc": "Đỏ", "Kích thước": "M" }
   price: number;
   stock: number;
-  image?: string | null | { url: string };
+  image?: string | null | ProductImage | { url: string };
   sku?: string;
 }
 
@@ -13,7 +20,7 @@ export interface Product {
   _id: string;
   name: string;
   description?: string;
-  images: string[];
+  images: Array<string | ProductImage>;
   shopId: string;
   shop?: {
     _id: string;

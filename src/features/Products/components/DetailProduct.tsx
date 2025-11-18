@@ -14,6 +14,8 @@ import {
 import Button from "@/foundation/components/buttons/Button";
 import { Product, ProductVariant } from "@/core/api/products/type";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
+import { useAppDispatch } from "@/app/store";
+import { addToast } from "@/app/store/slices/toast";
 
 interface DetailProductProps {
   product: Product;
@@ -25,6 +27,8 @@ interface DetailProductProps {
   onAddToCart: () => void;
   onBuyNow: () => void;
   onToggleWishlist: () => void;
+  isWishlistLoading?: boolean;
+  isOwnShopProduct?: boolean;
 }
 
 const DetailProduct: React.FC<DetailProductProps> = ({
@@ -37,14 +41,19 @@ const DetailProduct: React.FC<DetailProductProps> = ({
   onAddToCart,
   onBuyNow,
   onToggleWishlist,
+  isWishlistLoading = false,
+  isOwnShopProduct = false,
 }) => {
+  const dispatch = useAppDispatch();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [localSelectedVariant, setLocalSelectedVariant] = useState<ProductVariant | null>(
     selectedVariant || null
   );
+  const [variantError, setVariantError] = useState(false);
+  const requiresVariantSelection = Boolean(product.variants && product.variants.length > 0);
 
   // Get image URLs
-  const getImageUrls = (images: string[] | undefined): string[] => {
+  const getImageUrls = (images: Product["images"] | undefined): string[] => {
     if (!images || images.length === 0) return [];
     return images.map((img) => {
       if (typeof img === "string") return img;
@@ -55,26 +64,60 @@ const DetailProduct: React.FC<DetailProductProps> = ({
   const imageUrls = getImageUrls(product.images);
 
   // Use variant price if selected, otherwise use product price
-  const currentPrice = localSelectedVariant?.price || product.price;
+  const currentPrice = localSelectedVariant?.price || product.price || 0;
   const currentStock = localSelectedVariant?.stock ?? product.stock ?? 0;
-  const finalPrice = localSelectedVariant
-    ? currentPrice - (product.discount || 0)
-    : product.finalPrice || product.price - (product.discount || 0);
-  const hasDiscount = product.discount && product.discount > 0;
+  const discountPercent = Math.min(
+    Math.max(product.discount ?? 0, 0),
+    100
+  );
+  const calculatedPrice = localSelectedVariant
+    ? currentPrice - (currentPrice * discountPercent) / 100
+    : product.finalPrice ??
+      currentPrice - (currentPrice * discountPercent) / 100;
+  const finalPrice = Math.max(0, calculatedPrice);
+  const hasDiscount = discountPercent > 0;
 
   // Update selected variant when prop changes
   useEffect(() => {
     if (selectedVariant !== undefined) {
       setLocalSelectedVariant(selectedVariant);
+      if (selectedVariant) {
+        setVariantError(false);
+      }
     }
   }, [selectedVariant]);
 
   // Handle variant selection
   const handleVariantSelect = (variant: ProductVariant) => {
     setLocalSelectedVariant(variant);
+    setVariantError(false);
     if (onVariantChange) {
       onVariantChange(variant);
     }
+  };
+
+  const ensureVariantSelected = () => {
+    if (requiresVariantSelection && !localSelectedVariant) {
+      setVariantError(true);
+      dispatch(
+        addToast({
+          type: "error",
+          message: "Vui lòng chọn biến thể trước khi tiếp tục",
+        })
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const handleAddToCartClick = () => {
+    if (!ensureVariantSelected()) return;
+    onAddToCart();
+  };
+
+  const handleBuyNowClick = () => {
+    if (!ensureVariantSelected()) return;
+    onBuyNow();
   };
 
   return (
@@ -213,10 +256,10 @@ const DetailProduct: React.FC<DetailProductProps> = ({
             {hasDiscount && (
               <>
                 <span className="text-lg text-neutral-5 line-through">
-                  {formatPriceVND(product.price)}
+                  {formatPriceVND(currentPrice)}
                 </span>
                 <span className="px-2 py-1 text-sm font-bold text-white bg-error rounded-md">
-                  -{Math.round((product.discount! / product.price) * 100)}%
+                  -{Math.round(discountPercent)}%
                 </span>
               </>
             )}
@@ -290,6 +333,12 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                 )}
               </div>
             )}
+
+            {variantError && (
+              <p className="text-sm text-error">
+                Bạn cần chọn đầy đủ biến thể trước khi tiếp tục thao tác.
+              </p>
+            )}
           </div>
         )}
 
@@ -335,17 +384,22 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                 variant="solid"
                 size="lg"
                 fullWidth
-                onClick={onAddToCart}
-                disabled={currentStock === 0}
+                onClick={handleAddToCartClick}
+                disabled={currentStock === 0 || isOwnShopProduct}
                 icon={<ShoppingCart className="w-5 h-5" />}
               >
-                {currentStock > 0 ? "Thêm vào giỏ hàng" : "Hết hàng"}
+                {isOwnShopProduct
+                  ? "Sản phẩm thuộc cửa hàng của bạn"
+                  : currentStock > 0
+                    ? "Thêm vào giỏ hàng"
+                    : "Hết hàng"}
               </Button>
               <Button
                 color={isWishlist ? "red" : "gray"}
                 variant="outline"
                 size="lg"
                 onClick={onToggleWishlist}
+                disabled={isWishlistLoading}
                 icon={<Heart className={`w-5 h-5 ${isWishlist ? "fill-current" : ""}`} />}
               />
               <Button
@@ -360,12 +414,21 @@ const DetailProduct: React.FC<DetailProductProps> = ({
               variant="solid"
               size="lg"
               fullWidth
-              onClick={onBuyNow}
-              disabled={currentStock === 0}
+              onClick={handleBuyNowClick}
+              disabled={currentStock === 0 || isOwnShopProduct}
             >
-              {currentStock > 0 ? "Mua ngay" : "Hết hàng"}
+              {isOwnShopProduct
+                ? "Không thể mua sản phẩm của bạn"
+                : currentStock > 0
+                  ? "Mua ngay"
+                  : "Hết hàng"}
             </Button>
           </div>
+          {isOwnShopProduct && (
+            <p className="text-sm text-warning bg-warning/10 border border-warning/30 rounded-lg px-3 py-2">
+              Bạn không thể thêm vào giỏ hoặc mua sản phẩm thuộc cửa hàng của chính mình.
+            </p>
+          )}
         </div>
 
         {/* Features */}

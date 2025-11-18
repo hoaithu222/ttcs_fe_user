@@ -7,6 +7,9 @@ const ProductDetailPage = lazy(() => import("@/features/Products/ProductDetailPa
 const CategoriesPage = lazy(() => import("@/features/Categories/CategoriesPage"));
 const CartPage = lazy(() => import("@/features/Cart/CartPage"));
 const OrdersPage = lazy(() => import("@/features/Orders/OrdersPage"));
+const CheckoutPage = lazy(() => import("@/features/Payment/pages/CheckoutPage"));
+const PaymentPage = lazy(() => import("@/features/Payment/pages/PaymentPage"));
+const PaymentHistoryPage = lazy(() => import("@/features/Payment/pages/PaymentHistoryPage"));
 const WishlistPage = lazy(() => import("@/features/Wishlist/WishlistPage"));
 const ProfilePage = lazy(() => import("@/features/Profile/ProfilePage"));
 const ShopEntryPage = lazy(() => import("@/features/Shop/ShopEntryPage"));
@@ -20,7 +23,6 @@ const AddProductPage = lazy(() => import("@/features/Shop/pages/AddProductPage")
 const EditProductPage = lazy(() => import("@/features/Shop/pages/EditProductPage"));
 const ListProductPage = lazy(() => import("@/features/Shop/pages/ListProductPage"));
 const OrderShopPage = lazy(() => import("@/features/Shop/pages/OrderShopPage"));
-
 const defaultOptions = {
   requireAuth: false,
   hideInMenu: false,
@@ -87,6 +89,24 @@ export const ROUTE = {
     path: "/cart",
     element: <CartPage />,
     layout: "main",
+    options: defaultProtectedOptions,
+  },
+  checkout: {
+    path: "/checkout",
+    element: <CheckoutPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  payment: {
+    path: "/payment/:orderId",
+    element: <PaymentPage />,
+    layout: "main",
+    options: defaultProtectedOptions,
+  },
+  paymentHistory: {
+    path: "/payment/history",
+    element: <PaymentHistoryPage />,
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   orders: {

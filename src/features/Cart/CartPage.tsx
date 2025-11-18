@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { ShoppingCart, Trash2 } from "lucide-react";
@@ -7,6 +7,7 @@ import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import Button from "@/foundation/components/buttons/Button";
 import Loading from "@/foundation/components/loading/Loading";
+import ConfirmModal from "@/foundation/components/modal/ModalConfirm";
 import { CartList, CartSummary, CartShopSummary } from "./components";
 import {
   getCartStart,
@@ -27,6 +28,7 @@ import { ReduxStateType } from "@/app/store/types";
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [isClearCartModalOpen, setIsClearCartModalOpen] = useState(false);
 
   const cart = useSelector(selectCart);
   const cartItems = useSelector(selectCartItems);
@@ -47,9 +49,12 @@ const CartPage: React.FC = () => {
   };
 
   const handleClearCart = () => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng?")) {
-      dispatch(clearCartStart());
-    }
+    setIsClearCartModalOpen(true);
+  };
+
+  const handleConfirmClearCart = () => {
+    dispatch(clearCartStart());
+    setIsClearCartModalOpen(false);
   };
 
   const handleCheckout = () => {
@@ -155,6 +160,18 @@ const CartPage: React.FC = () => {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        open={isClearCartModalOpen}
+        onOpenChange={setIsClearCartModalOpen}
+        title="Xóa toàn bộ giỏ hàng"
+        content="Bạn có chắc chắn muốn xóa toàn bộ sản phẩm trong giỏ hàng? Hành động này không thể hoàn tác."
+        confirmText="Xóa tất cả"
+        cancelText="Hủy"
+        iconType="warning"
+        onConfirm={handleConfirmClearCart}
+        onCancel={() => setIsClearCartModalOpen(false)}
+        disabled={isLoading}
+      />
     </Page>
   );
 };

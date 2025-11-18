@@ -44,7 +44,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
   return (
     <Section className="py-8">
       <SectionTitle>{title}</SectionTitle>
-      <div className="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+      <div className="grid grid-cols-3 gap-4 md:grid-cols-4 ">
         {categories.map((category) => {
           const iconImage =
             (category as any).image_Icon?.url ||

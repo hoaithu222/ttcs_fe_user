@@ -1,8 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Store, Star, Package, MessageCircle, UserPlus, UserCheck } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import { Product } from "@/core/api/products/type";
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "@/app/store";
+import { selectProfile } from "@/features/Profile/slice/profile.selector";
+import { userShopsApi } from "@/core/api/shops";
+import { addToast } from "@/app/store/slices/toast";
+import type { FollowStatusResponse } from "@/core/api/shops/type";
 
 interface InfoShopProps {
   shop: Product["shop"];
@@ -10,7 +15,13 @@ interface InfoShopProps {
 
 const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
   const navigate = useNavigate();
-  const [isFollowing, setIsFollowing] = useState(false);
+  const dispatch = useAppDispatch();
+  const profile = useAppSelector(selectProfile);
+  const [isFollowing, setIsFollowing] = useState<boolean>(shop?.isFollowing ?? false);
+  const [followersCount, setFollowersCount] = useState<number>(shop?.followersCount || 0);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  const isOwnShop = Boolean(profile?.shop?.id && shop?._id && profile.shop.id === shop._id);
 
   if (!shop) return null;
 
@@ -20,10 +31,59 @@ const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
     }
   };
 
-  const handleFollow = (e: React.MouseEvent) => {
+  const applyFollowResponse = (data?: FollowStatusResponse) => {
+    if (!data) return;
+    if (typeof data.isFollowing === "boolean") {
+      setIsFollowing(data.isFollowing);
+    }
+    if (typeof data.followersCount === "number") {
+      setFollowersCount(data.followersCount);
+    }
+  };
+
+  useEffect(() => {
+    setIsFollowing(shop?.isFollowing ?? false);
+    setFollowersCount(shop?.followersCount ?? 0);
+  }, [shop?._id, shop?.isFollowing, shop?.followersCount]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!shop?._id || !profile?._id || isOwnShop) return;
+    userShopsApi
+      .getFollowingStatus(shop._id)
+      .then((response) => {
+        if (!isMounted) return;
+        applyFollowResponse(response?.data);
+      })
+      .catch(() => {
+        /* silent */
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [shop?._id, profile?._id, isOwnShop]);
+
+  const handleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFollowing(!isFollowing);
-    // TODO: Implement follow/unfollow API
+    if (!shop?._id || followLoading) return;
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        const response = await userShopsApi.unfollowShop(shop._id);
+        applyFollowResponse(response?.data);
+        dispatch(addToast({ type: "success", message: "Đã bỏ theo dõi cửa hàng" }));
+      } else {
+        const response = await userShopsApi.followShop(shop._id);
+        applyFollowResponse(response?.data);
+        dispatch(addToast({ type: "success", message: "Đã theo dõi cửa hàng" }));
+      }
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Không thể cập nhật trạng thái theo dõi. Vui lòng thử lại.";
+      dispatch(addToast({ type: "error", message }));
+    } finally {
+      setFollowLoading(false);
+    }
   };
 
   const handleChat = (e: React.MouseEvent) => {
@@ -70,20 +130,29 @@ const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
               <Package className="w-4 h-4" />
               <span>Cửa hàng uy tín</span>
             </div>
+            {followersCount > 0 && (
+              <div className="flex gap-1 items-center">
+                <UserPlus className="w-4 h-4" />
+                <span>{followersCount} người theo dõi</span>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2">
-            <Button
-              color={isFollowing ? "green" : "blue"}
-              variant={isFollowing ? "outline" : "solid"}
-              size="sm"
-              onClick={handleFollow}
-              icon={
-                isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />
-              }
-            >
-              {isFollowing ? "Đã theo dõi" : "Theo dõi"}
-            </Button>
+            {!isOwnShop && (
+              <Button
+                color={isFollowing ? "green" : "blue"}
+                variant={isFollowing ? "outline" : "solid"}
+                size="sm"
+                onClick={handleFollow}
+                disabled={followLoading}
+                icon={
+                  isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />
+                }
+              >
+                {isFollowing ? "Đã theo dõi" : "Theo dõi"}
+              </Button>
+            )}
             <Button
               color="gray"
               variant="outline"

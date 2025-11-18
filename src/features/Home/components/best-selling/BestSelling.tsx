@@ -26,7 +26,7 @@ const BestSelling: React.FC = () => {
   return (
     <Section>
       <SectionTitle>Sản phẩm bán chạy</SectionTitle>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 mb-6 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {products.map((product) => (
           <CardProduct key={product._id} product={product} />
         ))}

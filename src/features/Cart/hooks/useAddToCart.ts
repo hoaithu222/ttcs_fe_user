@@ -46,9 +46,17 @@ export const useAddToCart = () => {
       return;
     }
 
-    // Calculate price
-    const productPrice = variant?.price || product.price || 0;
-    const finalPrice = productPrice - (product.discount || 0);
+    // Calculate price with discount %
+    const basePrice = variant?.price ?? product.price ?? 0;
+    const discountPercent = Math.min(
+      Math.max(product.discount ?? 0, 0),
+      100
+    );
+    const discountedPrice =
+      product.finalPrice && !variant
+        ? product.finalPrice
+        : basePrice - (basePrice * discountPercent) / 100;
+    const finalPrice = Math.max(0, discountedPrice);
 
     // Prepare cart item request
     const cartItem: AddCartItemRequest = {

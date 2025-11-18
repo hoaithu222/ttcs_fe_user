@@ -8,6 +8,7 @@ import Select from "@/foundation/components/input/Select";
 import Button from "@/foundation/components/buttons/Button";
 import Loading from "@/foundation/components/loading/Loading";
 import Empty from "@/foundation/components/empty/Empty";
+import ConfirmModal from "@/foundation/components/modal/ModalConfirm";
 import { getProductsStart, deleteProductStart } from "@/features/Shop/slice/shop.slice";
 import {
   selectProducts,
@@ -33,6 +34,7 @@ const ListProduct: React.FC = () => {
   const [isActiveFilter, setIsActiveFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [viewList, setViewList] = useState<boolean>(true); // true = table, false = grid
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(
@@ -60,9 +62,14 @@ const ListProduct: React.FC = () => {
   };
 
   const handleDelete = (productId: string) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
-      dispatch(deleteProductStart({ productId }));
+    setProductToDelete(productId);
+  };
+
+  const handleConfirmDelete = () => {
+    if (productToDelete) {
+      dispatch(deleteProductStart({ productId: productToDelete }));
     }
+    setProductToDelete(null);
   };
 
   const fetchData = () => {
@@ -200,6 +207,18 @@ const ListProduct: React.FC = () => {
             </>
           )}
         </Section>
+        <ConfirmModal
+          open={!!productToDelete}
+          onOpenChange={(open) => !open && setProductToDelete(null)}
+          title="Xóa sản phẩm"
+          content="Bạn có chắc chắn muốn xóa sản phẩm này khỏi cửa hàng? Hành động này không thể hoàn tác."
+          confirmText="Xóa sản phẩm"
+          cancelText="Hủy"
+          iconType="warning"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setProductToDelete(null)}
+          disabled={isLoading}
+        />
     </div>
   );
 };

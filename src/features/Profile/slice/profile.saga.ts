@@ -97,15 +97,28 @@ function* fetchOrdersWorker(action: FetchOrdersAction): Generator<unknown, void,
   try {
     const { page = 1, limit = 10 } = action.payload || {};
     const response = yield call([userOrdersApi, userOrdersApi.getOrders], { page, limit });
-    if (response.data) {
-      yield put(
-        fetchOrdersSuccess({
-          orders: response.data.orders || [],
-          pagination: response.data.pagination ||
-            response.meta || { page: page, limit: limit, total: 0, totalPages: 0 },
-        })
-      );
+    const rawData = response.data;
+    const defaultPagination =
+      response.meta || { page, limit, total: 0, totalPages: 0 };
+
+    let orders: any[] = [];
+    let pagination = defaultPagination;
+
+    if (Array.isArray(rawData)) {
+      orders = rawData;
+    } else if (rawData?.orders) {
+      orders = rawData.orders;
+      pagination = rawData.pagination || defaultPagination;
+    } else if (rawData) {
+      orders = [rawData];
     }
+
+    yield put(
+      fetchOrdersSuccess({
+        orders,
+        pagination,
+      })
+    );
   } catch (error: unknown) {
     const message = getErrorMessage(error, "Failed to fetch orders");
     yield put(fetchOrdersFailure(message));

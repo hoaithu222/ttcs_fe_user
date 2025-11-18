@@ -1,0 +1,102 @@
+{
+  "payment": {
+    "title": "Thanh toán",
+    "checkout": "Thanh toán",
+    "checkoutPage": {
+      "title": "Thanh toán",
+      "subtitle": "sản phẩm trong giỏ hàng",
+      "shippingAddress": "Địa chỉ giao hàng",
+      "receiverName": "Tên người nhận",
+      "receiverNamePlaceholder": "Nhập tên người nhận",
+      "phone": "Số điện thoại",
+      "phonePlaceholder": "Nhập số điện thoại",
+      "address": "Địa chỉ chi tiết",
+      "addressPlaceholder": "Nhập số nhà, tên đường...",
+      "notes": "Ghi chú (tùy chọn)",
+      "notesPlaceholder": "Ghi chú cho người bán...",
+      "orderSummary": "Tóm tắt đơn hàng",
+      "subtotal": "Tạm tính",
+      "discount": "Giảm giá",
+      "couponDiscount": "Mã giảm giá",
+      "shippingFee": "Phí vận chuyển",
+      "freeShipping": "Miễn phí",
+      "total": "Tổng cộng",
+      "confirmOrder": "Xác nhận đặt hàng",
+      "terms": "Bằng cách đặt hàng, bạn đồng ý với",
+      "termsLink": "Điều khoản sử dụng",
+      "termsEnd": "của chúng tôi"
+    },
+    "methods": {
+      "title": "Phương thức thanh toán",
+      "noMethods": "Không có phương thức thanh toán nào khả dụng",
+      "cod": "Thanh toán khi nhận hàng",
+      "bank_transfer": "Chuyển khoản ngân hàng",
+      "credit_card": "Thẻ tín dụng",
+      "paypal": "PayPal"
+    },
+    "status": {
+      "title": "Trạng thái thanh toán",
+      "refresh": "Làm mới",
+      "orderId": "Mã đơn hàng",
+      "method": "Phương thức",
+      "amount": "Số tiền",
+      "transactionId": "Mã giao dịch",
+      "createdAt": "Ngày tạo",
+      "paidAt": "Ngày thanh toán",
+      "updatedAt": "Cập nhật lần cuối",
+      "pending": "Đang chờ thanh toán",
+      "processing": "Đang xử lý",
+      "completed": "Đã thanh toán",
+      "failed": "Thanh toán thất bại",
+      "cancelled": "Đã hủy",
+      "refunded": "Đã hoàn tiền",
+      "notFound": "Không tìm thấy thông tin thanh toán"
+    },
+    "page": {
+      "title": "Thanh toán đơn hàng",
+      "orderId": "Mã đơn hàng",
+      "backToOrders": "Quay lại đơn hàng",
+      "success": {
+        "title": "Thanh toán thành công!",
+        "message": "Đơn hàng của bạn đã được thanh toán thành công.",
+        "viewOrder": "Xem đơn hàng"
+      },
+      "failed": {
+        "title": "Thanh toán thất bại",
+        "message": "Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.",
+        "backToOrders": "Quay lại đơn hàng"
+      }
+    },
+    "history": {
+      "title": "Lịch sử thanh toán",
+      "transactions": "giao dịch",
+      "noPayments": "Bạn chưa có giao dịch thanh toán nào",
+      "loadMore": "Tải thêm",
+      "page": "Trang",
+      "of": "/"
+    },
+    "qrCode": {
+      "title": "Thông tin thanh toán",
+      "scan": "Quét mã QR để thanh toán",
+      "accountInfo": "Thông tin tài khoản",
+      "bank": "Ngân hàng",
+      "accountNumber": "Số tài khoản",
+      "accountHolder": "Chủ tài khoản",
+      "instructions": "Hướng dẫn thanh toán"
+    },
+    "errors": {
+      "receiverNameRequired": "Vui lòng nhập tên người nhận",
+      "phoneRequired": "Vui lòng nhập số điện thoại",
+      "addressRequired": "Vui lòng nhập địa chỉ chi tiết",
+      "addressSelectorRequired": "Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện, Phường/Xã",
+      "paymentMethodRequired": "Vui lòng chọn phương thức thanh toán",
+      "cartEmpty": "Giỏ hàng trống",
+      "createOrderFailed": "Không thể tạo đơn hàng",
+      "createOrderError": "Có lỗi xảy ra khi tạo đơn hàng"
+    },
+    "success": {
+      "paymentSuccess": "Thanh toán thành công!"
+    }
+  }
+}
+

@@ -15,8 +15,7 @@ const ProfilePage = () => {
           <div className="lg:col-span-3">
             <Sidebar />
           </div>
-          <div className="space-y-6 lg:col-span-9 mt-6 min-h-[calc(100vh-70px)] max-h-[calc(100vh-70px)]">
-            <h1 className="text-2xl font-semibold">Hồ sơ cá nhân</h1>
+          <div className="space-y-6 lg:col-span-9 mt-6 min-h-[calc(100vh-100px)] max-h-[calc(100vh-100px)]">
             {tab === "account" && <InfoAccountPanel />}
             {tab === "address" && <AddressesPanel />}
             {tab === "orders" && <OrdersPanel />}

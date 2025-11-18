@@ -9,6 +9,7 @@ import shopReducer from "@/features/Shop/slice/shop.slice";
 import { categoriesReducer } from "@/features/Categories/slice";
 import productReducer from "@/features/Products/slices/product.slice";
 import cartReducer from "@/features/Cart/slice/Cart.slice";
+import paymentReducer from "@/features/Payment/slice/payment.slice";
 import { AppReducerType } from "./types";
 
 export const rootReducer = combineReducers({
@@ -22,4 +23,5 @@ export const rootReducer = combineReducers({
   categories: categoriesReducer,
   product: productReducer,
   cart: cartReducer,
+  payment: paymentReducer,
 });

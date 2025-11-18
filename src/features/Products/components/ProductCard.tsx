@@ -26,7 +26,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [isWishlist, setIsWishlist] = useState(product.isInWishlist || false);
 
   // Get image URL
-  const getImageUrl = (images: string[] | undefined): string => {
+  const getImageUrl = (images: Product["images"] | undefined): string => {
     if (!images || images.length === 0) return "";
     const firstImage = images[0];
     if (typeof firstImage === "string") return firstImage;
@@ -34,8 +34,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const imageUrl = getImageUrl(product.images);
-  const finalPrice = product.finalPrice || product.price - (product.discount || 0);
-  const hasDiscount = product.discount && product.discount > 0;
+  const basePrice = product.price || 0;
+  const discountPercent = Math.min(Math.max(product.discount ?? 0, 0), 100);
+  const finalPrice =
+    product.finalPrice ??
+    basePrice - (basePrice * discountPercent) / 100;
+  const hasDiscount = discountPercent > 0;
 
   const handleCardClick = () => {
     navigate(`/products/${product._id}`);
@@ -83,7 +87,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {/* Discount Badge */}
         {hasDiscount && (
           <div className="absolute top-2 left-2 px-2 py-1 text-xs font-bold text-white bg-error rounded-md">
-            -{Math.round((product.discount! / product.price) * 100)}%
+            -{Math.round(discountPercent)}%
           </div>
         )}
 

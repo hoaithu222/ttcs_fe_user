@@ -1,14 +1,13 @@
 // Order types for users
 export interface OrderItem {
-  productId: string;
-  productName: string;
-  productImage?: string;
+  _id?: string;
+  productId: string | { _id: string; name: string };
+  variantId?: string | { _id: string; attributes: Record<string, string> };
   quantity: number;
   price: number;
   discount?: number;
   totalPrice: number;
-  shopId: string;
-  shopName: string;
+  tax?: number;
 }
 
 export interface OrderTracking {
@@ -20,52 +19,79 @@ export interface OrderTracking {
 
 export interface Order {
   _id: string;
-  orderNumber: string;
   userId: string;
-  items: OrderItem[];
-  shippingAddress: {
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-    district: string;
-    ward: string;
-    isDefault?: boolean;
-  };
-  paymentMethod: "cod" | "bank_transfer" | "credit_card" | "paypal";
-  paymentStatus: "pending" | "paid" | "failed" | "refunded";
-  orderStatus: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
-  subtotal: number;
-  shippingFee: number;
-  discount: number;
+  shopId: string | { _id: string; name: string };
+  orderItems: OrderItem[];
+  orderHistory?: Array<{
+    _id: string;
+    status: Order["orderStatus"];
+    description?: string;
+    createdAt?: string;
+  }>;
+  paymentMethod: string;
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  orderStatus?: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  paymentStatus?:
+    | "pending"
+    | "processing"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "refunded";
   totalAmount: number;
+  shippingFee: number;
+  discountAmount?: number;
   notes?: string;
-  trackingNumber?: string;
-  trackingHistory?: OrderTracking[];
-  shippedAt?: string;
-  deliveredAt?: string;
-  cancelledAt?: string;
+  addressId: string | {
+    _id: string;
+    fullName?: string;
+    phone?: string;
+    address?: string;
+  };
+  isPay: boolean;
   createdAt: string;
   updatedAt: string;
+  orderNumber?: string;
+  trackingNumber?: string;
+  user?: {
+    _id: string;
+    name?: string;
+    email?: string;
+  };
+  items?: Array<{
+    productName?: string;
+    quantity: number;
+    totalPrice: number;
+  }>;
+  shippingAddress?: {
+    name?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    district?: string;
+    ward?: string;
+  };
+}
+
+export interface CreateOrderItemRequest {
+  productId: string;
+  variantId?: string;
+  quantity: number;
+  price: number;
+  totalPrice: number;
+  discount?: number;
+  tax?: number;
 }
 
 // Request types
 export interface CreateOrderRequest {
-  items: Array<{
-    productId: string;
-    quantity: number;
-  }>;
-  shippingAddress: {
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-    district: string;
-    ward: string;
-  };
-  paymentMethod: "cod" | "bank_transfer" | "credit_card" | "paypal";
+  shopId: string;
+  addressId: string;
+  paymentMethod: string;
+  shippingFee: number;
+  items: CreateOrderItemRequest[];
   notes?: string;
-  couponCode?: string;
+  voucherId?: string;
 }
 
 export interface OrderListQuery {

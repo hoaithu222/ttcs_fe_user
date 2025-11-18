@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { ChevronLeft, ChevronRight, Home, Package, ShoppingCart } from "lucide-react";
@@ -25,6 +25,9 @@ import {
 import { ReduxStateType } from "@/app/store/types";
 import { ProductVariant } from "@/core/api/products/type";
 import { useAddToCart } from "@/features/Cart/hooks/useAddToCart";
+import { addToast } from "@/app/store/slices/toast";
+import { userWishlistApi } from "@/core/api/wishlist";
+import { selectProfile } from "@/features/Profile/slice/profile.selector";
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,10 +40,12 @@ const ProductDetailPage: React.FC = () => {
   const productError = useSelector(selectProductDetailError);
   const relatedProducts = useSelector(selectRelatedProducts);
   const reviews = useSelector(selectProductReviews);
+  const profile = useSelector(selectProfile);
 
   const [quantity, setQuantity] = useState(1);
   const [isWishlist, setIsWishlist] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -60,22 +65,80 @@ const ProductDetailPage: React.FC = () => {
     }
   }, [product]);
 
+  const requiresVariantSelection = useMemo(
+    () => Boolean(product?.variants && product.variants.length > 0),
+    [product?.variants]
+  );
+
+  const productShopId = useMemo(() => {
+    if (!product) return "";
+    if (typeof product.shopId === "string") return product.shopId;
+    if (product.shop?._id) return product.shop._id;
+    const fallback = (product as any)?.shopId?._id;
+    return typeof fallback === "string" ? fallback : "";
+  }, [product]);
+
+  const userShopId = profile?.shop?.id;
+  const isOwnShopProduct = useMemo(() => {
+    if (!productShopId || !userShopId) return false;
+    return productShopId === userShopId;
+  }, [productShopId, userShopId]);
+
+  const validateBeforePurchase = () => {
+    if (isOwnShopProduct) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: "Bạn không thể đặt sản phẩm thuộc cửa hàng của mình.",
+        })
+      );
+      return false;
+    }
+    if (requiresVariantSelection && !selectedVariant) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: "Vui lòng chọn biến thể trước khi tiếp tục.",
+        })
+      );
+      return false;
+    }
+    return true;
+  };
+
   const handleAddToCart = () => {
     if (!product) return;
+    if (!validateBeforePurchase()) return;
     addToCart(product, quantity, selectedVariant, { showToast: true });
   };
 
   const handleBuyNow = () => {
     if (!product) return;
-    // Add to cart first, then navigate to checkout
-    addToCart(product, quantity, selectedVariant, { showToast: true, redirectToCart: true });
-    // TODO: Navigate to checkout page when it's ready
-    // navigate("/checkout", { state: { productId: id, quantity, variant: selectedVariant } });
+    if (!validateBeforePurchase()) return;
+    addToCart(product, quantity, selectedVariant, { showToast: true });
+    navigate("/checkout");
   };
 
-  const handleToggleWishlist = () => {
-    setIsWishlist(!isWishlist);
-    // TODO: Implement wishlist toggle
+  const handleToggleWishlist = async () => {
+    if (!product || wishlistLoading) return;
+    setWishlistLoading(true);
+    try {
+      if (isWishlist) {
+        await userWishlistApi.removeFromWishlist(product._id);
+        setIsWishlist(false);
+        dispatch(addToast({ type: "success", message: "Đã xóa khỏi danh sách yêu thích" }));
+      } else {
+        await userWishlistApi.addToWishlist(product._id);
+        setIsWishlist(true);
+        dispatch(addToast({ type: "success", message: "Đã thêm vào danh sách yêu thích" }));
+      }
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Không thể cập nhật danh sách yêu thích. Vui lòng thử lại.";
+      dispatch(addToast({ type: "error", message }));
+    } finally {
+      setWishlistLoading(false);
+    }
   };
 
   const handleQuantityChange = (delta: number) => {
@@ -191,6 +254,8 @@ const ProductDetailPage: React.FC = () => {
               onAddToCart={handleAddToCart}
               onBuyNow={handleBuyNow}
               onToggleWishlist={handleToggleWishlist}
+              isWishlistLoading={wishlistLoading}
+              isOwnShopProduct={isOwnShopProduct}
             />
           </div>
 
@@ -250,11 +315,13 @@ const ProductDetailPage: React.FC = () => {
               size="lg"
               fullWidth
               onClick={handleAddToCart}
-              disabled={(selectedVariant?.stock ?? product.stock ?? 0) === 0}
+              disabled={
+                (selectedVariant?.stock ?? product.stock ?? 0) === 0 || isOwnShopProduct || wishlistLoading
+              }
               icon={<ShoppingCart className="w-5 h-5" />}
               className="flex-1"
             >
-              Thêm vào giỏ
+              {isOwnShopProduct ? "Không thể mua sản phẩm của bạn" : "Thêm vào giỏ"}
             </Button>
             <Button
               color="green"
@@ -262,12 +329,17 @@ const ProductDetailPage: React.FC = () => {
               size="lg"
               fullWidth
               onClick={handleBuyNow}
-              disabled={(selectedVariant?.stock ?? product.stock ?? 0) === 0}
+              disabled={(selectedVariant?.stock ?? product.stock ?? 0) === 0 || isOwnShopProduct}
               className="flex-1"
             >
               Mua ngay
             </Button>
           </div>
+          {isOwnShopProduct && (
+            <p className="mt-2 text-center text-xs text-warning">
+              Sản phẩm thuộc cửa hàng của bạn nên không thể thêm vào giỏ.
+            </p>
+          )}
         </div>
       </div>
     </Page>

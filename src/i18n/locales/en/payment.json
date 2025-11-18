@@ -1,0 +1,102 @@
+{
+  "payment": {
+    "title": "Payment",
+    "checkout": "Checkout",
+    "checkoutPage": {
+      "title": "Checkout",
+      "subtitle": "items in cart",
+      "shippingAddress": "Shipping Address",
+      "receiverName": "Receiver Name",
+      "receiverNamePlaceholder": "Enter receiver name",
+      "phone": "Phone Number",
+      "phonePlaceholder": "Enter phone number",
+      "address": "Detailed Address",
+      "addressPlaceholder": "Enter house number, street name...",
+      "notes": "Notes (optional)",
+      "notesPlaceholder": "Notes for seller...",
+      "orderSummary": "Order Summary",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "couponDiscount": "Coupon Discount",
+      "shippingFee": "Shipping Fee",
+      "freeShipping": "Free",
+      "total": "Total",
+      "confirmOrder": "Confirm Order",
+      "terms": "By placing an order, you agree to our",
+      "termsLink": "Terms of Service",
+      "termsEnd": ""
+    },
+    "methods": {
+      "title": "Payment Methods",
+      "noMethods": "No payment methods available",
+      "cod": "Cash on Delivery",
+      "bank_transfer": "Bank Transfer",
+      "credit_card": "Credit Card",
+      "paypal": "PayPal"
+    },
+    "status": {
+      "title": "Payment Status",
+      "refresh": "Refresh",
+      "orderId": "Order ID",
+      "method": "Method",
+      "amount": "Amount",
+      "transactionId": "Transaction ID",
+      "createdAt": "Created At",
+      "paidAt": "Paid At",
+      "updatedAt": "Last Updated",
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded",
+      "notFound": "Payment information not found"
+    },
+    "page": {
+      "title": "Payment",
+      "orderId": "Order ID",
+      "backToOrders": "Back to Orders",
+      "success": {
+        "title": "Payment Successful!",
+        "message": "Your order has been paid successfully.",
+        "viewOrder": "View Order"
+      },
+      "failed": {
+        "title": "Payment Failed",
+        "message": "An error occurred during payment. Please try again.",
+        "backToOrders": "Back to Orders"
+      }
+    },
+    "history": {
+      "title": "Payment History",
+      "transactions": "transactions",
+      "noPayments": "You have no payment transactions",
+      "loadMore": "Load More",
+      "page": "Page",
+      "of": "/"
+    },
+    "qrCode": {
+      "title": "Payment Information",
+      "scan": "Scan QR code to pay",
+      "accountInfo": "Account Information",
+      "bank": "Bank",
+      "accountNumber": "Account Number",
+      "accountHolder": "Account Holder",
+      "instructions": "Payment Instructions"
+    },
+    "errors": {
+      "receiverNameRequired": "Please enter receiver name",
+      "phoneRequired": "Please enter phone number",
+      "addressRequired": "Please enter detailed address",
+      "addressSelectorRequired": "Please select Province/City, District, Ward",
+      "paymentMethodRequired": "Please select payment method",
+      "cartEmpty": "Cart is empty",
+      "createOrderFailed": "Failed to create order",
+      "createOrderError": "An error occurred while creating order"
+    },
+    "success": {
+      "paymentSuccess": "Payment successful!"
+    }
+  }
+}
+
