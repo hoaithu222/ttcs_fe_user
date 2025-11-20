@@ -4,6 +4,7 @@ import App from "./App";
 import { PersistGate } from "redux-persist/integration/react";
 import ThemProvider from "./app/providers/ThemProvider";
 import LanguageProvider from "./app/providers/LanguageProvider";
+import RealtimeProvider from "./app/providers/RealtimeProvider";
 
 const AppRoot = () => {
   return (
@@ -11,7 +12,9 @@ const AppRoot = () => {
       <PersistGate loading={null} persistor={persistor}>
         <LanguageProvider>
           <ThemProvider>
-            <App />
+            <RealtimeProvider>
+              <App />
+            </RealtimeProvider>
           </ThemProvider>
         </LanguageProvider>
       </PersistGate>

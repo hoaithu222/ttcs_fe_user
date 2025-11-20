@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Form from "@radix-ui/react-form";
 import Button from "@/foundation/components/buttons/Button";
 import Input from "@/foundation/components/input/Input";
 import TextArea from "@/foundation/components/input/TextArea";
@@ -92,7 +93,7 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <Form.Root onSubmit={handleSubmit} className="space-y-4">
             {requiresTrackingNumber && (
               <div>
                 <Input
@@ -159,7 +160,7 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
                 Xác nhận
               </Button>
             </div>
-          </form>
+          </Form.Root>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

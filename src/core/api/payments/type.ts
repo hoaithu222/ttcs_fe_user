@@ -13,6 +13,7 @@ export interface Payment {
     | "vnpay"
     | "momo"
     | "zalopay"
+    | "wallet"
     | "test";
   status: "pending" | "processing" | "completed" | "failed" | "cancelled" | "refunded";
   transactionId?: string;
@@ -38,6 +39,7 @@ export interface PaymentMethod {
     | "vnpay"
     | "momo"
     | "zalopay"
+    | "wallet"
     | "test";
   isActive: boolean;
   config?: Record<string, any>;

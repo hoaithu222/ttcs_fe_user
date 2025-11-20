@@ -128,46 +128,70 @@ export class CartService {
     const mappedItems = cartItems.map((item: any) => {
       const product = typeof item.productId === "object" ? item.productId : null;
       const shop = typeof item.shopId === "object" ? item.shopId : null;
-      const variant = typeof item.variantId === "object" ? item.variantId : null;
+      const variantSnapshot = item.variantSnapshot || null;
 
-      // Get product image
+      const variantIdValue = item.variantId
+        ? typeof item.variantId === "string"
+          ? item.variantId
+          : item.variantId?._id || item.variantId?.toString?.()
+        : undefined;
+
+      // Prefer variant image if available
       const productImages = product?.images || [];
-      const productImage =
+      const fallbackImage =
         productImages.length > 0
           ? typeof productImages[0] === "string"
             ? productImages[0]
             : productImages[0]?.url || ""
           : "";
+      const productImage = variantSnapshot?.image || fallbackImage;
 
       // Calculate prices
-      const productPrice = variant?.price || product?.price || item.priceAtTime || 0;
+      const basePrice =
+        item.priceAtTime ??
+        variantSnapshot?.price ??
+        (typeof item.variantId === "object" && item.variantId?.price
+          ? item.variantId.price
+          : product?.price) ??
+        0;
       const productDiscount = product?.discount || 0;
-      const finalPrice = productPrice - productDiscount;
+      const finalPrice = Math.max(0, basePrice - productDiscount);
       const totalPrice = finalPrice * item.quantity;
+
+      const productPayload = product
+        ? {
+            _id: product._id,
+            name: product.name,
+            images: product.images,
+            price: product.price,
+            discount: product.discount,
+            finalPrice: product.finalPrice,
+            variants: product.variants || [],
+          }
+        : undefined;
 
       return {
         _id: item._id,
         cartId: item.cartId || cartData._id,
         productId: typeof item.productId === "string" ? item.productId : item.productId._id,
-        variantId: item.variantId
-          ? typeof item.variantId === "string"
-            ? item.variantId
-            : item.variantId._id
-          : undefined,
+        variantId: variantIdValue,
         quantity: item.quantity,
-        priceAtTime: item.priceAtTime || productPrice,
+        priceAtTime: item.priceAtTime ?? basePrice,
         shopId: typeof item.shopId === "string" ? item.shopId : item.shopId._id,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         // Computed fields
         productName: product?.name || "",
         productImage,
-        productPrice,
+        productPrice: basePrice,
         finalPrice,
         totalPrice,
         shopName: shop?.name || "",
+        variantSnapshot: variantSnapshot || undefined,
+        product: productPayload,
       } as CartItem;
     });
+
 
     // Calculate totals
     const subtotal = mappedItems.reduce((sum: number, item: CartItem) => sum + (item.totalPrice || 0), 0);

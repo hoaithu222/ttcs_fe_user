@@ -64,6 +64,37 @@ const STATUS_WORKFLOW: Record<string, { next: string[]; actions: Array<{ status:
   },
 };
 
+const deriveOrderStatus = (order: Partial<ShopOrder> & Record<string, any>) => {
+  return order.orderStatus || order.status || "pending";
+};
+
+const deriveOrderNumber = (order: Partial<ShopOrder> & Record<string, any>) => {
+  if (order.orderNumber) return order.orderNumber;
+  if (order._id) return `#${String(order._id).slice(-6).toUpperCase()}`;
+  return "#UNKNOWN";
+};
+
+const deriveOrderItems = (order: Partial<ShopOrder> & Record<string, any>) => {
+  const items = order.items;
+  if (Array.isArray(items)) {
+    return items.filter(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        typeof item.productName === "string" &&
+        typeof item.quantity === "number"
+    );
+  }
+
+  const orderItemsDetails = order.orderItemsDetails || order.orderItemDetails;
+  if (Array.isArray(orderItemsDetails)) {
+    return orderItemsDetails;
+  }
+
+  // Backend cũ chỉ trả về mảng id => bỏ qua để tránh lỗi map
+  return [];
+};
+
 const OrderShop: React.FC = () => {
   const dispatch = useDispatch();
   const orders = useSelector(selectOrders) as ShopOrder[];
@@ -181,7 +212,7 @@ const OrderShop: React.FC = () => {
   // Đếm số đơn hàng theo từng trạng thái
   const getOrderCountByStatus = (status: string) => {
     if (status === "all") return orders.length;
-    return orders.filter((order) => order.orderStatus === status).length;
+    return orders.filter((order) => deriveOrderStatus(order) === status).length;
   };
 
   return (
@@ -251,8 +282,11 @@ const OrderShop: React.FC = () => {
           <>
             <div className="space-y-4">
               {orders.map((order) => {
-                const workflow = STATUS_WORKFLOW[order.orderStatus] || { next: [], actions: [] };
+                const status = deriveOrderStatus(order);
+                const workflow = STATUS_WORKFLOW[status] || { next: [], actions: [] };
                 const availableActions = workflow.actions;
+                const orderItems = deriveOrderItems(order);
+                const orderNumber = deriveOrderNumber(order);
 
                 return (
                   <div
@@ -262,8 +296,8 @@ const OrderShop: React.FC = () => {
                     <div className="flex flex-col md:flex-row gap-4 justify-between items-start">
                       <div className="flex-1 space-y-2">
                         <div className="flex gap-4 items-center">
-                          <span className="font-semibold text-neutral-9">#{order.orderNumber}</span>
-                          {getStatusBadge(order.orderStatus)}
+                          <span className="font-semibold text-neutral-9">{orderNumber}</span>
+                          {getStatusBadge(status)}
                         </div>
                         <div className="text-sm text-neutral-6">
                           <p>Khách hàng: {order.user?.name || "N/A"}</p>
@@ -275,13 +309,21 @@ const OrderShop: React.FC = () => {
                           )}
                         </div>
                         <div className="space-y-1">
-                          {order.items.map((item, idx) => (
-                            <div key={idx} className="flex gap-2 text-sm text-neutral-7">
-                              <span>{item.productName}</span>
-                              <span>x{item.quantity}</span>
-                              <span className="ml-auto">{formatPrice(item.totalPrice)}</span>
-                            </div>
-                          ))}
+                          {orderItems.length > 0 ? (
+                            orderItems.map((item, idx) => (
+                              <div key={idx} className="flex gap-2 text-sm text-neutral-7">
+                                <span>{item.productName || "Sản phẩm"}</span>
+                                <span>x{item.quantity ?? 0}</span>
+                                <span className="ml-auto">
+                                  {formatPrice(item.totalPrice ?? item.price ?? 0)}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-neutral-5 italic">
+                              Không có thông tin chi tiết sản phẩm
+                            </p>
+                          )}
                         </div>
                         {order.notes && (
                           <div className="p-2 bg-neutral-2 rounded text-sm text-neutral-6">
@@ -299,7 +341,7 @@ const OrderShop: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2">
                         {availableActions.map((action) => (
                           <Button
                             key={action.status}

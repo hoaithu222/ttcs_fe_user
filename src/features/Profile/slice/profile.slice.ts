@@ -40,6 +40,10 @@ const initialState: IProfileState = {
       total: 0,
       totalPages: 0,
     },
+    lastQuery: {
+      page: 1,
+      limit: 10,
+    },
   },
   address: {
     data: [],
@@ -145,6 +149,10 @@ const profileSlice = createSlice({
       state.orders.status = ReduxStateType.LOADING;
       state.orders.error = null;
       state.orders.message = null;
+      state.orders.lastQuery = {
+        ...state.orders.lastQuery,
+        ...action.payload,
+      };
       if (action.payload.page) state.orders.pagination.page = action.payload.page;
       if (action.payload.limit) state.orders.pagination.limit = action.payload.limit;
     },
@@ -166,6 +174,63 @@ const profileSlice = createSlice({
       state.orders.error = action.payload;
       state.orders.message = action.payload;
       state.orders.data = [];
+    },
+
+    applyProfileOrderUpdate: (
+      state,
+      action: PayloadAction<{
+        orderId: string;
+        orderStatus?: string;
+        patch?: Partial<Order>;
+      }>
+    ) => {
+      const { orderId, orderStatus, patch } = action.payload;
+      const index = state.orders.data.findIndex((order) => order._id === orderId);
+
+      if (index === -1) {
+        if (patch) {
+          const resolvedStatus = (
+            orderStatus ||
+            patch.orderStatus ||
+            (patch as any)?.status ||
+            "pending"
+          ) as Order["status"];
+          const mergedOrder: Order = {
+            ...(patch as Order),
+            _id: orderId,
+            status: resolvedStatus,
+            orderStatus: resolvedStatus,
+            totalAmount:
+              patch.totalAmount ?? (patch as any)?.subtotal ?? 0,
+            shippingFee: patch.shippingFee ?? 0,
+            discountAmount:
+              patch.discountAmount ?? (patch as any)?.discount ?? 0,
+            createdAt: patch.createdAt || new Date().toISOString(),
+            updatedAt: patch.updatedAt || new Date().toISOString(),
+            orderItems: patch.orderItems || [],
+          } as Order;
+          state.orders.data = [mergedOrder, ...state.orders.data];
+        }
+        return;
+      }
+
+      const currentOrder = state.orders.data[index];
+      const updatedOrder: Order = {
+        ...currentOrder,
+        ...(patch as Partial<Order>),
+      };
+      const resolvedStatus = (
+        orderStatus ||
+        patch?.orderStatus ||
+        (patch as any)?.status
+      ) as Order["status"] | undefined;
+      if (resolvedStatus) {
+        updatedOrder.orderStatus = resolvedStatus;
+        updatedOrder.status = resolvedStatus;
+      }
+
+      updatedOrder.updatedAt = patch?.updatedAt || new Date().toISOString();
+      state.orders.data[index] = updatedOrder;
     },
 
     // Addresses list
@@ -292,6 +357,7 @@ export const {
   fetchOrdersStart,
   fetchOrdersSuccess,
   fetchOrdersFailure,
+  applyProfileOrderUpdate,
   fetchAddressesStart,
   fetchAddressesSuccess,
   fetchAddressesFailure,

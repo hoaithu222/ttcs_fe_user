@@ -83,8 +83,17 @@ function* removeFromCartWorker(action: RemoveFromCartAction): Generator {
 
 function* updateQuantityWorker(action: UpdateQuantityAction): Generator {
   try {
-    const { itemId, quantity } = action.payload;
-    const response: any = yield call([CartService, CartService.updateItem], itemId, { quantity });
+    const { itemId, quantity, variantId, priceAtTime } = action.payload;
+    const updatePayload: any = {};
+    if (typeof quantity === "number") updatePayload.quantity = quantity;
+    if (variantId) updatePayload.variantId = variantId;
+    if (typeof priceAtTime === "number") updatePayload.priceAtTime = priceAtTime;
+
+    if (Object.keys(updatePayload).length === 0) {
+      return;
+    }
+
+    const response: any = yield call([CartService, CartService.updateItem], itemId, updatePayload);
     if (response.success && response.data?.cart) {
       yield put(updateQuantitySuccess(response.data.cart));
     } else {

@@ -227,9 +227,9 @@ const ProductDetailPage: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <div className="container mx-auto px-4 py-8 lg:py-12">
+        <div className="container mx-auto  py-8 ">
           {/* Back Button - Desktop */}
-          <div className="hidden md:block mb-6">
+          {/* <div className="hidden md:block mb-6">
             <Button
               color="gray"
               variant="ghost"
@@ -240,7 +240,7 @@ const ProductDetailPage: React.FC = () => {
             >
               Quay lại
             </Button>
-          </div>
+          </div> */}
 
           {/* Product Detail Section */}
           <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">

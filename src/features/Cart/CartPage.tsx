@@ -24,6 +24,8 @@ import {
   selectCartItemsByShop,
 } from "./slice/Cart.selector";
 import { ReduxStateType } from "@/app/store/types";
+import type { CartItem as CartItemType } from "@/core/api/cart/type";
+import type { ProductVariant } from "@/core/api/products/type";
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -46,6 +48,30 @@ const CartPage: React.FC = () => {
 
   const handleRemove = (itemId: string) => {
     dispatch(removeFromCartStart(itemId));
+  };
+
+  const handleVariantChange = (item: CartItemType, variant: ProductVariant) => {
+    const product = item.product;
+    if (!product) return;
+    const variantId = (variant._id as string) || (variant as any)?.id || variant.sku;
+    const currentVariantId =
+      typeof item.variantId === "string"
+        ? item.variantId
+        : (item.variantId as any)?._id || (item.variantId as any)?.toString?.();
+    if (!variantId || (currentVariantId && variantId === currentVariantId)) return;
+    const basePrice = variant.price ?? product.price ?? item.priceAtTime ?? 0;
+    const discountPercent = Math.min(Math.max(product.discount ?? 0, 0), 100);
+    const finalPrice =
+      product.finalPrice && !variant
+        ? product.finalPrice
+        : basePrice - (basePrice * discountPercent) / 100;
+    dispatch(
+      updateQuantityStart({
+        itemId: item._id,
+        variantId,
+        priceAtTime: Math.max(0, finalPrice),
+      })
+    );
   };
 
   const handleClearCart = () => {
@@ -140,6 +166,7 @@ const CartPage: React.FC = () => {
                   onRemove={handleRemove}
                   onRemoveShop={handleRemoveShop}
                   onCheckoutShop={handleCheckoutShop}
+                  onVariantChange={handleVariantChange}
                   isLoading={isLoading}
                   onContinueShopping={handleContinueShopping}
                 />

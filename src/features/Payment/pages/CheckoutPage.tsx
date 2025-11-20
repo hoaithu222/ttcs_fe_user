@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { ShoppingBag, CreditCard } from "lucide-react";
+import { ShoppingBag, CreditCard, Package, Store, Wallet, Building2, Truck, Tag } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
 import Page from "@/foundation/components/layout/Page";
 import Section from "@/foundation/components/sections/Section";
@@ -9,9 +9,10 @@ import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import Button from "@/foundation/components/buttons/Button";
 import Input from "@/foundation/components/input/Input";
 import Loading from "@/foundation/components/loading/Loading";
-import { PaymentMethodSelector, PaymentAddressSelector } from "../components";
+import { PaymentAddressSelector } from "../components";
 import Modal from "@/foundation/components/modal/Modal";
 import type { Address } from "@/core/api/addresses/type";
+import type { PaymentMethod } from "@/core/api/payments/type";
 import { usePayment } from "../hooks";
 import {
   selectCart,
@@ -19,10 +20,12 @@ import {
   selectIsCartEmpty,
   selectIsCartLoading,
 } from "@/features/Cart/slice/Cart.selector";
-import { getCartStart, clearCartStart } from "@/features/Cart/slice/Cart.slice";
+import { getCartStart } from "@/features/Cart/slice/Cart.slice";
 import { userOrdersApi } from "@/core/api/orders";
+import { userWalletApi } from "@/core/api/wallet";
 import { addToast } from "@/app/store/slices/toast";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
+import { getCartItemVariantInfo } from "@/features/Cart/utils/cartVariant.helpers";
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -52,6 +55,10 @@ const CheckoutPage: React.FC = () => {
     Array<{ orderId: string; shopId: string; shopName?: string }>
   >([]);
   const [isMultiShopModalOpen, setIsMultiShopModalOpen] = useState(false);
+  
+  // Wallet state
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
 
   const selectedPaymentConfig = useMemo(
     () => paymentMethods.find((method) => method.id === selectedPaymentMethod),
@@ -71,9 +78,22 @@ const CheckoutPage: React.FC = () => {
     return ids.size || (cartItems.length ? 1 : 0);
   }, [cartItems]);
 
+  // Load wallet balance
+  const loadWalletBalance = async () => {
+    try {
+      const response = await userWalletApi.getBalance();
+      if (response.success && response.data) {
+        setWalletBalance(response.data.balance || 0);
+      }
+    } catch (error) {
+      console.error("Failed to load wallet balance:", error);
+    }
+  };
+
   useEffect(() => {
     dispatch(getCartStart());
     getPaymentMethods();
+    loadWalletBalance();
   }, [dispatch, getPaymentMethods]);
 
   useEffect(() => {
@@ -103,6 +123,23 @@ const CheckoutPage: React.FC = () => {
       dispatch(addToast({ type: "error", message: "Vui lòng chọn phương thức thanh toán" }));
       return false;
     }
+    
+    // Check wallet balance if wallet payment method is selected
+    if (selectedPaymentConfig?.type === "wallet") {
+      if (walletBalance === null) {
+        dispatch(addToast({ type: "error", message: "Đang kiểm tra số dư ví..." }));
+        return false;
+      }
+      if (walletBalance < totalAmount) {
+        dispatch(addToast({ 
+          type: "error", 
+          message: `Số dư ví không đủ. Số dư hiện tại: ${formatPriceVND(walletBalance)}. Vui lòng nạp thêm tiền.` 
+        }));
+        setIsDepositModalOpen(true);
+        return false;
+      }
+    }
+    
     return true;
   };
 
@@ -217,7 +254,8 @@ const CheckoutPage: React.FC = () => {
         });
       }
 
-      dispatch(clearCartStart());
+      // Refresh cart instead of clearing it - backend will update cart after order creation
+      dispatch(getCartStart());
       setPendingPaymentOrders(createdOrders.length > 1 ? createdOrders : []);
 
       if (createdOrders.length === 1) {
@@ -237,7 +275,7 @@ const CheckoutPage: React.FC = () => {
               message: `Đã tạo ${createdOrders.length} đơn hàng (mỗi shop một đơn).`,
             })
           );
-          navigate("/orders");
+          navigate("/profile?tab=orders");
         } else {
           setIsMultiShopModalOpen(true);
           dispatch(
@@ -298,6 +336,10 @@ const CheckoutPage: React.FC = () => {
   const couponDiscount = cart?.couponDiscount || 0;
   const shippingFee = cart?.shippingFee || 0;
   const totalAmount = cart?.totalAmount || subtotal - discount - couponDiscount + shippingFee;
+  
+  // Check if wallet payment is selected and balance is insufficient
+  const isWalletSelected = selectedPaymentConfig?.type === "wallet";
+  const isWalletInsufficient = isWalletSelected && walletBalance !== null && walletBalance < totalAmount;
 
   return (
     <Page>
@@ -315,46 +357,270 @@ const CheckoutPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Forms */}
-            <div className="lg:col-span-2 space-y-6">
+          <div className="container mx-auto">
+            <div className="space-y-6">
               {/* Shipping Address */}
               <PaymentAddressSelector
                 selectedAddressId={selectedAddress?._id}
                 onSelectAddress={handleAddressSelect}
               />
 
-              {/* Notes */}
+              {/* Order Summary */}
               <Section className="bg-background-2 rounded-2xl p-6 border border-border-1">
-                <SectionTitle className="mb-4">Ghi chú đơn hàng (tùy chọn)</SectionTitle>
-                <Form.Root onSubmit={(e) => e.preventDefault()}>
-                  <Input
-                    name="notes"
-                    label="Ghi chú"
-                    placeholder="Ghi chú cho người bán..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </Form.Root>
-              </Section>
-
-              {/* Payment Method */}
-              <PaymentMethodSelector
-                methods={paymentMethods}
-                selectedMethod={selectedPaymentMethod}
-                onSelectMethod={setSelectedPaymentMethod}
-                isLoading={isPaymentMethodsLoading}
-              />
-            </div>
-
-            {/* Right Column - Order Summary */}
-            <div className="lg:col-span-1">
-              <Section className="bg-background-2 rounded-2xl p-6 border border-border-1 sticky top-4">
                 <div className="flex items-center gap-3 mb-6">
-                  <CreditCard className="w-5 h-5 text-primary-6" />
-                  <SectionTitle>Tóm tắt đơn hàng</SectionTitle>
+                  <ShoppingBag className="w-5 h-5 text-primary-6" />
+                  <SectionTitle>Thông tin đơn hàng</SectionTitle>
                 </div>
 
+                {/* Shop and Products Section */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-neutral-9 mb-3 flex items-center gap-2">
+                    <Store className="w-4 h-4" />
+                    Sản phẩm đang thanh toán
+                  </h3>
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                    {(() => {
+                      // Group items by shop
+                      const shopGroups = cartItems.reduce<
+                        Record<string, { shopName: string; items: typeof cartItems }>
+                      >((acc, item) => {
+                        let shopId: string | undefined;
+                        let shopName: string | undefined;
+
+                        if (typeof item.shopId === "string") {
+                          shopId = item.shopId;
+                        } else if (typeof item.shopId === "object" && item.shopId) {
+                          shopId = (item.shopId as any)._id || (item.shopId as any).id;
+                          shopName = (item.shopId as any).name;
+                        }
+
+                        if (!shopId) return acc;
+
+                        if (!acc[shopId]) {
+                          acc[shopId] = { shopName: shopName || item.shopName || "Cửa hàng", items: [] };
+                        }
+                        acc[shopId].items.push(item);
+                        return acc;
+                      }, {});
+
+                      return Object.entries(shopGroups).map(([shopId, group]) => (
+                        <div key={shopId} className="border border-border-1 rounded-lg p-3 bg-background-1">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Store className="w-4 h-4 text-primary-6" />
+                            <span className="text-sm font-semibold text-neutral-9">{group.shopName}</span>
+                          </div>
+                          <div className="space-y-3">
+                            {group.items.map((item) => {
+                              const variantInfo = getCartItemVariantInfo(item);
+                              const productImage = variantInfo.image || item.productImage || "";
+                              const productName = item.productName || "Sản phẩm";
+                              const finalPrice = item.finalPrice || item.productPrice || item.priceAtTime || 0;
+                              const itemTotal = item.totalPrice || finalPrice * item.quantity;
+                              const variantAttributes =
+                                variantInfo.attributes && Object.keys(variantInfo.attributes).length > 0
+                                  ? variantInfo.attributes
+                                  : undefined;
+
+                              return (
+                                <div
+                                  key={item._id}
+                                  className="flex gap-3 p-3 bg-background-2 rounded-lg border border-border-1"
+                                >
+                                  <div className="flex-shrink-0">
+                                    {productImage ? (
+                                      <img
+                                        src={productImage}
+                                        alt={productName}
+                                        className="w-14 h-14 rounded-lg object-cover border border-border-1"
+                                      />
+                                    ) : (
+                                      <div className="flex justify-center items-center w-14 h-14 rounded-lg bg-neutral-2 border border-border-1">
+                                        <Package className="w-5 h-5 text-neutral-4" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-neutral-9 line-clamp-2">
+                                      {productName}
+                                    </p>
+                                    {(variantInfo.sku || variantAttributes) && (
+                                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                        {variantInfo.sku && (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-1 text-primary-7 text-[11px] font-semibold border border-primary-3">
+                                            <Tag className="w-3 h-3" />
+                                            {variantInfo.sku}
+                                          </span>
+                                        )}
+                                        {variantAttributes &&
+                                          Object.entries(variantAttributes).map(([key, value]) => (
+                                            <span
+                                              key={key}
+                                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-1 text-neutral-7 text-[11px] border border-border-1"
+                                            >
+                                              <span className="font-medium text-neutral-8">{key}:</span> {value}
+                                            </span>
+                                          ))}
+                                      </div>
+                                    )}
+                                    <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs text-neutral-6">
+                                      <span>SL: <span className="font-semibold text-neutral-8">{item.quantity}</span></span>
+                                      <span>Đơn giá: <span className="font-semibold text-neutral-8">{formatPriceVND(finalPrice)}</span></span>
+                                      <span className="text-primary-6 font-semibold">
+                                        {formatPriceVND(itemTotal)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+
+                <div className="h-px bg-border-1 my-6" />
+
+                {/* Notes Section */}
+                <div className="mb-6">
+                  <SectionTitle className="mb-3 text-sm">Ghi chú đơn hàng</SectionTitle>
+                  <Form.Root onSubmit={(e) => e.preventDefault()}>
+                    <Input
+                      name="notes"
+                      label=""
+                      placeholder="Ghi chú cho người bán..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="text-sm"
+                    />
+                  </Form.Root>
+                </div>
+
+                <div className="h-px bg-border-1 my-6" />
+
+                {/* Payment Method Section */}
+                <div className="mb-6">
+                  <SectionTitle className="mb-4 text-sm flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    Phương thức thanh toán
+                  </SectionTitle>
+                  {isPaymentMethodsLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="h-16 bg-neutral-2 animate-pulse rounded-lg border border-border-1"
+                        />
+                      ))}
+                    </div>
+                  ) : paymentMethods.filter((m) => m.isActive).length === 0 ? (
+                    <p className="text-sm text-neutral-6">Không có phương thức thanh toán nào khả dụng</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {paymentMethods
+                        .filter((method) => method.isActive)
+                        .map((method) => {
+                          const getMethodIcon = (type: PaymentMethod["type"]) => {
+                            switch (type) {
+                              case "credit_card":
+                                return <CreditCard className="w-4 h-4" />;
+                              case "bank_transfer":
+                                return <Building2 className="w-4 h-4" />;
+                              case "cod":
+                                return <Truck className="w-4 h-4" />;
+                              default:
+                                return <Wallet className="w-4 h-4" />;
+                            }
+                          };
+
+                          const getMethodLabel = (type: PaymentMethod["type"]) => {
+                            switch (type) {
+                              case "credit_card":
+                                return "Thẻ tín dụng";
+                              case "bank_transfer":
+                                return "Chuyển khoản";
+                              case "cod":
+                                return "Thanh toán khi nhận hàng";
+                              case "wallet":
+                                return "Thanh toán bằng ví";
+                              case "paypal":
+                                return "PayPal";
+                              case "vnpay":
+                                return "VNPay";
+                              case "momo":
+                                return "MoMo";
+                              case "zalopay":
+                                return "ZaloPay";
+                              default:
+                                return method.name || type;
+                            }
+                          };
+                          
+                          // Check if this is wallet method and show balance
+                          const isWalletMethod = method.type === "wallet";
+                          const showWalletBalance = isWalletMethod && walletBalance !== null;
+                          const walletInsufficient = isWalletMethod && walletBalance !== null && walletBalance < totalAmount;
+
+                          return (
+                            <button
+                              key={method.id}
+                              type="button"
+                              onClick={() => setSelectedPaymentMethod(method.id)}
+                              className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                                selectedPaymentMethod === method.id
+                                  ? "border-primary-6 bg-primary-1"
+                                  : "border-border-1 bg-background-1 hover:border-primary-3"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`flex justify-center items-center w-8 h-8 rounded ${
+                                    selectedPaymentMethod === method.id
+                                      ? "bg-primary-6 text-white"
+                                      : "bg-neutral-2 text-neutral-7"
+                                  }`}
+                                >
+                                  {getMethodIcon(method.type)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-neutral-9">
+                                    {getMethodLabel(method.type)}
+                                  </p>
+                                  {showWalletBalance && (
+                                    <p className={`text-xs mt-0.5 ${walletInsufficient ? "text-error" : "text-neutral-6"}`}>
+                                      Số dư: {formatPriceVND(walletBalance)}
+                                      {walletInsufficient && " (Không đủ)"}
+                                    </p>
+                                  )}
+                                  {!showWalletBalance && method.description && (
+                                    <p className="text-xs text-neutral-6 mt-0.5 line-clamp-1">
+                                      {method.description}
+                                    </p>
+                                  )}
+                                </div>
+                                <div
+                                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                    selectedPaymentMethod === method.id
+                                      ? "border-primary-6 bg-primary-6"
+                                      : "border-neutral-4 bg-transparent"
+                                  }`}
+                                >
+                                  {selectedPaymentMethod === method.id && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="h-px bg-border-1 my-6" />
+
+                {/* Order Summary Pricing */}
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-neutral-6">Tạm tính</span>
@@ -403,6 +669,13 @@ const CheckoutPage: React.FC = () => {
                       {shopCount} đơn hàng riêng biệt và cần thanh toán theo từng shop.
                     </div>
                   )}
+                  
+                  {isWalletInsufficient && (
+                    <div className="rounded-lg border border-error/40 bg-error/10 p-3 text-sm text-error">
+                      Số dư ví không đủ để thanh toán. Vui lòng nạp thêm{" "}
+                      {formatPriceVND(totalAmount - (walletBalance || 0))} để tiếp tục.
+                    </div>
+                  )}
                 </div>
 
                 <Button
@@ -439,7 +712,7 @@ const CheckoutPage: React.FC = () => {
         <div className="space-y-4">
           <p className="text-sm text-neutral-6">
             Mỗi shop tương ứng một đơn hàng riêng. Vui lòng chọn đơn mà bạn muốn thanh toán ngay hoặc
-            truy cập trang <Link to="/orders" className="text-primary-6 hover:underline">Đơn hàng của tôi</Link>{" "}
+            truy cập trang <Link to="/profile?tab=orders" className="text-primary-6 hover:underline">Đơn hàng của tôi</Link>{" "}
             để thanh toán sau.
           </p>
 
@@ -475,6 +748,43 @@ const CheckoutPage: React.FC = () => {
               Không có đơn hàng nào cần thanh toán.
             </p>
           )}
+        </div>
+      </Modal>
+
+      {/* Deposit Modal */}
+      <Modal
+        open={isDepositModalOpen}
+        onOpenChange={setIsDepositModalOpen}
+        title="Nạp tiền vào ví"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-neutral-6">
+            Số dư hiện tại: <span className="font-semibold text-neutral-9">{formatPriceVND(walletBalance || 0)}</span>
+          </p>
+          <p className="text-sm text-neutral-6">
+            Số tiền cần thanh toán: <span className="font-semibold text-primary-6">{formatPriceVND(totalAmount)}</span>
+          </p>
+          <p className="text-sm text-neutral-6">
+            Cần nạp thêm: <span className="font-semibold text-error">{formatPriceVND(Math.max(0, totalAmount - (walletBalance || 0)))}</span>
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsDepositModalOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="solid"
+              onClick={() => {
+                setIsDepositModalOpen(false);
+                navigate(`/wallet/deposit?walletType=user&returnUrl=${encodeURIComponent("/checkout")}`);
+              }}
+            >
+              Đi đến nạp tiền
+            </Button>
+          </div>
         </div>
       </Modal>
     </Page>

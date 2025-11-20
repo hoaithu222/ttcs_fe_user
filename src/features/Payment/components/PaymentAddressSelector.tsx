@@ -1,15 +1,17 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { MapPin, Plus, Edit2, Check, RefreshCw } from "lucide-react";
+import { MapPin, Plus, Edit2, Check, RefreshCw, ChevronDown } from "lucide-react";
 import type { Address } from "@/core/api/addresses/type";
-import { userAddressesApi } from "@/core/api/addresses";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
 import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import Button from "@/foundation/components/buttons/Button";
 import Loading from "@/foundation/components/loading/Loading";
+import Modal from "@/foundation/components/modal/Modal";
 import { addToast } from "@/app/store/slices/toast";
 import { useAppDispatch } from "@/app/store";
+import { useProfileAddresses } from "@/features/Profile/hooks/useAddress";
+import { ReduxStateType } from "@/app/store/types";
 
 interface PaymentAddressSelectorProps {
   selectedAddressId?: string;
@@ -25,81 +27,71 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Use Redux store for addresses
+  const { addresses, status, defaultAddress, loadAddresses } = useProfileAddresses();
+  const isLoading = status === ReduxStateType.LOADING || status === ReduxStateType.INIT;
+  
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const previousPathRef = useRef<string>("");
   const hasLoadedRef = useRef<boolean>(false);
   const onSelectAddressRef = useRef(onSelectAddress);
-  const loadAddressesRef = useRef<(() => Promise<void>) | null>(null);
 
   // Keep ref updated
   useEffect(() => {
     onSelectAddressRef.current = onSelectAddress;
   }, [onSelectAddress]);
 
-  // Load addresses function - removed onSelectAddress from dependencies to prevent infinite loop
-  const loadAddresses = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await userAddressesApi.getAddresses();
+  // Select address based on addresses from Redux store
+  useEffect(() => {
+    if (addresses.length > 0 && !hasLoadedRef.current) {
+      // Find address to select
+      let addressToSelect: Address | null = null;
       
-      if (response.success && response.data) {
-        const addressList = Array.isArray(response.data.addresses)
-          ? response.data.addresses
-          : Array.isArray(response.data)
-          ? response.data
-          : [];
-        
-        setAddresses(addressList);
-        
-        // Find default address
-        const defaultAddr = addressList.find((addr: Address) => addr.isDefault) || 
-                           response.data.defaultAddress ||
-                           addressList[0] || null;
-        
-        // Set selected address - only call onSelectAddress if not initial load or if address changed
-        let addressToSelect: Address | null = null;
-        
-        if (selectedAddressId) {
-          const selected = addressList.find((addr: Address) => addr._id === selectedAddressId);
-          addressToSelect = selected || defaultAddr;
-        } else {
-          addressToSelect = defaultAddr;
-        }
+      if (selectedAddressId) {
+        const selected = addresses.find((addr: Address) => addr._id === selectedAddressId);
+        addressToSelect = selected || defaultAddress || addresses[0] || null;
+      } else {
+        addressToSelect = defaultAddress || addresses[0] || null;
+      }
 
-        if (addressToSelect) {
-          const prevAddressId = selectedAddress?._id;
-          setSelectedAddress(addressToSelect);
-          // Only notify parent if address actually changed or on first load
-          if (!hasLoadedRef.current || prevAddressId !== addressToSelect._id) {
-            onSelectAddressRef.current(addressToSelect);
-          }
-        }
-        
+      if (addressToSelect) {
+        setSelectedAddress(addressToSelect);
+        onSelectAddressRef.current(addressToSelect);
         hasLoadedRef.current = true;
       }
-    } catch (error: any) {
-      dispatch(
-        addToast({
-          type: "error",
-          message: error?.response?.data?.message || "Không thể tải danh sách địa chỉ",
-        })
-      );
-    } finally {
-      setIsLoading(false);
     }
-  }, [selectedAddressId, dispatch]); // Removed selectedAddress?._id to prevent infinite loop
+  }, [addresses, selectedAddressId, defaultAddress]);
 
-  // Store loadAddresses in ref
+  // Update selected address when addresses change (e.g., after create/update/delete)
   useEffect(() => {
-    loadAddressesRef.current = loadAddresses;
-  }, [loadAddresses]);
+    if (addresses.length > 0 && hasLoadedRef.current) {
+      const currentSelectedId = selectedAddress?._id;
+      
+      // If current selected address no longer exists, select default or first
+      if (currentSelectedId && !addresses.find((addr: Address) => addr._id === currentSelectedId)) {
+        const newSelected = defaultAddress || addresses[0] || null;
+        if (newSelected) {
+          setSelectedAddress(newSelected);
+          onSelectAddressRef.current(newSelected);
+        }
+      }
+      // If selectedAddressId prop changed, update selection
+      else if (selectedAddressId && selectedAddressId !== currentSelectedId) {
+        const selected = addresses.find((addr: Address) => addr._id === selectedAddressId);
+        if (selected) {
+          setSelectedAddress(selected);
+          onSelectAddressRef.current(selected);
+        }
+      }
+    }
+  }, [addresses, selectedAddressId, defaultAddress]);
 
   // Load addresses on mount - only once
   useEffect(() => {
-    if (!hasLoadedRef.current && loadAddressesRef.current) {
-      loadAddressesRef.current();
+    if (!hasLoadedRef.current && status === ReduxStateType.INIT) {
+      loadAddresses();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
@@ -111,12 +103,12 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
     const isOnCheckoutPage = currentPath.includes("/checkout");
 
     // If we were on profile page and now on checkout, reload addresses
-    if (wasOnProfilePage && isOnCheckoutPage && hasLoadedRef.current && loadAddressesRef.current) {
-      loadAddressesRef.current();
+    if (wasOnProfilePage && isOnCheckoutPage && hasLoadedRef.current) {
+      loadAddresses();
     }
 
     previousPathRef.current = currentPath;
-  }, [location.pathname]); // Only depend on location.pathname
+  }, [location.pathname, loadAddresses]);
 
   // Update parent when selected address changes
   useEffect(() => {
@@ -128,6 +120,7 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
   const handleSelectAddress = useCallback((address: Address) => {
     setSelectedAddress(address);
     onSelectAddress(address);
+    setIsModalOpen(false); // Close modal after selection
   }, [onSelectAddress]);
 
   const handleAddAddress = useCallback(() => {
@@ -167,6 +160,9 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
     return `${address.address}, ${address.ward}, ${address.district}, ${address.city}`;
   };
 
+  // Get display address (selected or default or first)
+  const displayAddress = selectedAddress || defaultAddress || (addresses.length > 0 ? addresses[0] : null);
+
   if (isLoading) {
     return (
       <Section className="bg-background-2 rounded-2xl p-6 border border-border-1">
@@ -180,109 +176,158 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
   }
 
   return (
-    <Section className="bg-background-2 rounded-2xl p-6 border border-border-1">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <MapPin className="w-5 h-5 text-primary-6" />
-          <SectionTitle>Địa chỉ giao hàng</SectionTitle>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<RefreshCw className="w-4 h-4" />}
-            onClick={handleRefresh}
-            title="Làm mới danh sách địa chỉ"
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={handleAddAddress}
-          >
-            Thêm địa chỉ
-          </Button>
-        </div>
+    <Section className="bg-background-2 max-h-[200px] rounded-2xl p-6 border border-border-1">
+      <div className="flex items-center gap-3 mb-4">
+        <MapPin className="w-5 h-5 text-primary-6" />
+        <SectionTitle>Địa chỉ giao hàng</SectionTitle>
       </div>
 
       {addresses.length === 0 ? (
-        <div className="text-center py-8">
+        <div className="text-center py-6">
           <MapPin className="w-12 h-12 mx-auto mb-4 text-neutral-4" />
           <p className="text-sm text-neutral-6 mb-4">Bạn chưa có địa chỉ nào</p>
           <Button variant="solid" size="sm" onClick={handleAddAddress}>
             Thêm địa chỉ mới
           </Button>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {addresses.map((addr) => (
-            <div
-              key={addr._id}
-              className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                selectedAddress?._id === addr._id
-                  ? "border-primary-6 bg-primary-1"
-                  : "border-border-1 bg-background-1 hover:border-primary-3"
-              }`}
-              onClick={() => handleSelectAddress(addr)}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-semibold text-neutral-9">{addr.name}</h4>
-                    {addr.isDefault && (
-                      <span className="px-2 py-0.5 text-xs font-medium rounded bg-primary-6 text-white">
-                        Mặc định
-                      </span>
-                    )}
-                    <span className="px-2 py-0.5 text-xs font-medium rounded bg-neutral-2 text-neutral-6">
-                      {addr.type === "home"
-                        ? "Nhà riêng"
-                        : addr.type === "office"
-                        ? "Văn phòng"
-                        : "Khác"}
-                    </span>
-                  </div>
-                  <p className="text-sm text-neutral-7 mb-1">{addr.phone}</p>
-                  <p className="text-sm text-neutral-6">{formatAddress(addr)}</p>
-                  {addr.notes && (
-                    <p className="text-xs text-neutral-5 mt-1 italic">
-                      Ghi chú: {addr.notes}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {selectedAddress?._id === addr._id && (
-                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary-6">
-                      <Check className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={<Edit2 className="w-4 h-4" />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditAddress(addr);
-                    }}
-                  >
-                    Sửa
-                  </Button>
-                </div>
+      ) : displayAddress ? (
+        <div
+          className="relative p-4 rounded-lg border-2 border-border-1 bg-background-1 hover:border-primary-3 cursor-pointer transition-all"
+          onClick={() => setIsModalOpen(true)}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <h4 className="font-semibold text-neutral-9">{displayAddress.name}</h4>
+                {displayAddress.isDefault && (
+                  <span className="px-2 py-0.5 text-xs font-medium rounded bg-primary-6 text-white">
+                    Mặc định
+                  </span>
+                )}
+                <span className="px-2 py-0.5 text-xs font-medium rounded bg-neutral-2 text-neutral-6">
+                  {displayAddress.type === "home"
+                    ? "Nhà riêng"
+                    : displayAddress.type === "office"
+                    ? "Văn phòng"
+                    : "Khác"}
+                </span>
               </div>
+              <p className="text-sm text-neutral-7 mb-1">{displayAddress.phone}</p>
+              <p className="text-sm text-neutral-6">{formatAddress(displayAddress)}</p>
+              {displayAddress.notes && (
+                <p className="text-xs text-neutral-5 mt-1 italic">
+                  Ghi chú: {displayAddress.notes}
+                </p>
+              )}
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              <ChevronDown className="w-5 h-5 text-neutral-5" />
+            </div>
+          </div>
         </div>
-      )}
+      ) : null}
 
-      {selectedAddress && (
-        <div className="mt-4 p-3 rounded-lg bg-primary-1 border border-primary-3">
-          <p className="text-xs font-medium text-primary-7 mb-1">Địa chỉ đã chọn:</p>
-          <p className="text-sm text-primary-9">
-            {selectedAddress.name} - {selectedAddress.phone}
-          </p>
-          <p className="text-xs text-primary-6 mt-1">{formatAddress(selectedAddress)}</p>
+      {/* Modal for address selection */}
+      <Modal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        title="Chọn địa chỉ giao hàng"
+        size="2xl"
+        hideFooter
+      >
+        <div className="space-y-4">
+          {/* Header actions */}
+          <div className="flex items-center justify-between pb-4 border-b border-border-1">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<RefreshCw className="w-4 h-4" />}
+                onClick={handleRefresh}
+                title="Làm mới danh sách địa chỉ"
+              />
+            </div>
+            <Button
+              variant="solid"
+              size="sm"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={handleAddAddress}
+            >
+              Thêm địa chỉ
+            </Button>
+          </div>
+
+          {/* Address list */}
+          {addresses.length === 0 ? (
+            <div className="text-center py-8">
+              <MapPin className="w-12 h-12 mx-auto mb-4 text-neutral-4" />
+              <p className="text-sm text-neutral-6 mb-4">Bạn chưa có địa chỉ nào</p>
+              <Button variant="solid" size="sm" onClick={handleAddAddress}>
+                Thêm địa chỉ mới
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {addresses.map((addr: Address) => (
+                <div
+                  key={addr._id}
+                  className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    selectedAddress?._id === addr._id
+                      ? "border-primary-6 bg-primary-1"
+                      : "border-border-1 bg-background-1 hover:border-primary-3"
+                  }`}
+                  onClick={() => handleSelectAddress(addr)}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-semibold text-neutral-9">{addr.name}</h4>
+                        {addr.isDefault && (
+                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-primary-6 text-white">
+                            Mặc định
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 text-xs font-medium rounded bg-neutral-2 text-neutral-6">
+                          {addr.type === "home"
+                            ? "Nhà riêng"
+                            : addr.type === "office"
+                            ? "Văn phòng"
+                            : "Khác"}
+                        </span>
+                      </div>
+                      <p className="text-sm text-neutral-7 mb-1">{addr.phone}</p>
+                      <p className="text-sm text-neutral-6">{formatAddress(addr)}</p>
+                      {addr.notes && (
+                        <p className="text-xs text-neutral-5 mt-1 italic">
+                          Ghi chú: {addr.notes}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {selectedAddress?._id === addr._id && (
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary-6">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={<Edit2 className="w-4 h-4" />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditAddress(addr);
+                        }}
+                      >
+                        Sửa
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </Modal>
     </Section>
   );
 };

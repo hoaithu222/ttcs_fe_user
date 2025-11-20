@@ -1,6 +1,5 @@
 import React from "react";
 import { Product } from "@/core/api/products/type";
-import { Card } from "@/foundation/components/info/Card";
 import Image from "@/foundation/components/icons/Image";
 import { Heart, Star, Package, Store } from "lucide-react";
 import clsx from "clsx";
@@ -65,14 +64,14 @@ const CardProduct: React.FC<CardProductProps> = ({
     : 0;
 
   return (
-    <Card
+    <div
       className={clsx(
-        "group relative flex flex-col h-full overflow-hidden rounded-2xl border border-border-1 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+        "group relative flex flex-col h-full overflow-hidden rounded-lg bg-background-dialog border border-border-1",
+        "transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
+        "cursor-pointer",
         className
       )}
-      hoverable
       onClick={handleProductClick}
-      variant="elevated"
     >
       {/* Image Container */}
       <div className="relative w-full aspect-square overflow-hidden bg-neutral-2">
@@ -80,19 +79,19 @@ const CardProduct: React.FC<CardProductProps> = ({
           <Image
             src={mainImage}
             alt={product.name}
-            className="w-full h-full transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full transition-transform duration-500 group-hover:scale-110"
             objectFit="cover"
             fallbackType="default"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-primary-1">
-            <Package className="h-12 w-12 text-primary-6" />
+          <div className="flex h-full w-full items-center justify-center bg-neutral-2">
+            <Package className="h-12 w-12 text-neutral-4" />
           </div>
         )}
 
-        {/* Discount Badge */}
+        {/* Discount Badge - Style Shopee */}
         {hasDiscount && (
-          <div className="absolute top-2 left-2 bg-error text-white px-2 py-1 rounded-md text-xs font-semibold">
+          <div className="absolute top-0 left-0 bg-error text-white px-2 py-1 rounded-br-lg text-xs font-bold shadow-sm">
             -{Math.round(discountPercent)}%
           </div>
         )}
@@ -102,90 +101,102 @@ const CardProduct: React.FC<CardProductProps> = ({
           <button
             onClick={handleWishlistClick}
             className={clsx(
-              "absolute top-2 right-2 p-2 rounded-full transition-all duration-200",
-              "bg-white/90 hover:bg-white shadow-md",
+              "absolute top-2 right-2 p-1.5 rounded-full transition-all duration-200 z-10",
+              "bg-white/95 hover:bg-white shadow-sm backdrop-blur-sm",
               "flex items-center justify-center",
-              product.isInWishlist ? "text-error" : "text-neutral-7 hover:text-error"
+              product.isInWishlist ? "text-error" : "text-neutral-6 hover:text-error"
             )}
             aria-label={product.isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
           >
             <Heart
               className={clsx(
-                "w-5 h-5",
+                "w-4 h-4",
                 product.isInWishlist && "fill-current"
               )}
             />
           </button>
         )}
-        {/* Bottom gradient info */}
-        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-gradient-to-t from-black/80 via-black/20 to-transparent px-4 pb-4 pt-10 text-white">
-          <div className="flex items-center gap-2 text-xs text-white/80">
-            {product.shop?.logo ? (
+
+        {/* Stock Overlay */}
+        {!inStock && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+            <span className="px-3 py-1.5 text-sm font-semibold text-white bg-error/90 rounded-md">
+              Hết hàng
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Content - Style Shopee */}
+      <div className="flex flex-1 flex-col p-3 gap-2">
+        {/* Product Name */}
+        <h3 className="text-sm font-medium text-neutral-9 line-clamp-2 min-h-[2.5rem] leading-snug group-hover:text-primary-6 transition-colors">
+          {product.name}
+        </h3>
+
+        {/* Shop Info */}
+        {product.shop && (
+          <div className="flex items-center gap-1.5">
+            {product.shop.logo ? (
               <img
                 src={product.shop.logo}
                 alt={product.shop.name}
-                className="h-6 w-6 rounded-full object-cover border border-white/30"
+                className="h-4 w-4 rounded-full object-cover border border-border-1"
               />
             ) : (
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
-                <Store className="h-3.5 w-3.5" />
+              <div className="flex h-4 w-4 items-center justify-center rounded-full bg-neutral-2">
+                <Store className="h-2.5 w-2.5 text-neutral-5" />
               </div>
             )}
-            <span className="truncate">{product.shop?.name || "Cửa hàng chính hãng"}</span>
+            <span className="text-xs text-neutral-6 truncate">{product.shop.name || "Cửa hàng"}</span>
           </div>
-          <h3 className="text-base font-semibold leading-tight line-clamp-2">{product.name}</h3>
-        </div>
-      </div>
+        )}
 
-      {/* Content */}
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        {/* Price */}
-        <div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary-7">{formattedPrice}</span>
-            {hasDiscount && (
-              <span className="text-sm text-neutral-5 line-through">
-                {formatPrice(product.price)}
-              </span>
-            )}
-          </div>
-          {hasDiscount && (
-            <p className="text-xs text-neutral-6">Tiết kiệm {formatPrice(savedAmount)}</p>
-          )}
-        </div>
-
-        {/* Rating */}
-        {product.rating !== undefined && (
-          <div className="flex items-center justify-between rounded-xl bg-neutral-1 px-3 py-2 text-xs text-neutral-6">
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-warning text-warning" />
-              <span className="font-semibold text-neutral-9">{product.rating.toFixed(1)}</span>
-              <span>({product.reviewCount || 0})</span>
+        {/* Rating & Sales */}
+        {product.rating !== undefined && product.rating > 0 && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0.5">
+              <Star className="h-3 w-3 fill-warning text-warning" />
+              <span className="text-xs font-medium text-neutral-8">{product.rating.toFixed(1)}</span>
             </div>
+            {product.reviewCount !== undefined && product.reviewCount > 0 && (
+              <span className="text-xs text-neutral-5">({product.reviewCount})</span>
+            )}
             {product.salesCount !== undefined && product.salesCount > 0 && (
-              <span className="font-medium text-neutral-7">Đã bán {product.salesCount}</span>
+              <>
+                <span className="text-xs text-neutral-4">•</span>
+                <span className="text-xs text-neutral-5">Đã bán {product.salesCount}</span>
+              </>
             )}
           </div>
         )}
 
-        {/* Product summary */}
-        <div className="rounded-xl border border-border-1 bg-neutral-1/30 p-3 text-xs text-neutral-6">
-          <p className="line-clamp-2">
-            {product.description || "Khám phá ngay sản phẩm đang được yêu thích nhất tuần này."}
-          </p>
-        </div>
-
-        {/* Stock Status */}
-        <div className="mt-auto flex items-center justify-between text-xs font-medium">
-          <span className={clsx(inStock ? "text-success" : "text-error", "rounded-lg px-3 py-1")}>
-            {inStock ? `Còn ${product.stock ?? "nhiều"} sản phẩm` : "Hết hàng"}
-          </span>
-          {product.metaKeywords && (
-            <span className="truncate text-neutral-5">#{product.metaKeywords.split(",")[0]}</span>
+        {/* Price - Style Shopee */}
+        <div className="flex items-baseline gap-2 mt-1">
+          <span className="text-lg font-bold text-error">{formattedPrice}</span>
+          {hasDiscount && (
+            <span className="text-xs text-neutral-5 line-through">
+              {formatPrice(product.price)}
+            </span>
           )}
         </div>
+
+        {/* Discount Info */}
+        {hasDiscount && savedAmount > 0 && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-neutral-6">Tiết kiệm</span>
+            <span className="text-xs font-semibold text-error">{formatPrice(savedAmount)}</span>
+          </div>
+        )}
+
+        {/* Stock Status */}
+        {inStock && product.stock !== undefined && product.stock <= 10 && (
+          <div className="flex items-center gap-1 mt-1">
+            <span className="text-xs font-medium text-warning">Còn {product.stock} sản phẩm</span>
+          </div>
+        )}
       </div>
-    </Card>
+    </div>
   );
 };
 

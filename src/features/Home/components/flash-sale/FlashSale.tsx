@@ -24,9 +24,9 @@ const FlashSale: React.FC = () => {
   }
 
   return (
-    <Section>
-      <SectionTitle>Flash Sale</SectionTitle>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+    <Section className="py-6">
+      <SectionTitle className="text-center mb-4 text-2xl font-bold text-primary-6">Flash Sale</SectionTitle>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {products.map((product) => (
           <CardProduct key={product._id} product={product} />
         ))}

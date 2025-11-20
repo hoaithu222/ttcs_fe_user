@@ -1,10 +1,63 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, DollarSign, Package, Lightbulb } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import Input from "@/foundation/components/input/Input";
 import ImageUpload from "@/foundation/components/input/upload/ImageUpload";
 import Select from "@/foundation/components/input/Select";
+import Checkbox from "@/foundation/components/input/Checkbox";
+import Tooltip from "@/foundation/components/tooltip/Tooltip";
 import { userCategoriesApi } from "@/core/api/categories";
+import { toastUtils } from "@/shared/utils/toast.utils";
+
+const SKU_PREFIX = "SSKU";
+
+const normalizeValue = (value: string): string =>
+  (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .trim();
+
+const buildAttributeToken = (value: string): string => {
+  const sanitized = normalizeValue(value);
+  if (!sanitized) return "";
+  const words = sanitized.split(/\s+/);
+  if (words.length === 1) {
+    return words[0].slice(0, 4).toUpperCase();
+  }
+  return words
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 4)
+    .toUpperCase();
+};
+
+const generateSkuCode = (
+  attributes: Record<string, string>,
+  index: number,
+  batchId: string
+): string => {
+  const tokens = Object.keys(attributes)
+    .sort()
+    .map((key) => buildAttributeToken(attributes[key]))
+    .filter(Boolean);
+
+  const attrSegment = tokens.join("-") || "VAR";
+  const suffix = (index + 1).toString().padStart(3, "0");
+  return `${SKU_PREFIX}-${batchId}-${attrSegment}-${suffix}`;
+};
+
+const shouldAutoUpdateSku = (sku?: string) => !sku || sku.startsWith(`${SKU_PREFIX}-`);
+
+const applyAutoSkuToVariants = (variants: ProductVariant[], batchId: string) =>
+  variants.map((variant, idx) =>
+    shouldAutoUpdateSku(variant.sku)
+      ? {
+          ...variant,
+          sku: generateSkuCode(variant.attributes, idx, batchId),
+        }
+      : variant
+  );
 
 export interface ProductVariant {
   id?: string;
@@ -19,6 +72,8 @@ interface ProductVariantsManagerProps {
   variantAttributes?: Array<{
     id: string;
     name: string;
+    code?: string;
+    helperText?: string;
     values: Array<{ id: string; value: string; label?: string; colorCode?: string }>;
   }>;
   variants: ProductVariant[];
@@ -38,15 +93,26 @@ export default function ProductVariantsManager({
   onImageUpload,
   categoryId,
 }: ProductVariantsManagerProps) {
+  console.log("propVariantAttributes", propVariantAttributes);
   const [localVariants, setLocalVariants] = useState<ProductVariant[]>(variants);
   const [fetchedVariantAttributes, setFetchedVariantAttributes] = useState<
     Array<{
       id: string;
       name: string;
+      code?: string;
+      helperText?: string;
       values: Array<{ id: string; value: string; label?: string; colorCode?: string }>;
     }>
   >([]);
   const [loadingAttributes, setLoadingAttributes] = useState(false);
+  const [selectedAttributeIds, setSelectedAttributeIds] = useState<Record<string, boolean>>({});
+  const skuBatchRef = useRef<string>(Date.now().toString(36).toUpperCase());
+  const getAttributeKey = (attr: (typeof variantAttributes)[number]) => attr.code || attr.name;
+  const findAttributeByKey = (key: string) =>
+    variantAttributes.find((attr) => getAttributeKey(attr) === key);
+
+  const ensureAutoSku = (variantsList: ProductVariant[]) =>
+    applyAutoSkuToVariants(variantsList, skuBatchRef.current);
 
   // Merge prop variant attributes with fetched ones
   const variantAttributes = [
@@ -78,6 +144,32 @@ export default function ProductVariantsManager({
 
   // Fetch variant attributes from category when categoryId is provided
   useEffect(() => {
+    setSelectedAttributeIds((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      // Remove attributes no longer available
+      Object.keys(next).forEach((attrId) => {
+        if (!variantAttributes.some((attr) => attr.id === attrId)) {
+          delete next[attrId];
+          changed = true;
+        }
+      });
+
+      // Add new attributes default to true
+      variantAttributes.forEach((attr) => {
+        if (next[attr.id] === undefined) {
+          next[attr.id] = true;
+          changed = true;
+        }
+      });
+
+      if (!changed) return prev;
+      return next;
+    });
+  }, [variantAttributes]);
+
+  useEffect(() => {
     const fetchCategoryVariantAttributes = async () => {
       if (!categoryId) {
         setFetchedVariantAttributes([]);
@@ -91,15 +183,9 @@ export default function ProductVariantsManager({
           const category = categoryResponse.data as any;
           const categoryAttributes = category.attributes || [];
 
-          // Filter variant attributes (Màu sắc, Kích thước, Size, Giới tính)
+          // Use all selectable attributes returned from category
           const variantAttrs = categoryAttributes
-            .filter(
-              (attr: any) =>
-                attr.name === "Màu sắc" ||
-                attr.name === "Kích thước" ||
-                attr.name === "Size" ||
-                attr.name === "Giới tính"
-            )
+            .filter((attr: any) => Array.isArray(attr.values) && attr.values.length > 0)
             .map((attr: any) => ({
               id: attr.id || attr._id || `attr-${attr.name}`,
               name: attr.name,
@@ -125,14 +211,31 @@ export default function ProductVariantsManager({
   }, [categoryId]);
 
   // Generate all possible combinations from variant attributes
+  const MAX_VARIANT_COMBINATIONS = 500;
+  const activeVariantAttributes = variantAttributes.filter(
+    (attr) => selectedAttributeIds[attr.id] !== false
+  );
+
+  const handleToggleAttributeSelection = (attrId: string, enabled: boolean) => {
+    setSelectedAttributeIds((prev) => ({
+      ...prev,
+      [attrId]: enabled,
+    }));
+  };
+
+  const countCombinations = () => {
+    if (activeVariantAttributes.length === 0) return 0;
+    return activeVariantAttributes.reduce((total, attr) => total * (attr.values.length || 1), 1);
+  };
+
   const generateCombinations = (): ProductVariant[] => {
-    if (variantAttributes.length === 0) return [];
+    if (activeVariantAttributes.length === 0) return [];
 
     const combinations: ProductVariant[] = [];
 
     // Recursive function to generate combinations
     const generate = (index: number, current: Record<string, string>) => {
-      if (index === variantAttributes.length) {
+      if (index === activeVariantAttributes.length) {
         combinations.push({
           attributes: { ...current },
           price: basePrice,
@@ -141,9 +244,10 @@ export default function ProductVariantsManager({
         return;
       }
 
-      const attr = variantAttributes[index];
+      const attr = activeVariantAttributes[index];
       for (const value of attr.values) {
-        current[attr.name] = value.value || value.id;
+        const attrKey = getAttributeKey(attr);
+        current[attrKey] = value.value || value.id;
         generate(index + 1, current);
       }
     };
@@ -153,7 +257,20 @@ export default function ProductVariantsManager({
   };
 
   const handleGenerateVariants = () => {
-    const combinations = generateCombinations();
+    const totalCombinations = countCombinations();
+    if (totalCombinations === 0) {
+      toastUtils.info("Vui lòng bật ít nhất một thuộc tính có giá trị để tạo biến thể.");
+      return;
+    }
+
+    if (totalCombinations > MAX_VARIANT_COMBINATIONS) {
+      toastUtils.warning(
+        `Có ${totalCombinations.toLocaleString()} tổ hợp biến thể. Vui lòng giảm số thuộc tính hoặc giá trị trước khi tạo (giới hạn ${MAX_VARIANT_COMBINATIONS}).`
+      );
+      return;
+    }
+
+    const combinations = ensureAutoSku(generateCombinations());
     setLocalVariants(combinations);
     onChange(combinations);
   };
@@ -176,7 +293,7 @@ export default function ProductVariantsManager({
   };
 
   const handleRemoveVariant = (index: number) => {
-    const updated = localVariants.filter((_, i) => i !== index);
+    const updated = ensureAutoSku(localVariants.filter((_, i) => i !== index));
     setLocalVariants(updated);
     onChange(updated);
   };
@@ -187,14 +304,21 @@ export default function ProductVariantsManager({
       price: basePrice,
       stock: baseStock,
     };
-    setLocalVariants([...localVariants, newVariant]);
-    onChange([...localVariants, newVariant]);
+    const updated = ensureAutoSku([...localVariants, newVariant]);
+    setLocalVariants(updated);
+    onChange(updated);
   };
 
   // Get display name for variant
   const getVariantDisplayName = (variant: ProductVariant): string => {
     const attrValues = Object.entries(variant.attributes)
-      .map(([key, value]) => `${key}: ${value}`)
+      .map(([key, value]) => {
+        const attr = findAttributeByKey(key);
+        const displayKey = attr?.name || key;
+        const displayValue =
+          attr?.values.find((v) => v.value === value || v.id === value)?.label || value;
+        return `${displayKey}: ${displayValue}`;
+      })
       .join(", ");
     return attrValues || "Biến thể mới";
   };
@@ -208,8 +332,9 @@ export default function ProductVariantsManager({
         [attrName]: attrValue,
       },
     };
-    setLocalVariants(updated);
-    onChange(updated);
+    const updatedWithSku = ensureAutoSku(updated);
+    setLocalVariants(updatedWithSku);
+    onChange(updatedWithSku);
   };
 
   const handleRemoveAttribute = (index: number, attrName: string) => {
@@ -220,8 +345,9 @@ export default function ProductVariantsManager({
       ...updated[index],
       attributes: newAttributes,
     };
-    setLocalVariants(updated);
-    onChange(updated);
+    const updatedWithSku = ensureAutoSku(updated);
+    setLocalVariants(updatedWithSku);
+    onChange(updatedWithSku);
   };
 
   return (
@@ -239,16 +365,24 @@ export default function ProductVariantsManager({
               type="button"
               color="blue"
               variant="outline"
-              size="md"
+              size="sm"
               onClick={handleGenerateVariants}
             >
               Tạo tự động
             </Button>
           )}
-          <Button type="button" color="blue" variant="solid" size="md" onClick={handleAddVariant}>
-            <Plus className="w-4 h-4 mr-2" />
-            Thêm thủ công
-          </Button>
+          <Tooltip content='Sử dụng mã slug chuẩn như "color", "storage" giống seed (dòng 72-83)' side="bottom">
+            <Button
+              type="button"
+              icon={<Plus className="w-4 h-4" />}
+              color="blue"
+              variant="solid"
+              size="sm"
+              onClick={handleAddVariant}
+            >
+              Thêm thủ công
+            </Button>
+          </Tooltip>
         </div>
       </div>
 
@@ -279,19 +413,62 @@ export default function ProductVariantsManager({
                 💡 Gợi ý biến thể từ danh mục:
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {variantAttributes.map((attr) => (
+                {variantAttributes.map((attr) => {
+                  const isSelected = selectedAttributeIds[attr.id] !== false;
+                  return (
                   <span
                     key={attr.id}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-6/10 rounded-md border border-primary-6/20"
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border ${
+                        isSelected
+                          ? "bg-primary-6/10 border-primary-6/20 text-primary-7"
+                          : "bg-neutral-2 border-border-1 text-neutral-5"
+                      }`}
                   >
-                    <span className="text-xs font-medium text-primary-7">{attr.name}</span>
-                    <span className="text-xs text-primary-6">({attr.values.length} tùy chọn)</span>
+                      <span className="text-xs font-medium">{attr.name}</span>
+                      <span className="text-xs">({attr.values.length} tùy chọn)</span>
                   </span>
-                ))}
+                  );
+                })}
               </div>
               <p className="text-xs text-primary-6 mt-1.5">
-                Nhấn "Tạo tự động" để tạo tất cả tổ hợp biến thể từ các thuộc tính trên.
+                Nhấn "Tạo tự động" để tạo tất cả tổ hợp biến thể từ các thuộc tính đang bật bên dưới.
               </p>
+              <div className="mt-3 border-t border-primary-6/20 pt-3">
+                <p className="text-xs font-semibold text-primary-7 mb-2">
+                  Chọn thuộc tính dùng cho "Tạo tự động" ({activeVariantAttributes.length}/
+                  {variantAttributes.length})
+                </p>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {variantAttributes.map((attr) => {
+                    const isSelected = selectedAttributeIds[attr.id] !== false;
+                    return (
+                      <div
+                        key={attr.id}
+                        className={`flex items-center justify-between rounded-md border px-3 py-2 ${
+                          isSelected
+                            ? "bg-primary-10/40 border-primary-6/40"
+                            : "bg-neutral-1 border-border-1"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) =>
+                            handleToggleAttributeSelection(attr.id, checked === true)
+                          }
+                          label={<span className="text-xs font-medium text-neutral-7">{attr.name}</span>}
+                          wrapperClassName="justify-start"
+                          className="!p-0"
+                          size="sm"
+                        />
+                        <span className="text-[11px] text-neutral-5">{attr.values.length} tùy chọn</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-neutral-5 mt-2">
+                  Hệ thống chỉ tạo biến thể cho các thuộc tính đang bật. Tắt bớt để giảm số tổ hợp.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -306,30 +483,37 @@ export default function ProductVariantsManager({
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {localVariants.map((variant, index) => (
             <div
               key={index}
-              className="p-4 bg-neutral-2 rounded-lg border border-border-1 space-y-4"
+              className="p-3 md:p-4 bg-neutral-2 rounded-lg border border-border-1 space-y-3 md:space-y-4"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-neutral-7 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <h4 className="text-xs md:text-sm font-semibold text-neutral-7">
                     {getVariantDisplayName(variant)}
                   </h4>
+                    {variant.sku && (
+                      <span className="text-[11px] font-mono text-neutral-5 bg-neutral-1 border border-border-1 px-2 py-0.5 rounded">
+                        {variant.sku}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Attributes Display/Edit */}
                   <div className="space-y-2">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {Object.entries(variant.attributes).map(([key, value]) => {
-                        const attr = variantAttributes.find((a) => a.name === key);
+                        const attr = findAttributeByKey(key);
                         const attrValue = attr?.values.find(
                           (v) => v.value === value || v.id === value
                         );
                         return (
                           <span
                             key={key}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary-10 rounded-md border border-primary-6/20"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-10 rounded-md border border-primary-6/20"
                           >
                             {attrValue?.colorCode && (
                               <div
@@ -337,8 +521,8 @@ export default function ProductVariantsManager({
                                 style={{ backgroundColor: attrValue.colorCode }}
                               />
                             )}
-                            <span className="text-xs font-medium text-primary-7">
-                              {key}: {attrValue?.label || value}
+                            <span className="text-[11px] font-medium text-primary-7">
+                              {(attr?.name || key)}: {attrValue?.label || value}
                             </span>
                             <button
                               type="button"
@@ -359,29 +543,29 @@ export default function ProductVariantsManager({
                     </div>
 
                     {/* Add Attribute Form */}
-                    <div className="flex gap-2 items-end">
+                    <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-end">
                       {variantAttributes.length > 0 && (
                         <Select
                           name={`variant_attr_select_${index}`}
                           placeholder="Chọn thuộc tính từ danh sách"
                           options={variantAttributes
-                            .filter((attr) => !variant.attributes[attr.name])
+                            .filter((attr) => !variant.attributes[getAttributeKey(attr)])
                             .map((attr) => ({
-                              value: attr.name,
+                              value: getAttributeKey(attr),
                               label: attr.name,
                             }))}
-                          onChange={(attrName) => {
-                            if (attrName) {
-                              const attr = variantAttributes.find((a) => a.name === attrName);
+                          onChange={(attrKey) => {
+                            if (attrKey) {
+                              const attr = findAttributeByKey(attrKey);
                               if (attr && attr.values.length > 0) {
                                 // Auto-select first value
                                 handleAttributeChange(
                                   index,
-                                  attrName,
+                                  attrKey,
                                   attr.values[0].value || attr.values[0].id
                                 );
                               } else {
-                                handleAttributeChange(index, attrName, "");
+                                handleAttributeChange(index, attrKey, "");
                               }
                             }
                           }}
@@ -389,13 +573,12 @@ export default function ProductVariantsManager({
                           className="flex-1"
                         />
                       )}
-                      <div
-                        className={`flex gap-2 ${variantAttributes.length > 0 ? "flex-1" : "w-full"}`}
-                      >
+                      <div className={`flex gap-2 ${variantAttributes.length > 0 ? "flex-1" : "w-full"}`}>
                         <Input
                           name={`variant_attr_custom_name_${index}`}
                           placeholder="Hoặc nhập tên thuộc tính tùy chỉnh"
                           className="flex-1 text-sm"
+                          description='Ưu tiên slug không dấu như "color", "storage_capacity"'
                           onKeyPress={(e: any) => {
                             if (e.key === "Enter") {
                               e.preventDefault();
@@ -432,19 +615,19 @@ export default function ProductVariantsManager({
 
                     {/* Attribute Value Input */}
                     {Object.keys(variant.attributes).length > 0 && (
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {Object.entries(variant.attributes).map(([key, value]) => {
-                          const attr = variantAttributes.find((a) => a.name === key);
+                          const attr = findAttributeByKey(key);
                           if (attr && attr.values.length > 0) {
                             // Show select for predefined values
                             return (
                               <div key={key} className="flex gap-2 items-center">
-                                <span className="text-xs font-medium text-neutral-7 w-24">
-                                  {key}:
+                                <span className="text-[11px] font-medium text-neutral-6 w-24">
+                                  {attr.name}:
                                 </span>
                                 <Select
                                   name={`variant_attr_value_${index}_${key}`}
-                                  placeholder={`Chọn ${key}`}
+                                  placeholder={`Chọn ${attr.name}`}
                                   options={attr.values.map((v) => ({
                                     value: v.value || v.id,
                                     label: v.label || v.value,
@@ -463,7 +646,7 @@ export default function ProductVariantsManager({
                             // Show text input for custom values
                             return (
                               <div key={key} className="flex gap-2 items-center">
-                                <span className="text-xs font-medium text-neutral-7 w-24">
+                                <span className="text-[11px] font-medium text-neutral-6 w-24">
                                   {key}:
                                 </span>
                                 <Input
@@ -494,9 +677,9 @@ export default function ProductVariantsManager({
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 {/* Variant Image */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className="block text-xs font-semibold text-neutral-7">
                     Hình ảnh biến thể
                   </label>
@@ -513,12 +696,12 @@ export default function ProductVariantsManager({
                     onUpload={onImageUpload}
                     aspectRatio="square"
                     width="w-full"
-                    height="h-32"
+                    height="h-24"
                   />
                 </div>
 
                 {/* Price */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Input
                     name={`variant_price_${index}`}
                     label="Giá (VNĐ)"
@@ -534,7 +717,7 @@ export default function ProductVariantsManager({
                 </div>
 
                 {/* Stock */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Input
                     name={`variant_stock_${index}`}
                     label="Số lượng"
@@ -547,18 +730,19 @@ export default function ProductVariantsManager({
                     min={0}
                     iconLeft={<Package className="w-4 h-4 text-primary-6" />}
                   />
-                </div>
               </div>
 
-              {/* SKU (Optional) */}
-              <div className="max-w-xs">
+                {/* SKU */}
+                <div className="space-y-1.5">
                 <Input
                   name={`variant_sku_${index}`}
-                  label="SKU (Mã sản phẩm)"
-                  placeholder="Nhập SKU (tùy chọn)"
+                    label="SSKU (Tự động)"
+                    placeholder="Nhập SKU tùy chỉnh"
                   value={variant.sku || ""}
                   onChange={(e) => handleVariantChange(index, "sku", e.target.value)}
+                    description="Có thể sửa lại nếu cần."
                 />
+                </div>
               </div>
             </div>
           ))}

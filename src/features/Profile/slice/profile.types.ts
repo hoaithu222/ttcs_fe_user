@@ -34,6 +34,10 @@ export interface IProfileState {
       total: number;
       totalPages: number;
     };
+    lastQuery?: {
+      page?: number;
+      limit?: number;
+    };
   };
   //address
   address: {

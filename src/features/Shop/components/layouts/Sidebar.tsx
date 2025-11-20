@@ -1,7 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
 import { ShoppingCart, Store, Package, Plus, BarChart3, Star } from "lucide-react";
-
 const Sidebar = () => {
   const location = useLocation();
 

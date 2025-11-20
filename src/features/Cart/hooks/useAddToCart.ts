@@ -58,13 +58,20 @@ export const useAddToCart = () => {
         : basePrice - (basePrice * discountPercent) / 100;
     const finalPrice = Math.max(0, discountedPrice);
 
+    const normalizedShopId =
+      typeof product.shopId === "string"
+        ? product.shopId
+        : (product.shopId as any)?._id ||
+          product.shop?._id ||
+          ((product as any).shop?._id ?? "");
+
     // Prepare cart item request
     const cartItem: AddCartItemRequest = {
       productId: product._id,
       variantId: variant?._id || variant?.id,
       quantity,
       priceAtTime: finalPrice,
-      shopId: product.shopId || (product.shop?._id as string) || "",
+      shopId: normalizedShopId,
     };
 
     // Dispatch add to cart action

@@ -32,6 +32,11 @@ export const NAVIGATION_CONFIG: Record<string, NavigationConfig> = {
     name: "Hồ sơ",
     requireAuth: true,
   },
+  deposit: {
+    path: "/wallet/deposit",
+    name: "Nạp tiền",
+    requireAuth: true,
+  },
   cart: {
     path: "/cart",
     name: "Giỏ hàng",

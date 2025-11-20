@@ -33,14 +33,14 @@ interface SectionTitleProps {
 const SectionTitle: React.FC<SectionTitleProps> = ({
   children,
   sticky = false,
-  color = "text-neutral-10",
+  color = "text-primary-6",
   className,
   testId,
 }) => {
   return (
     <div
       className={clsx(
-        "text-title-20-bold",
+        "text-2xl font-bold",
         color,
         { "sticky top-0 bg-background-base": sticky },
         className

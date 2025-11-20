@@ -3,7 +3,6 @@ import { Category } from "@/core/api/categories/type";
 import Image from "@/foundation/components/icons/Image";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import Loading from "@/foundation/components/loading/Loading";
 import Empty from "@/foundation/components/empty/Empty";
 import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
@@ -14,6 +13,47 @@ interface CategoryListProps {
   title?: string;
 }
 
+// Skeleton component for category loading
+const CategorySkeleton: React.FC<{ count?: number; gridCols?: string }> = ({ 
+  count = 8,
+  gridCols = "grid-cols-3 md:grid-cols-4"
+}) => {
+  return (
+    <div className={`grid ${gridCols} gap-4`}>
+      {Array.from({ length: count }).map((_, index) => (
+        <div
+          key={index}
+          className="flex flex-col gap-2 items-center p-4 rounded-lg bg-background-3"
+        >
+          <div 
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-neutral-3 via-neutral-2 to-neutral-3 animate-pulse"
+            style={{ 
+              animationDelay: `${index * 0.08}s`,
+              animationDuration: "1.8s"
+            }} 
+          />
+          <div className="flex flex-col gap-1.5 w-full">
+            <div 
+              className="h-3 bg-gradient-to-r from-neutral-3 via-neutral-2 to-neutral-3 rounded-md animate-pulse w-full"
+              style={{ 
+                animationDelay: `${index * 0.08 + 0.1}s`,
+                animationDuration: "1.8s"
+              }} 
+            />
+            <div 
+              className="h-3 bg-gradient-to-r from-neutral-3 via-neutral-2 to-neutral-3 rounded-md animate-pulse w-3/4 mx-auto"
+              style={{ 
+                animationDelay: `${index * 0.08 + 0.2}s`,
+                animationDuration: "1.8s"
+              }} 
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const CategoryList: React.FC<CategoryListProps> = ({
   categories,
   isLoading = false,
@@ -23,11 +63,9 @@ const CategoryList: React.FC<CategoryListProps> = ({
 
   if (isLoading) {
     return (
-      <Section>
-        <SectionTitle>{title}</SectionTitle>
-        <div className="flex justify-center items-center py-12">
-          <Loading variant="spinner" />
-        </div>
+      <Section className="py-8">
+        <SectionTitle className="text-center mb-4 text-2xl font-bold text-primary-6">{title}</SectionTitle>
+        <CategorySkeleton count={8} />
       </Section>
     );
   }
@@ -43,8 +81,8 @@ const CategoryList: React.FC<CategoryListProps> = ({
 
   return (
     <Section className="py-8">
-      <SectionTitle>{title}</SectionTitle>
-      <div className="grid grid-cols-3 gap-4 md:grid-cols-4 ">
+      <SectionTitle className="text-center mb-4 text-2xl font-bold text-primary-6">{title}</SectionTitle>
+      <div className="grid grid-cols-3 gap-4 md:grid-cols-4 mt-4">
         {categories.map((category) => {
           const iconImage =
             (category as any).image_Icon?.url ||

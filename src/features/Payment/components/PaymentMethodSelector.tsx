@@ -87,7 +87,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   }
 
   return (
-    <Section className="bg-background-2 rounded-2xl p-6 border border-border-1">
+    <Section className="bg-background-2 max-h-[450px] overflow-y-auto hidden-scrollbar rounded-2xl p-6 border border-border-1">
       <SectionTitle className="mb-4">Phương thức thanh toán</SectionTitle>
       <div className="space-y-3">
         {activeMethods.map((method) => (

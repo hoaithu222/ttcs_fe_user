@@ -67,6 +67,11 @@ const initialState: IShopState = {
       total: 0,
       totalPages: 0,
     },
+    lastQuery: {
+      page: 1,
+      limit: 10,
+      orderStatus: undefined as string | undefined,
+    },
   },
   updateOrderStatus: {
     status: ReduxStateType.INIT,
@@ -255,6 +260,10 @@ const shopSlice = createSlice({
       state.orders.status = ReduxStateType.LOADING;
       state.orders.error = null;
       state.orders.message = null;
+      state.orders.lastQuery = {
+        ...state.orders.lastQuery,
+        ...action.payload,
+      };
       if (action.payload.page) state.orders.pagination.page = action.payload.page;
       if (action.payload.limit) state.orders.pagination.limit = action.payload.limit;
     },
@@ -276,6 +285,59 @@ const shopSlice = createSlice({
       state.orders.error = action.payload;
       state.orders.message = action.payload;
       state.orders.data = [];
+    },
+
+    applySocketOrderUpdate: (
+      state,
+      action: PayloadAction<{
+        orderId: string;
+        orderStatus?: string;
+        patch?: Partial<ShopOrder>;
+      }>
+    ) => {
+      const { orderId, orderStatus, patch } = action.payload;
+      const index = state.orders.data.findIndex((order) => order._id === orderId);
+
+      if (index === -1) {
+        if (patch) {
+          const mergedOrder: ShopOrder = {
+            ...(patch as ShopOrder),
+            _id: orderId,
+            orderStatus: orderStatus || patch.orderStatus || (patch as any)?.status || "pending",
+            orderNumber:
+              patch.orderNumber ||
+              (patch as any)?.orderCode ||
+              `#${orderId.slice(-6).toUpperCase()}`,
+            items: patch.items || [],
+            shippingAddress: patch.shippingAddress || ({} as any),
+            paymentMethod: patch.paymentMethod || "N/A",
+            paymentStatus: patch.paymentStatus || "pending",
+            subtotal: patch.subtotal ?? patch.totalAmount ?? 0,
+            shippingFee: patch.shippingFee ?? 0,
+            discount: patch.discount ?? patch.discountAmount ?? 0,
+            totalAmount: patch.totalAmount ?? patch.subtotal ?? 0,
+            createdAt: patch.createdAt || new Date().toISOString(),
+            updatedAt: patch.updatedAt || new Date().toISOString(),
+          };
+          state.orders.data = [mergedOrder, ...state.orders.data];
+        }
+        return;
+      }
+
+      const currentOrder = state.orders.data[index];
+      const updatedOrder: ShopOrder = {
+        ...currentOrder,
+        ...(patch as Partial<ShopOrder>),
+      };
+      if (orderStatus) {
+        updatedOrder.orderStatus = orderStatus;
+      }
+      if ((patch as any)?.status && !orderStatus) {
+        updatedOrder.orderStatus = (patch as any).status;
+      }
+      updatedOrder.updatedAt = patch?.updatedAt || new Date().toISOString();
+
+      state.orders.data[index] = updatedOrder;
     },
 
     // Update Order Status
@@ -431,6 +493,7 @@ export const {
   getOrdersStart,
   getOrdersSuccess,
   getOrdersFailure,
+  applySocketOrderUpdate,
   updateOrderStatusStart,
   updateOrderStatusSuccess,
   updateOrderStatusFailure,

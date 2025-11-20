@@ -3,6 +3,7 @@ import { Store, Trash2 } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import CartItem from "./CartItem";
 import { CartItem as CartItemType } from "@/core/api/cart/type";
+import type { ProductVariant } from "@/core/api/products/type";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
 
 interface CartShopGroupProps {
@@ -14,6 +15,7 @@ interface CartShopGroupProps {
   onRemove: (itemId: string) => void;
   onRemoveShop?: (shopId: string) => void;
   onCheckoutShop?: (shopId: string) => void;
+  onVariantChange?: (item: CartItemType, variant: ProductVariant) => void;
   isLoading?: boolean;
 }
 
@@ -26,6 +28,7 @@ const CartShopGroup: React.FC<CartShopGroupProps> = ({
   onRemove,
   onRemoveShop,
   onCheckoutShop,
+  onVariantChange,
   isLoading = false,
 }) => {
   // Calculate shop subtotal
@@ -91,6 +94,7 @@ const CartShopGroup: React.FC<CartShopGroupProps> = ({
             item={item}
             onQuantityChange={onQuantityChange}
             onRemove={onRemove}
+            onVariantChange={onVariantChange}
             isLoading={isLoading}
           />
         ))}

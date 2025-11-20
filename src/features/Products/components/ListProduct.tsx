@@ -4,7 +4,6 @@ import { Grid, List } from "lucide-react";
 import ProductCard from "./ProductCard";
 import ProductFilters from "./ProductFilters";
 import Button from "@/foundation/components/buttons/Button";
-import Loading from "@/foundation/components/loading/Loading";
 import Empty from "@/foundation/components/empty/Empty";
 import { getProductsStart } from "@/features/Products/slices/product.slice";
 import {
@@ -14,6 +13,67 @@ import {
 } from "@/features/Products/slices/product.selector";
 import { ReduxStateType } from "@/app/store/types";
 import type { ProductListQuery } from "@/core/api/products/type";
+
+// Product Skeleton Component
+const ProductSkeleton: React.FC<{ count?: number }> = ({ count = 12 }) => {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {Array.from({ length: count }).map((_, index) => (
+        <div
+          key={index}
+          className="flex flex-col h-full overflow-hidden rounded-lg bg-background-dialog border border-border-1"
+        >
+          {/* Image Skeleton */}
+          <div className="relative w-full aspect-square bg-neutral-2 animate-pulse" />
+          
+          {/* Content Skeleton */}
+          <div className="flex flex-1 flex-col p-3 gap-2">
+            {/* Name */}
+            <div className="h-4 bg-gradient-to-r from-neutral-3 via-neutral-2 to-neutral-3 rounded animate-pulse"
+              style={{ 
+                animationDelay: `${index * 0.05}s`,
+                animationDuration: "1.8s"
+              }} 
+            />
+            <div className="h-4 bg-gradient-to-r from-neutral-3 via-neutral-2 to-neutral-3 rounded w-4/5 animate-pulse"
+              style={{ 
+                animationDelay: `${index * 0.05 + 0.1}s`,
+                animationDuration: "1.8s"
+              }} 
+            />
+            
+            {/* Shop */}
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className="h-4 w-4 rounded-full bg-neutral-3 animate-pulse" />
+              <div className="h-3 bg-gradient-to-r from-neutral-3 via-neutral-2 to-neutral-3 rounded w-20 animate-pulse"
+                style={{ 
+                  animationDelay: `${index * 0.05 + 0.15}s`,
+                  animationDuration: "1.8s"
+                }} 
+              />
+            </div>
+            
+            {/* Rating */}
+            <div className="flex items-center gap-2 mt-1">
+              <div className="h-3 w-12 bg-neutral-3 rounded animate-pulse" />
+            </div>
+            
+            {/* Price */}
+            <div className="flex items-baseline gap-2 mt-2">
+              <div className="h-6 w-24 bg-gradient-to-r from-neutral-3 via-neutral-2 to-neutral-3 rounded animate-pulse"
+                style={{ 
+                  animationDelay: `${index * 0.05 + 0.2}s`,
+                  animationDuration: "1.8s"
+                }} 
+              />
+              <div className="h-4 w-16 bg-neutral-3 rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 interface ListProductProps {
   initialFilters?: ProductListQuery;
@@ -110,7 +170,7 @@ const ListProduct: React.FC<ListProductProps> = ({
         {/* Products Grid/List */}
         <div className="flex-1">
           {isLoading ? (
-            <Loading layout="centered" message="Đang tải sản phẩm..." />
+            <ProductSkeleton count={12} />
           ) : error ? (
             <Empty variant="default" title="Lỗi tải dữ liệu" description={error || undefined} />
           ) : isEmpty ? (
@@ -123,7 +183,7 @@ const ListProduct: React.FC<ListProductProps> = ({
             <div
               className={
                 viewMode === "grid"
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3  gap-6"
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                   : "space-y-4"
               }
             >

@@ -1,6 +1,6 @@
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
-import { ShoppingCart, LogOut, User, MapPin } from "lucide-react";
+import { ShoppingCart, LogOut, User, MapPin, Wallet } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import { useAuth } from "@/features/Auth/hooks/useAuth";
 
@@ -30,6 +30,12 @@ const Sidebar = () => {
       icon: ShoppingCart,
       path: `${NAVIGATION_CONFIG.profile.path}?tab=orders`,
     },
+    {
+      key: "wallet",
+      label: "Ví",
+      icon: Wallet,
+      path: `${NAVIGATION_CONFIG.profile.path}?tab=wallet`,
+    },
   ];
 
   const handleLogout = () => {
@@ -39,6 +45,7 @@ const Sidebar = () => {
   return (
     <div className="flex flex-col h-full border-r shadow-lg  border-border-2">
       {/* Navigation Menu */}
+      <hr className="w-full border-border-1" />
       <nav className="overflow-y-auto flex-1 pr-4 py-6 space-y-1">
         {menuItems.map((item, index) => {
           const Icon = item.icon;

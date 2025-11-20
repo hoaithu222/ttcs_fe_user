@@ -12,6 +12,7 @@ const PaymentPage = lazy(() => import("@/features/Payment/pages/PaymentPage"));
 const PaymentHistoryPage = lazy(() => import("@/features/Payment/pages/PaymentHistoryPage"));
 const WishlistPage = lazy(() => import("@/features/Wishlist/WishlistPage"));
 const ProfilePage = lazy(() => import("@/features/Profile/ProfilePage"));
+const DepositPage = lazy(() => import("@/features/Profile/pages/DepositPage"));
 const ShopEntryPage = lazy(() => import("@/features/Shop/ShopEntryPage"));
 const RegisterShopPage = lazy(() => import("@/features/Shop/pages/RegisterShopPage"));
 const ShopReviewPage = lazy(() => import("@/features/Shop/pages/ShopReviewPage"));
@@ -23,7 +24,9 @@ const AddProductPage = lazy(() => import("@/features/Shop/pages/AddProductPage")
 const EditProductPage = lazy(() => import("@/features/Shop/pages/EditProductPage"));
 const ListProductPage = lazy(() => import("@/features/Shop/pages/ListProductPage"));
 const OrderShopPage = lazy(() => import("@/features/Shop/pages/OrderShopPage"));
+
 const defaultOptions = {
+
   requireAuth: false,
   hideInMenu: false,
 };
@@ -125,6 +128,12 @@ export const ROUTE = {
     path: "/profile",
     element: <ProfilePage />,
     layout: "extension",
+    options: defaultProtectedOptions,
+  },
+  deposit: {
+    path: "/wallet/deposit",
+    element: <DepositPage />,
+    layout: "main",
     options: defaultProtectedOptions,
   },
   shop: {

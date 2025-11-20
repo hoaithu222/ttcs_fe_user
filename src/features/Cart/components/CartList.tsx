@@ -3,6 +3,7 @@ import CartShopGroup from "./CartShopGroup";
 import Empty from "@/foundation/components/empty/Empty";
 import Button from "@/foundation/components/buttons/Button";
 import { CartItem as CartItemType } from "@/core/api/cart/type";
+import type { ProductVariant } from "@/core/api/products/type";
 import ConfirmModal from "@/foundation/components/modal/ModalConfirm";
 
 interface CartListProps {
@@ -11,6 +12,7 @@ interface CartListProps {
   onRemove: (itemId: string) => void;
   onRemoveShop?: (shopId: string) => void;
   onCheckoutShop?: (shopId: string) => void;
+  onVariantChange?: (item: CartItemType, variant: ProductVariant) => void;
   isLoading?: boolean;
   onContinueShopping?: () => void;
 }
@@ -28,6 +30,7 @@ const CartList: React.FC<CartListProps> = ({
   onRemove,
   onRemoveShop,
   onCheckoutShop,
+  onVariantChange,
   isLoading = false,
   onContinueShopping,
 }) => {
@@ -126,6 +129,7 @@ const CartList: React.FC<CartListProps> = ({
             onRemove={onRemove}
             onRemoveShop={handleRemoveShop}
             onCheckoutShop={onCheckoutShop}
+            onVariantChange={onVariantChange}
             isLoading={isLoading}
           />
         ))}

@@ -5,6 +5,18 @@ export const ENV_CONFIG = {
   // API Configuration
   API_BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000",
   API_TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT) || 30000,
+  SOCKET_BASE_URL:
+    import.meta.env.VITE_SOCKET_BASE_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    "http://localhost:3000",
+  SOCKET_PATH: import.meta.env.VITE_SOCKET_PATH || "/socket.io",
+  SOCKET_AUTO_CONNECT: import.meta.env.VITE_SOCKET_AUTO_CONNECT !== "false",
+  SOCKET_RECONNECT_ATTEMPTS:
+    Number(import.meta.env.VITE_SOCKET_RECONNECT_ATTEMPTS) || 5,
+  SOCKET_RECONNECT_DELAY:
+    Number(import.meta.env.VITE_SOCKET_RECONNECT_DELAY) || 2000,
+  SOCKET_DEBUG:
+    import.meta.env.VITE_SOCKET_DEBUG === "true" || import.meta.env.DEV,
 
   // App Configuration
   APP_NAME: import.meta.env.VITE_APP_NAME || "Client User",
@@ -69,4 +81,10 @@ export const {
   IS_DEVELOPMENT,
   IS_PRODUCTION,
   IS_TEST,
+  SOCKET_BASE_URL,
+  SOCKET_PATH,
+  SOCKET_AUTO_CONNECT,
+  SOCKET_RECONNECT_ATTEMPTS,
+  SOCKET_RECONNECT_DELAY,
+  SOCKET_DEBUG,
 } = ENV_CONFIG;

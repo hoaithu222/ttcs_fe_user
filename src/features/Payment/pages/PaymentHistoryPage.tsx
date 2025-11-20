@@ -54,7 +54,7 @@ const PaymentHistoryPage: React.FC = () => {
               variant="ghost"
               size="sm"
               icon={<ArrowLeft className="w-4 h-4" />}
-              onClick={() => navigate("/orders")}
+              onClick={() => navigate("/profile?tab=orders")}
             >
               Quay lại
             </Button>

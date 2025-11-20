@@ -38,7 +38,7 @@ const SubCategoryList: React.FC<SubCategoryListProps> = ({
 
   return (
     <Section className="py-8">
-      <SectionTitle>{title}</SectionTitle>
+      <SectionTitle className="text-center mb-4 text-2xl font-bold text-primary-6">{title}</SectionTitle>
       <div className="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
         {subCategories.map((subCategory) => {
           const iconImage =

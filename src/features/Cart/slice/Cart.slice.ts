@@ -85,7 +85,10 @@ const cartSlice = createSlice({
     },
 
     // Update Quantity
-    updateQuantityStart: (state, _action: PayloadAction<{ itemId: string; quantity: number }>) => {
+    updateQuantityStart: (
+      state,
+      _action: PayloadAction<{ itemId: string; quantity?: number; variantId?: string; priceAtTime?: number }>
+    ) => {
       state.update_quantity.status = ReduxStateType.LOADING;
       state.update_quantity.error = null;
       state.update_quantity.message = null;

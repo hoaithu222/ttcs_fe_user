@@ -1,7 +1,11 @@
 // Order types for users
 export interface OrderItem {
   _id?: string;
-  productId: string | { _id: string; name: string };
+  productId: string | { 
+    _id: string; 
+    name: string; 
+    images?: Array<string | { _id: string; url: string; publicId?: string }> 
+  };
   variantId?: string | { _id: string; attributes: Record<string, string> };
   quantity: number;
   price: number;
@@ -20,7 +24,7 @@ export interface OrderTracking {
 export interface Order {
   _id: string;
   userId: string;
-  shopId: string | { _id: string; name: string };
+  shopId: string | { _id: string; name: string; logo?: string; slug?: string; description?: string };
   orderItems: OrderItem[];
   orderHistory?: Array<{
     _id: string;

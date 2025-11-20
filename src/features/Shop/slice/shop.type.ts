@@ -154,6 +154,11 @@ export interface IShopState {
       total: number;
       totalPages: number;
     };
+    lastQuery?: {
+      page?: number;
+      limit?: number;
+      orderStatus?: string;
+    };
   };
 
   /**

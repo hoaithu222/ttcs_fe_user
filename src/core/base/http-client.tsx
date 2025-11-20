@@ -8,6 +8,16 @@ import { v4 as uuidv4 } from "uuid";
 
 import { MODE, API_TIMEOUT } from "@/app/config/env.config";
 import { toastUtils } from "@/shared/utils/toast.utils";
+import { AUTH_TOKENS_CHANGED_EVENT } from "@/shared/constants/events";
+
+const emitAuthTokensChanged = (hasTokens: boolean) => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(AUTH_TOKENS_CHANGED_EVENT, {
+      detail: { hasTokens },
+    })
+  );
+};
 
 // Logout function - clear tokens and redirect
 const logoutRequest = () => {
@@ -27,13 +37,15 @@ const tokenStorage = {
   setTokens: (accessToken: string, refreshToken: string): void => {
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
+    emitAuthTokensChanged(true);
   },
   clearTokens: (): void => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    emitAuthTokensChanged(false);
   },
   hasTokens: (): boolean => {
-    return !!(tokenStorage.getAccessToken() && tokenStorage.getRefreshToken());
+    return !!tokenStorage.getAccessToken();
   },
 };
 

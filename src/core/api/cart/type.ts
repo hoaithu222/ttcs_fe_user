@@ -1,3 +1,12 @@
+import type { Product, ProductVariant } from "../products/type";
+
+export interface CartVariantSnapshot {
+  attributes?: Record<string, string>;
+  sku?: string;
+  price?: number;
+  image?: string;
+}
+
 // Cart types for users
 export interface CartItem {
   _id: string;
@@ -10,14 +19,7 @@ export interface CartItem {
     discount?: number;
     stock?: number;
   };
-  variantId?: string | {
-    _id: string;
-    attributes: Record<string, string>;
-    price: number;
-    stock: number;
-    image?: string | null;
-    sku?: string;
-  };
+  variantId?: string | ProductVariant;
   quantity: number;
   priceAtTime: number;
   shopId: string | {
@@ -34,6 +36,8 @@ export interface CartItem {
   finalPrice?: number;
   totalPrice?: number;
   shopName?: string;
+  variantSnapshot?: CartVariantSnapshot;
+  product?: Partial<Product>;
 }
 
 export interface CartCoupon {
@@ -68,12 +72,14 @@ export interface AddCartItemRequest {
   productId: string;
   variantId?: string; // Optional, for products with variants
   quantity: number;
-  priceAtTime: number; // Price at the time of adding to cart
+  priceAtTime?: number; // Price at the time of adding to cart
   shopId: string;
 }
 
 export interface UpdateCartItemRequest {
-  quantity: number;
+  quantity?: number;
+  variantId?: string;
+  priceAtTime?: number;
 }
 
 export interface ApplyCouponRequest {
