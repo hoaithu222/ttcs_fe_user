@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { ShoppingBag, CreditCard, Package, Store, Wallet, Building2, Truck, Tag } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
@@ -30,11 +30,59 @@ import { getCartItemVariantInfo } from "@/features/Cart/utils/cartVariant.helper
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const location = useLocation();
 
   const cart = useSelector(selectCart);
-  const cartItems = useSelector(selectCartItems);
+  const allCartItems = useSelector(selectCartItems);
   const isEmpty = useSelector(selectIsCartEmpty);
   const isCartLoading = useSelector(selectIsCartLoading);
+
+  // Get state from navigation (buyNow or selectedItemIds)
+  const buyNowData = (location.state as any)?.buyNow ? (location.state as any)?.product : null;
+  const selectedItemIds = (location.state as any)?.selectedItemIds as string[] | undefined;
+  const shopIdFilter = (location.state as any)?.shopId as string | undefined;
+
+  // Filter cart items based on selection or use buyNow data
+  const cartItems = useMemo(() => {
+    // If buyNow, create a virtual cart item
+    if (buyNowData) {
+      return [
+        {
+          _id: `buy-now-${Date.now()}`,
+          productId: buyNowData.productId,
+          variantId: buyNowData.variantId,
+          quantity: buyNowData.quantity,
+          priceAtTime: buyNowData.price,
+          finalPrice: buyNowData.price,
+          productPrice: buyNowData.price,
+          totalPrice: buyNowData.price * buyNowData.quantity,
+          shopId: buyNowData.shopId,
+          shopName: "",
+        } as any,
+      ];
+    }
+
+    // If selectedItemIds provided, filter by them
+    if (selectedItemIds && selectedItemIds.length > 0) {
+      return allCartItems.filter((item) => selectedItemIds.includes(item._id));
+    }
+
+    // If shopIdFilter provided, filter by shop
+    if (shopIdFilter) {
+      return allCartItems.filter((item) => {
+        const itemShopId =
+          typeof item.shopId === "string"
+            ? item.shopId
+            : typeof item.shopId === "object" && item.shopId
+              ? item.shopId._id
+              : "";
+        return itemShopId === shopIdFilter;
+      });
+    }
+
+    // Default: use all cart items
+    return allCartItems;
+  }, [buyNowData, selectedItemIds, shopIdFilter, allCartItems]);
 
   const {
     paymentMethods,
@@ -185,8 +233,12 @@ const CheckoutPage: React.FC = () => {
         throw new Error("Không tìm thấy cửa hàng hợp lệ trong giỏ hàng");
       }
 
-      const shippingFeePerShop =
-        (cart.shippingFee || 0) / Math.max(1, shopEntries.length);
+      // Calculate shipping fee per shop
+      const checkoutSubtotal = cartItems.reduce((sum, item) => {
+        const price = item.finalPrice || item.priceAtTime || item.productPrice || 0;
+        return sum + price * item.quantity;
+      }, 0);
+      const shippingFeePerShop = checkoutSubtotal >= 500000 ? 0 : 30000;
 
       const createdOrders: Array<{
         orderId: string;
@@ -254,8 +306,10 @@ const CheckoutPage: React.FC = () => {
         });
       }
 
-      // Refresh cart instead of clearing it - backend will update cart after order creation
-      dispatch(getCartStart());
+      // Refresh cart only if not buyNow (buyNow doesn't add to cart)
+      if (!buyNowData) {
+        dispatch(getCartStart());
+      }
       setPendingPaymentOrders(createdOrders.length > 1 ? createdOrders : []);
 
       if (createdOrders.length === 1) {
@@ -321,7 +375,38 @@ const CheckoutPage: React.FC = () => {
     }
   }, [checkoutData, createdOrderId, navigate]);
 
-  if (isCartLoading || isEmpty) {
+  // Calculate totals based on filtered cartItems (selected items or buyNow)
+  const calculatedSubtotal = useMemo(() => {
+    return cartItems.reduce((sum, item) => {
+      const price = item.finalPrice || item.priceAtTime || item.productPrice || 0;
+      return sum + price * item.quantity;
+    }, 0);
+  }, [cartItems]);
+
+  const subtotal = buyNowData ? calculatedSubtotal : cart?.subtotal || calculatedSubtotal;
+  const discount = cart?.discount || 0;
+  const couponDiscount = cart?.couponDiscount || 0;
+  // Calculate shipping fee: free if subtotal >= 500000, otherwise 30000 per shop
+  const shippingFeePerShop = calculatedSubtotal >= 500000 ? 0 : 30000;
+  const shopCountForShipping = useMemo(() => {
+    const shopIds = new Set<string>();
+    cartItems.forEach((item) => {
+      const shopId =
+        typeof item.shopId === "string"
+          ? item.shopId
+          : typeof item.shopId === "object" && item.shopId
+            ? (item.shopId as any)._id || (item.shopId as any).id
+            : "";
+      if (shopId) shopIds.add(shopId);
+    });
+    return shopIds.size || 1;
+  }, [cartItems]);
+  const shippingFee = buyNowData
+    ? shippingFeePerShop
+    : cart?.shippingFee || shippingFeePerShop * shopCountForShipping;
+  const totalAmount = subtotal - discount - couponDiscount + shippingFee;
+
+  if ((isCartLoading && !buyNowData) || (isEmpty && !buyNowData && !selectedItemIds)) {
     return (
       <Page>
         <div className="container mx-auto px-4 py-8">
@@ -330,12 +415,6 @@ const CheckoutPage: React.FC = () => {
       </Page>
     );
   }
-
-  const subtotal = cart?.subtotal || 0;
-  const discount = cart?.discount || 0;
-  const couponDiscount = cart?.couponDiscount || 0;
-  const shippingFee = cart?.shippingFee || 0;
-  const totalAmount = cart?.totalAmount || subtotal - discount - couponDiscount + shippingFee;
   
   // Check if wallet payment is selected and balance is insufficient
   const isWalletSelected = selectedPaymentConfig?.type === "wallet";
@@ -374,7 +453,7 @@ const CheckoutPage: React.FC = () => {
 
                 {/* Shop and Products Section */}
                 <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-neutral-9 mb-3 flex items-center gap-2">
+                  <h3 className="text-sm text-start font-semibold text-neutral-9 mb-3 flex items-center gap-2">
                     <Store className="w-4 h-4" />
                     Sản phẩm đang thanh toán
                   </h3>
@@ -440,7 +519,7 @@ const CheckoutPage: React.FC = () => {
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-neutral-9 line-clamp-2">
+                                    <p className="text-sm text-start font-semibold text-neutral-9 line-clamp-2">
                                       {productName}
                                     </p>
                                     {(variantInfo.sku || variantAttributes) && (

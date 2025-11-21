@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import type { CartItem } from "@/core/api/cart/type";
 import { ShoppingBag, Truck, Tag, Store } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import { Cart, CartItem } from "@/core/api/cart/type";
@@ -6,6 +7,8 @@ import { formatPriceVND } from "@/shared/utils/formatPriceVND";
 
 interface CartSummaryProps {
   cart: Cart;
+  selectedItems?: Set<string>;
+  cartItems?: CartItem[];
   onCheckout?: () => void;
   onCheckoutShop?: (shopId: string) => void;
   isLoading?: boolean;
@@ -13,22 +16,37 @@ interface CartSummaryProps {
 
 const CartSummary: React.FC<CartSummaryProps> = ({
   cart,
+  selectedItems = new Set(),
+  cartItems = [],
   onCheckout,
   onCheckoutShop,
   isLoading = false,
 }) => {
-  const subtotal = cart.subtotal || 0;
+  // Calculate totals for selected items only
+  const selectedItemsList = useMemo(
+    () => cartItems.filter((item) => selectedItems.has(item._id)),
+    [cartItems, selectedItems]
+  );
+
+  const subtotal = useMemo(() => {
+    if (selectedItems.size === 0) return 0;
+    return selectedItemsList.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  }, [selectedItemsList, selectedItems.size]);
+
   const discount = cart.discount || 0;
   const couponDiscount = cart.couponDiscount || 0;
   const shippingFee = cart.shippingFee || 0;
-  const totalAmount = cart.totalAmount || subtotal - discount - couponDiscount + shippingFee;
+  const totalAmount = subtotal - discount - couponDiscount + shippingFee;
 
-  // Group items by shop for summary
+  // Group selected items by shop for summary
   const shopGroups = useMemo(() => {
-    const items = cart.items || cart.cartItems || [];
+    const items = selectedItemsList.length > 0 ? selectedItemsList : cartItems;
     const groups = new Map<string, { shopId: string; shopName: string; items: CartItem[] }>();
 
     items.forEach((item) => {
+      // Only include selected items
+      if (selectedItems.size > 0 && !selectedItems.has(item._id)) return;
+
       const shopId =
         typeof item.shopId === "string"
           ? item.shopId
@@ -47,7 +65,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     });
 
     return Array.from(groups.values());
-  }, [cart]);
+  }, [selectedItemsList, cartItems, selectedItems]);
 
   return (
     <div className="sticky top-4 p-6 bg-background-2 rounded-2xl border border-border-1 shadow-sm">
@@ -150,12 +168,14 @@ const CartSummary: React.FC<CartSummaryProps> = ({
             size="lg"
             fullWidth
             onClick={onCheckout}
-            disabled={isLoading || !cart.itemCount || cart.itemCount === 0}
+            disabled={isLoading || selectedItems.size === 0}
             loading={isLoading}
           >
-            {shopGroups.length > 1
-              ? `Thanh toán tất cả (${shopGroups.length} shop)`
-              : "Thanh toán"}
+            {selectedItems.size === 0
+              ? "Chọn sản phẩm để thanh toán"
+              : shopGroups.length > 1
+                ? `Thanh toán (${selectedItems.size} sản phẩm, ${shopGroups.length} shop)`
+                : `Thanh toán (${selectedItems.size} sản phẩm)`}
           </Button>
         )}
 

@@ -9,6 +9,7 @@ import type {
   CreateAddressRequest,
   UpdateAddressRequest,
 } from "@/core/api/addresses/type";
+import type { WishlistItem } from "@/core/api/wishlist/type";
 
 const initialState: IProfileState = {
   profile: {
@@ -72,6 +73,24 @@ const initialState: IProfileState = {
       total: 0,
       totalPages: 0,
     },
+  },
+  wishlist: {
+    data: [],
+    status: ReduxStateType.INIT,
+    error: null,
+    message: null,
+    pagination: {
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPages: 0,
+    },
+  },
+  shopFollowing: {
+    data: {},
+    status: ReduxStateType.INIT,
+    error: null,
+    message: null,
   },
 };
 
@@ -339,6 +358,84 @@ const profileSlice = createSlice({
       state.address.message = action.payload;
     },
 
+    // Wishlist
+    fetchWishlistStart: (state) => {
+      state.wishlist.status = ReduxStateType.LOADING;
+      state.wishlist.error = null;
+      state.wishlist.message = null;
+    },
+    fetchWishlistSuccess: (
+      state,
+      action: PayloadAction<{
+        items: WishlistItem[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      }>
+    ) => {
+      state.wishlist.status = ReduxStateType.SUCCESS;
+      state.wishlist.data = action.payload.items;
+      state.wishlist.pagination = action.payload.pagination;
+      state.wishlist.error = null;
+      state.wishlist.message = null;
+    },
+    fetchWishlistFailure: (state, action: PayloadAction<string>) => {
+      state.wishlist.status = ReduxStateType.ERROR;
+      state.wishlist.error = action.payload;
+      state.wishlist.message = action.payload;
+      state.wishlist.data = [];
+    },
+    addToWishlistSuccess: (state, action: PayloadAction<WishlistItem>) => {
+      const existingIndex = state.wishlist.data.findIndex(
+        (item) => item.productId === action.payload.productId
+      );
+      if (existingIndex === -1) {
+        state.wishlist.data.unshift(action.payload);
+        state.wishlist.pagination.total += 1;
+      }
+    },
+    removeFromWishlistSuccess: (state, action: PayloadAction<string>) => {
+      state.wishlist.data = state.wishlist.data.filter(
+        (item) => item.productId !== action.payload
+      );
+      state.wishlist.pagination.total = Math.max(0, state.wishlist.pagination.total - 1);
+    },
+    clearWishlistSuccess: (state) => {
+      state.wishlist.data = [];
+      state.wishlist.pagination.total = 0;
+    },
+
+    // Shop Following
+    checkShopFollowingStart: (state, _action: PayloadAction<{ shopId: string }>) => {
+      state.shopFollowing.status = ReduxStateType.LOADING;
+      state.shopFollowing.error = null;
+      state.shopFollowing.message = null;
+    },
+    checkShopFollowingSuccess: (
+      state,
+      action: PayloadAction<{ shopId: string; isFollowing: boolean; followersCount: number }>
+    ) => {
+      state.shopFollowing.status = ReduxStateType.SUCCESS;
+      state.shopFollowing.data[action.payload.shopId] = {
+        isFollowing: action.payload.isFollowing,
+        followersCount: action.payload.followersCount,
+      };
+      state.shopFollowing.error = null;
+      state.shopFollowing.message = null;
+    },
+    checkShopFollowingFailure: (state, action: PayloadAction<string>) => {
+      state.shopFollowing.status = ReduxStateType.ERROR;
+      state.shopFollowing.error = action.payload;
+      state.shopFollowing.message = action.payload;
+    },
+    updateShopFollowingStatus: (
+      state,
+      action: PayloadAction<{ shopId: string; isFollowing: boolean; followersCount: number }>
+    ) => {
+      state.shopFollowing.data[action.payload.shopId] = {
+        isFollowing: action.payload.isFollowing,
+        followersCount: action.payload.followersCount,
+      };
+    },
+
     // Reset
     resetProfileState: () => initialState,
   },
@@ -373,6 +470,16 @@ export const {
   setDefaultAddressStart,
   setDefaultAddressSuccess,
   setDefaultAddressFailure,
+  fetchWishlistStart,
+  fetchWishlistSuccess,
+  fetchWishlistFailure,
+  addToWishlistSuccess,
+  removeFromWishlistSuccess,
+  clearWishlistSuccess,
+  checkShopFollowingStart,
+  checkShopFollowingSuccess,
+  checkShopFollowingFailure,
+  updateShopFollowingStatus,
   resetProfileState,
 } = profileSlice.actions;
 

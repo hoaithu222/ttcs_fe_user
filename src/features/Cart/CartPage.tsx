@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { ShoppingCart, Trash2 } from "lucide-react";
 import Page from "@/foundation/components/layout/Page";
-import Section from "@/foundation/components/sections/Section";
-import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import Button from "@/foundation/components/buttons/Button";
 import Loading from "@/foundation/components/loading/Loading";
 import ConfirmModal from "@/foundation/components/modal/ModalConfirm";
@@ -26,17 +24,28 @@ import {
 import { ReduxStateType } from "@/app/store/types";
 import type { CartItem as CartItemType } from "@/core/api/cart/type";
 import type { ProductVariant } from "@/core/api/products/type";
+import { addToast } from "@/app/store/slices/toast";
+import { useAppDispatch } from "@/app/store";
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const appDispatch = useAppDispatch();
   const [isClearCartModalOpen, setIsClearCartModalOpen] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   const cart = useSelector(selectCart);
   const cartItems = useSelector(selectCartItems);
   const cartStatus = useSelector(selectCartStatus);
   const isLoading = useSelector(selectIsCartLoading);
   const isEmpty = useSelector(selectIsCartEmpty);
+
+  // Auto-select all items when cart loads
+  useEffect(() => {
+    if (cartItems.length > 0 && selectedItems.size === 0) {
+      setSelectedItems(new Set(cartItems.map((item) => item._id)));
+    }
+  }, [cartItems, selectedItems.size]);
 
   useEffect(() => {
     dispatch(getCartStart());
@@ -84,14 +93,69 @@ const CartPage: React.FC = () => {
   };
 
   const handleCheckout = () => {
-    // TODO: Navigate to checkout page for all shops
-    navigate("/checkout");
+    if (selectedItems.size === 0) {
+      appDispatch(
+        addToast({
+          type: "error",
+          message: "Vui lòng chọn ít nhất một sản phẩm để thanh toán",
+        })
+      );
+      return;
+    }
+    navigate("/checkout", { state: { selectedItemIds: Array.from(selectedItems) } });
   };
 
   const handleCheckoutShop = (shopId: string) => {
-    // TODO: Navigate to checkout page for specific shop
-    navigate("/checkout", { state: { shopId } });
+    // Get selected items for this shop only
+    const shopSelectedItems = cartItems
+      .filter((item) => {
+        const itemShopId =
+          typeof item.shopId === "string"
+            ? item.shopId
+            : typeof item.shopId === "object" && item.shopId
+              ? item.shopId._id
+              : "";
+        return itemShopId === shopId && selectedItems.has(item._id);
+      })
+      .map((item) => item._id);
+
+    if (shopSelectedItems.length === 0) {
+      appDispatch(
+        addToast({
+          type: "error",
+          message: "Vui lòng chọn ít nhất một sản phẩm của cửa hàng này để thanh toán",
+        })
+      );
+      return;
+    }
+    navigate("/checkout", { state: { selectedItemIds: shopSelectedItems, shopId } });
   };
+
+  const handleItemSelect = (itemId: string, selected: boolean) => {
+    setSelectedItems((prev) => {
+      const newSet = new Set(prev);
+      if (selected) {
+        newSet.add(itemId);
+      } else {
+        newSet.delete(itemId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedItems(new Set(cartItems.map((item) => item._id)));
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const selectedItemsCount = selectedItems.size;
+  const allItemsSelected = useMemo(
+    () => cartItems.length > 0 && selectedItems.size === cartItems.length,
+    [cartItems.length, selectedItems.size]
+  );
 
   const handleRemoveShop = (shopId: string) => {
     const shopItems = cartItems.filter((item) => {
@@ -136,41 +200,60 @@ const CartPage: React.FC = () => {
                 <h1 className="text-3xl font-bold text-neutral-9">Giỏ hàng</h1>
                 <p className="text-sm text-neutral-6">
                   {cart?.itemCount || 0} sản phẩm trong giỏ hàng
+                  {selectedItemsCount > 0 && (
+                    <span className="ml-2 text-primary-6 font-medium">
+                      ({selectedItemsCount} đã chọn)
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
 
-            {!isEmpty && (
-              <Button
-                color="red"
-                variant="outline"
-                size="sm"
-                onClick={handleClearCart}
-                disabled={isLoading}
-                icon={<Trash2 className="w-4 h-4" />}
-              >
-                Xóa tất cả
-              </Button>
-            )}
+            <div className="flex gap-2 items-center">
+              {!isEmpty && (
+                <>
+                  <Button
+                    color="gray"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSelectAll(!allItemsSelected)}
+                    disabled={isLoading}
+                  >
+                    {allItemsSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                  </Button>
+                  <Button
+                    color="red"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearCart}
+                    disabled={isLoading}
+                    icon={<Trash2 className="w-4 h-4" />}
+                  >
+                    Xóa tất cả
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Cart Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Cart Items */}
             <div className="lg:col-span-2">
-              <Section className="bg-background-2 rounded-2xl p-6 lg:p-8 shadow-sm border border-border-1">
-                <SectionTitle className="mb-6">Sản phẩm trong giỏ hàng</SectionTitle>
+              <div className="bg-background-2 rounded-lg p-4 lg:p-6 shadow-sm border border-border-1">
                 <CartList
                   items={cartItems}
+                  selectedItems={selectedItems}
                   onQuantityChange={handleQuantityChange}
                   onRemove={handleRemove}
                   onRemoveShop={handleRemoveShop}
                   onCheckoutShop={handleCheckoutShop}
                   onVariantChange={handleVariantChange}
+                  onItemSelect={handleItemSelect}
                   isLoading={isLoading}
                   onContinueShopping={handleContinueShopping}
                 />
-              </Section>
+              </div>
             </div>
 
             {/* Cart Summary */}
@@ -178,6 +261,8 @@ const CartPage: React.FC = () => {
               {cart && (
                 <CartSummary
                   cart={cart}
+                  selectedItems={selectedItems}
+                  cartItems={cartItems}
                   onCheckout={handleCheckout}
                   onCheckoutShop={handleCheckoutShop}
                   isLoading={isLoading}

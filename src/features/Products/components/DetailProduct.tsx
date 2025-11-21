@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Share2,
   Store,
+  MessageCircle,
 } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import { Product, ProductVariant } from "@/core/api/products/type";
@@ -192,7 +193,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
         )}
 
         {/* Shop Info Overlay - Behind images */}
-        {product.shop && (
+        {/* {product.shop && (
           <div className="absolute bottom-4 left-4 right-4 p-3 bg-black/60 backdrop-blur-sm rounded-lg border border-white/20 z-10">
             <div className="flex gap-3 items-center">
               {product.shop.logo ? (
@@ -217,13 +218,13 @@ const DetailProduct: React.FC<DetailProductProps> = ({
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Product Info */}
       <div className="space-y-6">
         {/* Product Name */}
-        <div>
+        <div className="flex items-start flex-col justify-start gap-2">
           <h1 className="text-3xl font-bold text-neutral-9 mb-2">{product.name}</h1>
           {product.metaKeywords && (
             <p className="text-sm text-neutral-6">Tags: {product.metaKeywords}</p>
@@ -406,7 +407,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                 color="gray"
                 variant="outline"
                 size="lg"
-                icon={<Share2 className="w-5 h-5" />}
+                icon={<MessageCircle className="w-5 h-5" />}
               />
             </div>
             <Button

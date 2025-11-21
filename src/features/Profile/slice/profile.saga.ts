@@ -4,6 +4,8 @@ import { authAPI } from "@/core/api/auth";
 import { userCartApi } from "@/core/api/cart";
 import { userOrdersApi } from "@/core/api/orders";
 import { userAddressesApi } from "@/core/api/addresses";
+import { userWishlistApi } from "@/core/api/wishlist";
+import { userShopsApi } from "@/core/api/shops";
 import type {
   fetchProfileStart,
   fetchCartStart,
@@ -13,6 +15,8 @@ import type {
   updateAddressStart,
   deleteAddressStart,
   setDefaultAddressStart,
+  fetchWishlistStart,
+  checkShopFollowingStart,
 } from "./profile.slice";
 import {
   fetchProfileSuccess,
@@ -34,6 +38,10 @@ import {
   deleteAddressFailure,
   setDefaultAddressSuccess,
   setDefaultAddressFailure,
+  fetchWishlistSuccess,
+  fetchWishlistFailure,
+  checkShopFollowingSuccess,
+  checkShopFollowingFailure,
 } from "./profile.slice";
 
 // types from apis
@@ -41,6 +49,8 @@ import type { ApiSuccess as OrdersApiSuccess } from "@/core/api/orders/type";
 import type { ApiSuccess as AddressesApiSuccess } from "@/core/api/addresses/type";
 import type { ApiSuccess as CartApiSuccess } from "@/core/api/cart/type";
 import type { ApiSuccess as AuthApiSuccess, User } from "@/core/api/auth/type";
+import type { ApiSuccess as WishlistApiSuccess, WishlistResponse } from "@/core/api/wishlist/type";
+import type { ApiSuccess as ShopsApiSuccess, FollowStatusResponse } from "@/core/api/shops/type";
 
 type FetchProfileAction = ReturnType<typeof fetchProfileStart>;
 type FetchCartAction = ReturnType<typeof fetchCartStart>;
@@ -51,6 +61,8 @@ type UpdateAddressAction = ReturnType<typeof updateAddressStart>;
 type DeleteAddressAction = ReturnType<typeof deleteAddressStart>;
 type SetDefaultAddressAction = ReturnType<typeof setDefaultAddressStart>;
 type UpdateProfileAction = ReturnType<typeof updateProfileStart>;
+type FetchWishlistAction = ReturnType<typeof fetchWishlistStart>;
+type CheckShopFollowingAction = ReturnType<typeof checkShopFollowingStart>;
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error && typeof error === "object") {
@@ -241,6 +253,54 @@ function* updateProfileWorker(
   }
 }
 
+function* fetchWishlistWorker(
+  _action: FetchWishlistAction
+): Generator<unknown, void, WishlistApiSuccess<WishlistResponse>> {
+  try {
+    const response = yield call([userWishlistApi, userWishlistApi.getWishlist]);
+    if (response.data?.wishlist) {
+      const wishlist = response.data.wishlist;
+      yield put(
+        fetchWishlistSuccess({
+          items: wishlist.items || [],
+          pagination: {
+            page: 1,
+            limit: 10,
+            total: wishlist.itemCount || wishlist.items?.length || 0,
+            totalPages: 1,
+          },
+        })
+      );
+    }
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, "Failed to fetch wishlist");
+    yield put(fetchWishlistFailure(message));
+    // Don't show toast for wishlist fetch errors (silent fail)
+  }
+}
+
+function* checkShopFollowingWorker(
+  action: CheckShopFollowingAction
+): Generator<unknown, void, ShopsApiSuccess<FollowStatusResponse>> {
+  try {
+    const { shopId } = action.payload;
+    const response = yield call([userShopsApi, userShopsApi.getFollowingStatus], shopId);
+    if (response.data) {
+      yield put(
+        checkShopFollowingSuccess({
+          shopId,
+          isFollowing: response.data.isFollowing || false,
+          followersCount: response.data.followersCount || 0,
+        })
+      );
+    }
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, "Failed to check shop following status");
+    yield put(checkShopFollowingFailure(message));
+    // Don't show toast for check errors (silent fail)
+  }
+}
+
 export function* profileSaga() {
   yield takeEvery("profile/fetchProfileStart", fetchProfileWorker);
   yield takeEvery("profile/updateProfileStart", updateProfileWorker);
@@ -251,4 +311,6 @@ export function* profileSaga() {
   yield takeEvery("profile/updateAddressStart", updateAddressWorker);
   yield takeEvery("profile/deleteAddressStart", deleteAddressWorker);
   yield takeEvery("profile/setDefaultAddressStart", setDefaultAddressWorker);
+  yield takeEvery("profile/fetchWishlistStart", fetchWishlistWorker);
+  yield takeEvery("profile/checkShopFollowingStart", checkShopFollowingWorker);
 }

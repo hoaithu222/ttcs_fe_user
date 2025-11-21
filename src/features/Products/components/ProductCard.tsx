@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Heart, Star, Package, Store } from "lucide-react";
 import Image from "@/foundation/components/icons/Image";
@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { Product } from "@/core/api/products/type";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
 import { useAddToCart } from "@/features/Cart/hooks/useAddToCart";
+import { useWishlist } from "@/features/Profile/hooks/useWishlist";
 
 interface ProductCardProps {
   product: Product;
@@ -22,8 +23,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const { addToCart } = useAddToCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const [imageError, setImageError] = useState(false);
-  const [isWishlist, setIsWishlist] = useState(product.isInWishlist || false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  // Check if product is in wishlist from Redux state or product prop
+  const isWishlist = useMemo(() => {
+    if (product._id) {
+      return isInWishlist(product._id) || product.isInWishlist || false;
+    }
+    return product.isInWishlist || false;
+  }, [product._id, product.isInWishlist, isInWishlist]);
 
   // Get image URL
   const getImageUrl = (images: Product["images"] | undefined): string => {
@@ -56,11 +66,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  const handleToggleWishlist = (e: React.MouseEvent) => {
+  const handleToggleWishlist = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsWishlist(!isWishlist);
-    if (onToggleWishlist) {
-      onToggleWishlist(product._id);
+    if (wishlistLoading) return;
+    
+    setWishlistLoading(true);
+    try {
+      // Use callback if provided (for custom handling), otherwise use hook
+      if (onToggleWishlist) {
+        onToggleWishlist(product._id);
+      } else {
+        await toggleWishlist(product._id);
+      }
+    } catch (error) {
+      // Error handling is done in useWishlist hook
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -102,12 +123,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {/* Wishlist Button */}
         <button
           onClick={handleToggleWishlist}
+          disabled={wishlistLoading}
           className={clsx(
             "absolute top-2 right-2 p-1.5 rounded-full transition-all duration-200 z-10",
             "bg-white/95 hover:bg-white shadow-sm backdrop-blur-sm",
             "flex items-center justify-center",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
             isWishlist ? "text-error" : "text-neutral-6 hover:text-error"
           )}
+          aria-label={isWishlist ? "Remove from wishlist" : "Add to wishlist"}
         >
           <Heart className={clsx("w-4 h-4", isWishlist && "fill-current")} />
         </button>

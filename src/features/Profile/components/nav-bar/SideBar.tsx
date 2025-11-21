@@ -1,6 +1,6 @@
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
-import { ShoppingCart, LogOut, User, MapPin, Wallet } from "lucide-react";
+import { ShoppingCart, LogOut, User, MapPin, Wallet, Heart, Store } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import { useAuth } from "@/features/Auth/hooks/useAuth";
 
@@ -31,6 +31,18 @@ const Sidebar = () => {
       path: `${NAVIGATION_CONFIG.profile.path}?tab=orders`,
     },
     {
+      key: "wishlist",
+      label: "Sản phẩm đã thích",
+      icon: Heart,
+      path: `${NAVIGATION_CONFIG.profile.path}?tab=wishlist`,
+    },
+    {
+      key: "followingShops",
+      label: "Shop đã theo dõi",
+      icon: Store,
+      path: `${NAVIGATION_CONFIG.profile.path}?tab=followingShops`,
+    },
+    {
       key: "wallet",
       label: "Ví",
       icon: Wallet,
@@ -49,8 +61,11 @@ const Sidebar = () => {
       <nav className="overflow-y-auto flex-1 pr-4 py-6 space-y-1">
         {menuItems.map((item, index) => {
           const Icon = item.icon;
+          // Check if active: for profile tabs or direct path match
           const isActive =
-            location.pathname === NAVIGATION_CONFIG.profile.path && activeTab === item.key;
+            (location.pathname === NAVIGATION_CONFIG.profile.path && activeTab === item.key) ||
+            (item.path !== `${NAVIGATION_CONFIG.profile.path}?tab=${item.key}` &&
+              location.pathname === item.path);
 
           return (
             <Link

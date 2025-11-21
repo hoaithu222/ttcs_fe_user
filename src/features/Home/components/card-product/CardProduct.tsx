@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { Product } from "@/core/api/products/type";
 import Image from "@/foundation/components/icons/Image";
 import { Heart, Star, Package, Store } from "lucide-react";
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
+import { useWishlist } from "@/features/Profile/hooks/useWishlist";
 
 export interface CardProductProps {
   product: Product;
@@ -19,15 +20,37 @@ const CardProduct: React.FC<CardProductProps> = ({
   onWishlistClick,
 }) => {
   const navigate = useNavigate();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  // Check if product is in wishlist from Redux state or product prop
+  const isWishlist = useMemo(() => {
+    if (product._id) {
+      return isInWishlist(product._id) || product.isInWishlist || false;
+    }
+    return product.isInWishlist || false;
+  }, [product._id, product.isInWishlist, isInWishlist]);
 
   const handleProductClick = () => {
     navigate(`/products/${product._id}`);
   };
 
-  const handleWishlistClick = (e: React.MouseEvent) => {
+  const handleWishlistClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onWishlistClick) {
-      onWishlistClick(product._id);
+    if (wishlistLoading) return;
+
+    setWishlistLoading(true);
+    try {
+      // Use callback if provided (for custom handling), otherwise use hook
+      if (onWishlistClick) {
+        onWishlistClick(product._id);
+      } else {
+        await toggleWishlist(product._id);
+      }
+    } catch (error) {
+      // Error handling is done in useWishlist hook
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -100,18 +123,20 @@ const CardProduct: React.FC<CardProductProps> = ({
         {showWishlist && (
           <button
             onClick={handleWishlistClick}
+            disabled={wishlistLoading}
             className={clsx(
               "absolute top-2 right-2 p-1.5 rounded-full transition-all duration-200 z-10",
               "bg-white/95 hover:bg-white shadow-sm backdrop-blur-sm",
               "flex items-center justify-center",
-              product.isInWishlist ? "text-error" : "text-neutral-6 hover:text-error"
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              isWishlist ? "text-error" : "text-neutral-6 hover:text-error"
             )}
-            aria-label={product.isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+            aria-label={isWishlist ? "Remove from wishlist" : "Add to wishlist"}
           >
             <Heart
               className={clsx(
                 "w-4 h-4",
-                product.isInWishlist && "fill-current"
+                isWishlist && "fill-current"
               )}
             />
           </button>

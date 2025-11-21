@@ -5,6 +5,8 @@ import AddressesPanel from "./components/address/AddressesPanel";
 import OrdersPanel from "./components/orders/OrdersPanel";
 import { useSearchParams } from "react-router-dom";
 import WalletPage from "./components/wallet/WalletPage";
+import WishlistPage from "../Wishlist/WishlistPage";
+import FollowingShopsPage from "../FollowingShops/FollowingShopsPage";
 
 const ProfilePage = () => {
   const [searchParams] = useSearchParams();
@@ -20,6 +22,8 @@ const ProfilePage = () => {
             {tab === "account" && <InfoAccountPanel />}
             {tab === "address" && <AddressesPanel />}
             {tab === "orders" && <OrdersPanel />}
+            {tab === "wishlist" && <WishlistPage />}
+            {tab === "followingShops" && <FollowingShopsPage />}
             {tab === "wallet" && <WalletPage />}
           </div>
         </div>

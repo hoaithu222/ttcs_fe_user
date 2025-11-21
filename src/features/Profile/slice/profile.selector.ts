@@ -55,3 +55,27 @@ export const selectDeleteAddressError = createSelector(
   [profileState],
   (s) => s.address.deleteAddress.error
 );
+
+// Wishlist
+export const selectWishlist = createSelector([profileState], (s) => s.wishlist.data);
+export const selectWishlistStatus = createSelector([profileState], (s) => s.wishlist.status);
+export const selectWishlistError = createSelector([profileState], (s) => s.wishlist.error);
+export const selectWishlistPagination = createSelector(
+  [profileState],
+  (s) => s.wishlist.pagination
+);
+
+// Shop Following
+export const selectShopFollowing = createSelector([profileState], (s) => s.shopFollowing.data);
+export const selectShopFollowingStatus = createSelector(
+  [profileState],
+  (s) => s.shopFollowing.status
+);
+export const selectShopFollowingError = createSelector(
+  [profileState],
+  (s) => s.shopFollowing.error
+);
+export const selectIsFollowingShop = (shopId: string) =>
+  createSelector([profileState], (s) => s.shopFollowing.data[shopId]?.isFollowing || false);
+export const selectShopFollowersCount = (shopId: string) =>
+  createSelector([profileState], (s) => s.shopFollowing.data[shopId]?.followersCount || 0);

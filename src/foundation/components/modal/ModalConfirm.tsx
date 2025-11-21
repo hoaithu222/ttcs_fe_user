@@ -6,7 +6,7 @@ import { useNSTranslate } from "@/shared/hooks";
 
 import Button, { ButtonSize } from "../buttons/Button";
 import Icon from "../icons/Icon";
-import { Info, AlertTriangle, XCircle, CheckCircle } from "lucide-react";
+import { Info, AlertTriangle, XCircle, CheckCircle, X } from "lucide-react";
 import Checkbox from "../input/Checkbox";
 import Modal from "./Modal";
 
@@ -220,12 +220,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           )}
           {hasClose && (
             <div className="absolute right-0 top-0 p-1 rounded-full hover:bg-neutral-2 transition-colors">
-              <Icon
-                name="CloseOutlined"
-                className={closeIconColor}
-                size="base"
-                onClick={onCancel}
-              />
+              <X className="text-neutral-6 dark:text-white w-6 h-6"   onClick={onCancel} />
             </div>
           )}
         </div>

@@ -3,6 +3,7 @@ import { Address } from "@/core/api/addresses/type";
 import { User } from "@/core/api/auth/type";
 import { Cart } from "@/core/api/cart/type";
 import { Order } from "@/core/api/orders/type";
+import { WishlistItem } from "@/core/api/wishlist/type";
 
 export interface IProfileState {
   profile: {
@@ -68,5 +69,25 @@ export interface IProfileState {
       total: number;
       totalPages: number;
     };
+  };
+  // wishlist
+  wishlist: {
+    data: WishlistItem[];
+    status: ReduxStateType;
+    error: string | null;
+    message: string | null;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+  // shop following - map shopId -> isFollowing status
+  shopFollowing: {
+    data: Record<string, { isFollowing: boolean; followersCount: number }>; // Map of shopId -> follow status
+    status: ReduxStateType;
+    error: string | null;
+    message: string | null;
   };
 }

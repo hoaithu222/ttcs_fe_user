@@ -1,6 +1,7 @@
-import React from "react";
-import { Store, Trash2 } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Store, Trash2, ShoppingBag, Gift, Truck, ChevronRight } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
+import Checkbox from "@/foundation/components/input/Checkbox";
 import CartItem from "./CartItem";
 import { CartItem as CartItemType } from "@/core/api/cart/type";
 import type { ProductVariant } from "@/core/api/products/type";
@@ -11,11 +12,13 @@ interface CartShopGroupProps {
   shopName: string;
   shopLogo?: string;
   items: CartItemType[];
+  selectedItems?: Set<string>;
   onQuantityChange: (itemId: string, quantity: number) => void;
   onRemove: (itemId: string) => void;
   onRemoveShop?: (shopId: string) => void;
   onCheckoutShop?: (shopId: string) => void;
   onVariantChange?: (item: CartItemType, variant: ProductVariant) => void;
+  onItemSelect?: (itemId: string, selected: boolean) => void;
   isLoading?: boolean;
 }
 
@@ -24,81 +27,159 @@ const CartShopGroup: React.FC<CartShopGroupProps> = ({
   shopName,
   shopLogo,
   items,
+  selectedItems = new Set(),
   onQuantityChange,
   onRemove,
   onRemoveShop,
   onCheckoutShop,
   onVariantChange,
+  onItemSelect,
   isLoading = false,
 }) => {
-  // Calculate shop subtotal
-  const shopSubtotal = items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  const [showVouchers, setShowVouchers] = useState(false);
+
+  // Calculate shop subtotal for selected items only
+  const shopSubtotal = useMemo(() => {
+    return items
+      .filter((item) => selectedItems.has(item._id))
+      .reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  }, [items, selectedItems]);
+  
   const shopItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const selectedItemCount = items.filter((item) => selectedItems.has(item._id)).length;
+
+  // Check if all items in this shop are selected
+  const allItemsSelected = useMemo(() => {
+    return items.length > 0 && items.every((item) => selectedItems.has(item._id));
+  }, [items, selectedItems]);
+
+  const handleShopSelect = (checked: boolean | "indeterminate") => {
+    if (!onItemSelect) return;
+    const isSelected = checked === true;
+    items.forEach((item) => {
+      onItemSelect(item._id, isSelected);
+    });
+  };
 
   return (
-    <div className="mb-8 last:mb-0">
+    <div className="mb-4 bg-background-2 rounded-lg border border-border-1 overflow-hidden">
       {/* Shop Header */}
-      <div className="flex justify-between items-center mb-4 p-4 bg-background-2 rounded-xl border border-border-1">
-        <div className="flex gap-3 items-center flex-1 min-w-0">
+      <div className="flex items-center gap-3 px-4 py-3 bg-background-1 border-b border-border-1">
+        {onItemSelect && (
+          <Checkbox
+            checked={allItemsSelected}
+            onCheckedChange={handleShopSelect}
+            size="base"
+            className="flex-shrink-0"
+          />
+        )}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           {shopLogo ? (
             <img
               src={shopLogo}
               alt={shopName}
-              className="w-10 h-10 rounded-lg object-cover border border-border-1 flex-shrink-0"
+              className="w-8 h-8 rounded object-cover border border-border-1 flex-shrink-0"
             />
           ) : (
-            <div className="flex justify-center items-center w-10 h-10 rounded-lg bg-primary-6/10 border border-border-1 flex-shrink-0">
-              <Store className="w-5 h-5 text-primary-6" />
+            <div className="flex justify-center items-center w-8 h-8 rounded bg-primary-6/10 border border-border-1 flex-shrink-0">
+              <Store className="w-4 h-4 text-primary-6" />
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold text-neutral-9 truncate">{shopName}</h3>
-            <p className="text-sm text-neutral-6">
-              {shopItemCount} sản phẩm • {formatPriceVND(shopSubtotal)}
-            </p>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-neutral-9 truncate">{shopName}</h3>
+            {onItemSelect && selectedItemCount > 0 && (
+              <span className="text-xs text-primary-6 font-medium">
+                ({selectedItemCount}/{items.length} đã chọn)
+              </span>
+            )}
+            {/* <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20 flex-shrink-0">
+              <ShoppingBag className="w-3 h-3 text-red-500" />
+              <span className="text-[10px] font-semibold text-red-500">Mall</span>
+            </div> */}
           </div>
         </div>
-        <div className="flex gap-2 items-center flex-shrink-0">
-          {onCheckoutShop && (
-            <Button
-              color="blue"
-              variant="solid"
-              size="sm"
-              onClick={() => onCheckoutShop(shopId)}
-              disabled={isLoading || shopItemCount === 0}
-              loading={isLoading}
-            >
-              Thanh toán
-            </Button>
-          )}
-          {onRemoveShop && (
-            <Button
-              color="gray"
-              variant="ghost"
-              size="sm"
-              onClick={() => onRemoveShop(shopId)}
-              disabled={isLoading}
-              icon={<Trash2 className="w-4 h-4" />}
-            >
-              Xóa shop
-            </Button>
-          )}
-        </div>
+        {onRemoveShop && (
+          <Button
+            color="gray"
+            variant="ghost"
+            size="xs"
+            onClick={() => onRemoveShop(shopId)}
+            disabled={isLoading}
+            className="text-neutral-6 hover:text-red-500"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       {/* Shop Items */}
-      <div className="space-y-3 ml-4 pl-4 border-l-2 border-border-1">
+      <div className="divide-y divide-border-1">
         {items.map((item) => (
-          <CartItem
-            key={item._id}
-            item={item}
-            onQuantityChange={onQuantityChange}
-            onRemove={onRemove}
-            onVariantChange={onVariantChange}
-            isLoading={isLoading}
-          />
+          <div key={item._id} className="bg-background-2">
+            <CartItem
+              item={item}
+              onQuantityChange={onQuantityChange}
+              onRemove={onRemove}
+              onVariantChange={onVariantChange}
+              isLoading={isLoading}
+              isSelected={selectedItems.has(item._id)}
+              onSelectChange={onItemSelect}
+            />
+          </div>
         ))}
       </div>
+
+      {/* Voucher & Shipping Section */}
+      <div className="px-4 py-3 bg-background-1 border-t border-border-1 space-y-2">
+        {/* Voucher Section */}
+        {/* <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Gift className="w-4 h-4 text-primary-6" />
+            <span className="text-sm text-neutral-7">Voucher giảm đến 35k₫</span>
+          </div>
+          <button
+            onClick={() => setShowVouchers(!showVouchers)}
+            className="text-sm text-primary-6 hover:text-primary-7 flex items-center gap-1"
+          >
+            Xem thêm voucher
+            <ChevronRight className={`w-4 h-4 transition-transform ${showVouchers ? "rotate-90" : ""}`} />
+          </button>
+        </div> */}
+
+        {/* Shipping Section */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Truck className="w-4 h-4 text-primary-6" />
+            <span className="text-sm text-neutral-7">Giảm 500.000₫ phí vận chuyển đơn tối thiểu 0₫</span>
+          </div>
+          <button className="text-sm text-primary-6 hover:text-primary-7">Tìm hiểu thêm</button>
+        </div>
+      </div>
+
+      {/* Shop Footer - Checkout Button */}
+      {onCheckoutShop && (
+        <div className="px-4 py-3 bg-background-1 border-t border-border-1 flex justify-between items-center">
+          <div className="text-sm text-neutral-7">
+            {selectedItemCount > 0 ? (
+              <span>
+                Tổng: <span className="font-semibold text-primary-6">{formatPriceVND(shopSubtotal)}</span>
+              </span>
+            ) : (
+              <span>Chọn sản phẩm để thanh toán</span>
+            )}
+          </div>
+          <Button
+            variant="solid"
+            size="sm"
+            onClick={() => onCheckoutShop(shopId)}
+            disabled={isLoading || selectedItemCount === 0}
+            loading={isLoading}
+            className="min-w-[120px]"
+          >
+            Mua hàng ({selectedItemCount})
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

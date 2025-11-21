@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { ChevronLeft, ChevronRight, Home, Package, ShoppingCart } from "lucide-react";
+import { ChevronRight, Home, Package, ShoppingCart } from "lucide-react";
 import Page from "@/foundation/components/layout/Page";
 import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
@@ -26,8 +26,11 @@ import { ReduxStateType } from "@/app/store/types";
 import { ProductVariant } from "@/core/api/products/type";
 import { useAddToCart } from "@/features/Cart/hooks/useAddToCart";
 import { addToast } from "@/app/store/slices/toast";
-import { userWishlistApi } from "@/core/api/wishlist";
 import { selectProfile } from "@/features/Profile/slice/profile.selector";
+import { fetchProfileStart } from "@/features/Profile/slice/profile.slice";
+import { useWishlist } from "@/features/Profile/hooks/useWishlist";
+import { useAppSelector } from "@/app/store";
+import { selectUser } from "../Auth/components/slice/auth.selector";
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,11 +44,30 @@ const ProductDetailPage: React.FC = () => {
   const relatedProducts = useSelector(selectRelatedProducts);
   const reviews = useSelector(selectProductReviews);
   const profile = useSelector(selectProfile);
+  const user = useAppSelector(selectUser) as any;
+
+  const { isInWishlist, toggleWishlist, loadWishlist } = useWishlist();
 
   const [quantity, setQuantity] = useState(1);
-  const [isWishlist, setIsWishlist] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  // Check if product is in wishlist
+  const isWishlist = useMemo(() => {
+    if (!product?._id) return false;
+    return isInWishlist(product._id);
+  }, [product?._id, isInWishlist]);
+
+  // Fetch profile and wishlist when user is logged in
+  useEffect(() => {
+    if (user?._id) {
+      if (!profile?._id) {
+        dispatch(fetchProfileStart());
+      }
+      // Load wishlist to sync with Redux state
+      loadWishlist();
+    }
+  }, [user?._id, profile?._id, dispatch, loadWishlist]);
 
   useEffect(() => {
     if (id) {
@@ -59,11 +81,15 @@ const ProductDetailPage: React.FC = () => {
     };
   }, [id, dispatch]);
 
+  // Sync wishlist state when product changes (fallback to product.isInWishlist if Redux state not loaded)
   useEffect(() => {
-    if (product) {
-      setIsWishlist(product.isInWishlist || false);
+    if (product && product.isInWishlist !== undefined) {
+      // If Redux wishlist is empty but product says it's in wishlist, load wishlist
+      if (product.isInWishlist && !isWishlist && user?._id) {
+        loadWishlist();
+      }
     }
-  }, [product]);
+  }, [product, isWishlist, user?._id, loadWishlist]);
 
   const requiresVariantSelection = useMemo(
     () => Boolean(product?.variants && product.variants.length > 0),
@@ -78,7 +104,12 @@ const ProductDetailPage: React.FC = () => {
     return typeof fallback === "string" ? fallback : "";
   }, [product]);
 
-  const userShopId = profile?.shop?.id;
+  // Get user's shop ID from profile
+  const userShopId = useMemo(() => {
+    if (!profile?.shop?.id) return "";
+    return profile.shop.id;
+  }, [profile?.shop?.id]);
+
   const isOwnShopProduct = useMemo(() => {
     if (!productShopId || !userShopId) return false;
     return productShopId === userShopId;
@@ -115,27 +146,43 @@ const ProductDetailPage: React.FC = () => {
   const handleBuyNow = () => {
     if (!product) return;
     if (!validateBeforePurchase()) return;
-    addToCart(product, quantity, selectedVariant, { showToast: true });
-    navigate("/checkout");
+    
+    // Calculate price
+    const basePrice = selectedVariant?.price ?? product.price ?? 0;
+    const discountPercent = Math.min(Math.max(product.discount ?? 0, 0), 100);
+    const discountedPrice =
+      product.finalPrice && !selectedVariant
+        ? product.finalPrice
+        : basePrice - (basePrice * discountPercent) / 100;
+    const finalPrice = Math.max(0, discountedPrice);
+
+    const productShopId =
+      typeof product.shopId === "string"
+        ? product.shopId
+        : (product.shopId as any)?._id || product.shop?._id || "";
+
+    // Navigate to checkout with buy now data (single product, not from cart)
+    navigate("/checkout", {
+      state: {
+        buyNow: true,
+        product: {
+          productId: product._id,
+          variantId: selectedVariant?._id || selectedVariant?.id,
+          quantity,
+          price: finalPrice,
+          shopId: productShopId,
+        },
+      },
+    });
   };
 
   const handleToggleWishlist = async () => {
     if (!product || wishlistLoading) return;
     setWishlistLoading(true);
     try {
-      if (isWishlist) {
-        await userWishlistApi.removeFromWishlist(product._id);
-        setIsWishlist(false);
-        dispatch(addToast({ type: "success", message: "Đã xóa khỏi danh sách yêu thích" }));
-      } else {
-        await userWishlistApi.addToWishlist(product._id);
-        setIsWishlist(true);
-        dispatch(addToast({ type: "success", message: "Đã thêm vào danh sách yêu thích" }));
-      }
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message || "Không thể cập nhật danh sách yêu thích. Vui lòng thử lại.";
-      dispatch(addToast({ type: "error", message }));
+      await toggleWishlist(product._id);
+    } catch (error) {
+      // Error handling is done in useWishlist hook
     } finally {
       setWishlistLoading(false);
     }

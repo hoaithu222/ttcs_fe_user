@@ -8,11 +8,13 @@ import ConfirmModal from "@/foundation/components/modal/ModalConfirm";
 
 interface CartListProps {
   items: CartItemType[];
+  selectedItems?: Set<string>;
   onQuantityChange: (itemId: string, quantity: number) => void;
   onRemove: (itemId: string) => void;
   onRemoveShop?: (shopId: string) => void;
   onCheckoutShop?: (shopId: string) => void;
   onVariantChange?: (item: CartItemType, variant: ProductVariant) => void;
+  onItemSelect?: (itemId: string, selected: boolean) => void;
   isLoading?: boolean;
   onContinueShopping?: () => void;
 }
@@ -26,11 +28,13 @@ interface ShopGroup {
 
 const CartList: React.FC<CartListProps> = ({
   items,
+  selectedItems = new Set(),
   onQuantityChange,
   onRemove,
   onRemoveShop,
   onCheckoutShop,
   onVariantChange,
+  onItemSelect,
   isLoading = false,
   onContinueShopping,
 }) => {
@@ -117,7 +121,7 @@ const CartList: React.FC<CartListProps> = ({
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {shopGroups.map((group) => (
           <CartShopGroup
             key={group.shopId}
@@ -125,11 +129,13 @@ const CartList: React.FC<CartListProps> = ({
             shopName={group.shopName}
             shopLogo={group.shopLogo}
             items={group.items}
+            selectedItems={selectedItems}
             onQuantityChange={onQuantityChange}
             onRemove={onRemove}
             onRemoveShop={handleRemoveShop}
             onCheckoutShop={onCheckoutShop}
             onVariantChange={onVariantChange}
+            onItemSelect={onItemSelect}
             isLoading={isLoading}
           />
         ))}

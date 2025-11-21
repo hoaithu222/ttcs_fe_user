@@ -1,17 +1,22 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MapPin, Plus, Edit2, Check, RefreshCw, ChevronDown } from "lucide-react";
-import type { Address } from "@/core/api/addresses/type";
+import * as Form from "@radix-ui/react-form";
+import type { Address, CreateAddressRequest } from "@/core/api/addresses/type";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
 import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import Button from "@/foundation/components/buttons/Button";
 import Loading from "@/foundation/components/loading/Loading";
 import Modal from "@/foundation/components/modal/Modal";
+import Input from "@/foundation/components/input/Input";
+import Select from "@/foundation/components/input/Select";
+import Checkbox from "@/foundation/components/input/Checkbox";
 import { addToast } from "@/app/store/slices/toast";
 import { useAppDispatch } from "@/app/store";
 import { useProfileAddresses } from "@/features/Profile/hooks/useAddress";
 import { ReduxStateType } from "@/app/store/types";
+import addressData from "@/features/Profile/components/address/common/addressData";
 
 interface PaymentAddressSelectorProps {
   selectedAddressId?: string;
@@ -34,9 +39,39 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
   
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const previousPathRef = useRef<string>("");
   const hasLoadedRef = useRef<boolean>(false);
   const onSelectAddressRef = useRef(onSelectAddress);
+  const previousAddressCountRef = useRef<number>(0);
+  
+  // Add address form state
+  const { createAddress } = useProfileAddresses();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cityCode, setCityCode] = useState<number | "">("");
+  const [districtCode, setDistrictCode] = useState<number | "">("");
+  const [wardCode, setWardCode] = useState<number | "">("");
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [isDefault, setIsDefault] = useState(false);
+  
+  const provinces = addressData as Array<{
+    code: number;
+    name: string;
+    districts: Array<{ code: number; name: string; wards: Array<{ code: number; name: string }> }>;
+  }>;
+  
+  const districts = useMemo(() => {
+    const province = provinces.find((p) => p.code === cityCode);
+    return province?.districts || [];
+  }, [cityCode, provinces]);
+  
+  const wards = useMemo(() => {
+    const district = districts.find((d) => d.code === districtCode);
+    return district?.wards || [];
+  }, [districts, districtCode]);
 
   // Keep ref updated
   useEffect(() => {
@@ -60,6 +95,7 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
         setSelectedAddress(addressToSelect);
         onSelectAddressRef.current(addressToSelect);
         hasLoadedRef.current = true;
+        previousAddressCountRef.current = addresses.length;
       }
     }
   }, [addresses, selectedAddressId, defaultAddress]);
@@ -110,12 +146,62 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
     previousPathRef.current = currentPath;
   }, [location.pathname, loadAddresses]);
 
+  // Reset form when add modal opens/closes
+  useEffect(() => {
+    if (isAddModalOpen) {
+      // Reset form when opening
+      setName("");
+      setPhone("");
+      setCityCode("");
+      setDistrictCode("");
+      setWardCode("");
+      setAddressLine1("");
+      setAddressLine2("");
+      setIsDefault(false);
+    }
+  }, [isAddModalOpen]);
+  
+  useEffect(() => {
+    setDistrictCode("");
+    setWardCode("");
+  }, [cityCode]);
+
+  useEffect(() => {
+    setWardCode("");
+  }, [districtCode]);
+
   // Update parent when selected address changes
   useEffect(() => {
     if (selectedAddress && onAddressChange) {
       onAddressChange(selectedAddress);
     }
   }, [selectedAddress, onAddressChange]);
+  
+  // Auto-select newly created address
+  useEffect(() => {
+    if (addresses.length > 0 && hasLoadedRef.current) {
+      const currentCount = addresses.length;
+      const previousCount = previousAddressCountRef.current;
+      
+      // If address count increased, a new address was created
+      if (currentCount > previousCount) {
+        // Select the newly created address (usually the last one or default)
+        const newAddress = defaultAddress || addresses[addresses.length - 1];
+        if (newAddress) {
+          setSelectedAddress(newAddress);
+          onSelectAddressRef.current(newAddress);
+        }
+      }
+      // Also check if default address changed
+      else if (defaultAddress && defaultAddress._id !== selectedAddress?._id) {
+        // If a new default was set, select it
+        setSelectedAddress(defaultAddress);
+        onSelectAddressRef.current(defaultAddress);
+      }
+      
+      previousAddressCountRef.current = currentCount;
+    }
+  }, [addresses, defaultAddress, selectedAddress]);
 
   const handleSelectAddress = useCallback((address: Address) => {
     setSelectedAddress(address);
@@ -124,15 +210,59 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
   }, [onSelectAddress]);
 
   const handleAddAddress = useCallback(() => {
-    // Navigate to profile address tab
-    navigate(`${NAVIGATION_CONFIG.profile.path}?tab=address`);
-    dispatch(
-      addToast({
-        type: "info",
-        message: "Vui lòng thêm địa chỉ mới, sau đó quay lại trang thanh toán",
-      })
-    );
-  }, [navigate, dispatch]);
+    // Open add address modal instead of navigating
+    setIsAddModalOpen(true);
+  }, []);
+  
+  const handleSubmitAddAddress = useCallback(async () => {
+    if (!name || !phone || !cityCode || !districtCode || !wardCode) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: "Vui lòng điền đầy đủ thông tin",
+        })
+      );
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const city = provinces.find((p) => p.code === cityCode)?.name || "";
+      const district = districts.find((d) => d.code === districtCode)?.name || "";
+      const ward = wards.find((w) => w.code === wardCode)?.name || "";
+      const address: CreateAddressRequest = {
+        name,
+        phone,
+        address: [addressLine2, addressLine1].filter(Boolean).join(" "),
+        city,
+        district,
+        ward,
+        isDefault,
+      };
+      
+      createAddress(address);
+      setIsAddModalOpen(false);
+      
+      // Reload addresses to get the new one
+      loadAddresses();
+      
+      dispatch(
+        addToast({
+          type: "success",
+          message: "Đã thêm địa chỉ mới thành công",
+        })
+      );
+    } catch (error: any) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: error.message || "Không thể thêm địa chỉ",
+        })
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [name, phone, cityCode, districtCode, wardCode, addressLine1, addressLine2, isDefault, provinces, districts, wards, createAddress, dispatch, loadAddresses]);
 
   const handleEditAddress = useCallback((_address: Address) => {
     // Navigate to profile address tab
@@ -183,8 +313,8 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
       </div>
 
       {addresses.length === 0 ? (
-        <div className="text-center py-6">
-          <MapPin className="w-12 h-12 mx-auto mb-4 text-neutral-4" />
+        <div className="text-center py-2">
+         
           <p className="text-sm text-neutral-6 mb-4">Bạn chưa có địa chỉ nào</p>
           <Button variant="solid" size="sm" onClick={handleAddAddress}>
             Thêm địa chỉ mới
@@ -226,6 +356,116 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
           </div>
         </div>
       ) : null}
+
+      {/* Modal for adding new address */}
+      <Modal
+        open={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        title="Thêm địa chỉ mới"
+        size="2xl"
+        hideFooter
+      >
+        <Form.Root onSubmit={(e) => e.preventDefault()}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+            <Input
+              name="name"
+              label="Họ và tên"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nhập họ và tên"
+              sizeInput="full"
+              required
+            />
+            <Input
+              name="phone"
+              label="Số điện thoại"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Nhập số điện thoại"
+              type="tel"
+              sizeInput="full"
+              required
+            />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Select
+                name="city"
+                label="Tỉnh/Thành phố"
+                value={cityCode ? String(cityCode) : ""}
+                onChange={(value) => setCityCode(value ? Number(value) : "")}
+                placeholder="Chọn Tỉnh/Thành phố"
+                options={provinces.map((p) => ({
+                  value: String(p.code),
+                  label: p.name,
+                }))}
+                sizeSelect="full"
+                required
+              />
+              <Select
+                name="district"
+                label="Quận/Huyện"
+                value={districtCode ? String(districtCode) : ""}
+                onChange={(value) => setDistrictCode(value ? Number(value) : "")}
+                placeholder="Chọn Quận/Huyện"
+                options={districts.map((d) => ({
+                  value: String(d.code),
+                  label: d.name,
+                }))}
+                sizeSelect="full"
+                disabled={!cityCode}
+                required
+              />
+              <Select
+                name="ward"
+                label="Phường/Xã"
+                value={wardCode ? String(wardCode) : ""}
+                onChange={(value) => setWardCode(value ? Number(value) : "")}
+                placeholder="Chọn Phường/Xã"
+                options={wards.map((w) => ({
+                  value: String(w.code),
+                  label: w.name,
+                }))}
+                sizeSelect="full"
+                disabled={!districtCode}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input
+                name="addressLine1"
+                label="Địa chỉ cụ thể"
+                value={addressLine1}
+                onChange={(e) => setAddressLine1(e.target.value)}
+                placeholder="Xóm, đường..."
+                sizeInput="full"
+              />
+              <Input
+                name="addressLine2"
+                label="Số nhà"
+                value={addressLine2}
+                onChange={(e) => setAddressLine2(e.target.value)}
+                placeholder="Số nhà"
+                sizeInput="full"
+              />
+            </div>
+            <Checkbox
+              checked={isDefault}
+              onCheckedChange={(checked) => setIsDefault(checked === true)}
+              label="Đặt làm địa chỉ mặc định"
+              testId="is-default-address"
+            />
+            </div>
+            <div className="flex gap-2 justify-end pt-4 border-t border-border-1">
+              <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
+                Hủy
+              </Button>
+              <Button onClick={handleSubmitAddAddress} disabled={isSubmitting}>
+                {isSubmitting ? "Đang lưu..." : "Thêm địa chỉ"}
+              </Button>
+            </div>
+          </div>
+        </Form.Root>
+      </Modal>
 
       {/* Modal for address selection */}
       <Modal
