@@ -1,4 +1,5 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { PayloadAction } from "@reduxjs/toolkit";
+import { createResettableSlice } from "@/app/store/create-resettabable-slice";
 import { IProfileState } from "./profile.types";
 import { ReduxStateType } from "@/app/store/types";
 import type { User } from "@/core/api/auth/type";
@@ -94,7 +95,7 @@ const initialState: IProfileState = {
   },
 };
 
-const profileSlice = createSlice({
+const { slice: profileSlice, reducer: profileReducer } = createResettableSlice({
   name: "profile",
   initialState,
   reducers: {
@@ -439,6 +440,9 @@ const profileSlice = createSlice({
     // Reset
     resetProfileState: () => initialState,
   },
+  persist: {
+    whitelist: ["wishlist", "cart", "orders", "address", "profile", "shopFollowing"],
+  },
 });
 
 export const {
@@ -483,4 +487,4 @@ export const {
   resetProfileState,
 } = profileSlice.actions;
 
-export default profileSlice.reducer;
+export default profileReducer;

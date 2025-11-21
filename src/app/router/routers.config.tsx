@@ -24,6 +24,7 @@ const AddProductPage = lazy(() => import("@/features/Shop/pages/AddProductPage")
 const EditProductPage = lazy(() => import("@/features/Shop/pages/EditProductPage"));
 const ListProductPage = lazy(() => import("@/features/Shop/pages/ListProductPage"));
 const OrderShopPage = lazy(() => import("@/features/Shop/pages/OrderShopPage"));
+const ShopDetailPage = lazy(() => import("@/features/Shop/pages/ShopDetailPage"));
 
 const defaultOptions = {
 
@@ -207,6 +208,12 @@ export const ROUTE = {
     element: <OrderShopPage />,
     layout: "extension",
     options: defaultProtectedOptions,
+  },
+  shopDetail: {
+    path: "/shops/:id",
+    element: <ShopDetailPage />,
+    layout: "main",
+    options: defaultOptions,
   },
 } satisfies Record<
   string,
