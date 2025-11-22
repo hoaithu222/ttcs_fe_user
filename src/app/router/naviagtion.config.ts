@@ -137,4 +137,9 @@ export const NAVIGATION_CONFIG: Record<string, NavigationConfig> = {
     name: "Đơn hàng cửa hàng",
     requireAuth: true,
   },
+  chat: {
+    path: "/chat",
+    name: "Chat",
+    requireAuth: true,
+  },
 } satisfies Record<string, NavigationConfig>;

@@ -24,7 +24,7 @@ import {
   applyProfileOrderUpdate,
 } from "@/features/Profile/slice/profile.slice";
 import { updateNotificationFromSocket } from "@/app/store/slices/notification/notification.slice";
-import { updateMessageFromSocket } from "@/app/store/slices/chat/chat.slice";
+import { updateMessageFromSocket, updateConversationFromSocket } from "@/app/store/slices/chat/chat.slice";
 
 const MAX_NOTIFICATIONS = 50;
 
@@ -361,36 +361,84 @@ const RealtimeProvider = ({ children }: PropsWithChildren) => {
     const shopChatSocket = socketClients.shopChat?.connect();
     if (shopChatSocket) {
       const handleShopChatMessage = (payload: Record<string, any>) => {
-        if (payload?.conversationId && payload?.message) {
+        // Handle both old format (flat) and new format (nested message object)
+        let messageData = payload.message;
+        if (!messageData && payload.conversationId) {
+          // Old format: message fields are at root level
+          messageData = {
+            _id: payload._id || payload.messageId,
+            conversationId: payload.conversationId,
+            senderId: payload.senderId,
+            senderName: payload.senderName,
+            senderAvatar: payload.senderAvatar,
+            message: payload.message || payload.messageText,
+            attachments: payload.attachments,
+            metadata: payload.metadata,
+            isRead: payload.isRead || false,
+            isDelivered: payload.isDelivered || false,
+            createdAt: payload.createdAt || payload.sentAt,
+          };
+        }
+
+        if (payload?.conversationId && messageData) {
+          const message = {
+            _id: messageData._id || payload.messageId || payload._id || generateNotificationId(),
+            conversationId: payload.conversationId,
+            senderId: messageData.senderId || payload.senderId || "",
+            senderName: messageData.senderName || payload.senderName,
+            senderAvatar: messageData.senderAvatar || payload.senderAvatar,
+            message: messageData.message || payload.message || "",
+            attachments: messageData.attachments || payload.attachments || [],
+            metadata: messageData.metadata || payload.metadata || {},
+            isRead: messageData.isRead || payload.isRead || false,
+            isDelivered: messageData.isDelivered || payload.isDelivered || false,
+            createdAt: messageData.createdAt || payload.sentAt || payload.createdAt || new Date().toISOString(),
+          };
+
           dispatch(
             updateMessageFromSocket({
               conversationId: payload.conversationId,
-              message: {
-                _id: payload.messageId || payload._id || generateNotificationId(),
-                conversationId: payload.conversationId,
-                senderId: payload.senderId || "",
-                senderName: payload.senderName,
-                senderAvatar: payload.senderAvatar,
-                message: payload.message || "",
-                attachments: payload.attachments,
-                metadata: payload.metadata,
-                isRead: false,
-                isDelivered: false,
-                createdAt: payload.sentAt || payload.createdAt || new Date().toISOString(),
-              },
+              message,
+              isSender: message.senderId === authUser?._id,
             })
           );
+
+          // Update conversation if provided
+          if (payload.conversation) {
+            dispatch(
+              updateConversationFromSocket({
+                conversation: payload.conversation,
+              })
+            );
+          }
+        }
+      };
+
+      const handleShopConversationUpdate = (payload: Record<string, any>) => {
+        console.log("[Shop Chat] Conversation update received:", payload);
+        if (payload?.conversation) {
+          dispatch(
+            updateConversationFromSocket({
+              conversation: payload.conversation,
+            })
+          );
+        } else if (payload?.conversationId) {
+          // If only conversationId is provided, we might need to fetch it
+          // But for now, just log it
+          console.warn("[Shop Chat] Conversation update without conversation object:", payload);
         }
       };
 
       shopChatSocket.on(SOCKET_EVENTS.CHAT_MESSAGE_RECEIVE, handleShopChatMessage);
+      shopChatSocket.on(SOCKET_EVENTS.CHAT_CONVERSATION_JOIN, handleShopConversationUpdate);
 
       return () => {
         shopChatSocket.off(SOCKET_EVENTS.CHAT_MESSAGE_RECEIVE, handleShopChatMessage);
+        shopChatSocket.off(SOCKET_EVENTS.CHAT_CONVERSATION_JOIN, handleShopConversationUpdate);
         socketClients.shopChat?.disconnect(true);
       };
     }
-  }, [hasTokens, dispatch]);
+  }, [hasTokens, dispatch, authUser]);
 
   // Handle admin chat messages
   useEffect(() => {
@@ -401,36 +449,84 @@ const RealtimeProvider = ({ children }: PropsWithChildren) => {
     const adminChatSocket = socketClients.adminChat?.connect();
     if (adminChatSocket) {
       const handleAdminChatMessage = (payload: Record<string, any>) => {
-        if (payload?.conversationId && payload?.message) {
+        // Handle both old format (flat) and new format (nested message object)
+        let messageData = payload.message;
+        if (!messageData && payload.conversationId) {
+          // Old format: message fields are at root level
+          messageData = {
+            _id: payload._id || payload.messageId,
+            conversationId: payload.conversationId,
+            senderId: payload.senderId,
+            senderName: payload.senderName,
+            senderAvatar: payload.senderAvatar,
+            message: payload.message || payload.messageText,
+            attachments: payload.attachments,
+            metadata: payload.metadata,
+            isRead: payload.isRead || false,
+            isDelivered: payload.isDelivered || false,
+            createdAt: payload.createdAt || payload.sentAt,
+          };
+        }
+
+        if (payload?.conversationId && messageData) {
+          const message = {
+            _id: messageData._id || payload.messageId || payload._id || generateNotificationId(),
+            conversationId: payload.conversationId,
+            senderId: messageData.senderId || payload.senderId || "",
+            senderName: messageData.senderName || payload.senderName,
+            senderAvatar: messageData.senderAvatar || payload.senderAvatar,
+            message: messageData.message || payload.message || "",
+            attachments: messageData.attachments || payload.attachments || [],
+            metadata: messageData.metadata || payload.metadata || {},
+            isRead: messageData.isRead || payload.isRead || false,
+            isDelivered: messageData.isDelivered || payload.isDelivered || false,
+            createdAt: messageData.createdAt || payload.sentAt || payload.createdAt || new Date().toISOString(),
+          };
+
           dispatch(
             updateMessageFromSocket({
               conversationId: payload.conversationId,
-              message: {
-                _id: payload.messageId || payload._id || generateNotificationId(),
-                conversationId: payload.conversationId,
-                senderId: payload.senderId || "",
-                senderName: payload.senderName,
-                senderAvatar: payload.senderAvatar,
-                message: payload.message || "",
-                attachments: payload.attachments,
-                metadata: payload.metadata,
-                isRead: false,
-                isDelivered: false,
-                createdAt: payload.sentAt || payload.createdAt || new Date().toISOString(),
-              },
+              message,
+              isSender: message.senderId === authUser?._id,
             })
           );
+
+          // Update conversation if provided
+          if (payload.conversation) {
+            dispatch(
+              updateConversationFromSocket({
+                conversation: payload.conversation,
+              })
+            );
+          }
+        }
+      };
+
+      const handleAdminConversationUpdate = (payload: Record<string, any>) => {
+        console.log("[Admin Chat] Conversation update received:", payload);
+        if (payload?.conversation) {
+          dispatch(
+            updateConversationFromSocket({
+              conversation: payload.conversation,
+            })
+          );
+        } else if (payload?.conversationId) {
+          // If only conversationId is provided, we might need to fetch it
+          // But for now, just log it
+          console.warn("[Admin Chat] Conversation update without conversation object:", payload);
         }
       };
 
       adminChatSocket.on(SOCKET_EVENTS.CHAT_MESSAGE_RECEIVE, handleAdminChatMessage);
+      adminChatSocket.on(SOCKET_EVENTS.CHAT_CONVERSATION_JOIN, handleAdminConversationUpdate);
 
       return () => {
         adminChatSocket.off(SOCKET_EVENTS.CHAT_MESSAGE_RECEIVE, handleAdminChatMessage);
+        adminChatSocket.off(SOCKET_EVENTS.CHAT_CONVERSATION_JOIN, handleAdminConversationUpdate);
         socketClients.adminChat?.disconnect(true);
       };
     }
-  }, [hasTokens, dispatch]);
+  }, [hasTokens, dispatch, authUser]);
 
   const contextValue = useMemo(
     () => ({

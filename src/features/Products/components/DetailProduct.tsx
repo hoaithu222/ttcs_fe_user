@@ -17,6 +17,7 @@ import { Product, ProductVariant } from "@/core/api/products/type";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
 import { useAppDispatch } from "@/app/store";
 import { addToast } from "@/app/store/slices/toast";
+import ShopChatModal from "@/features/Chat/components/ShopChatModal";
 
 interface DetailProductProps {
   product: Product;
@@ -51,6 +52,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
     selectedVariant || null
   );
   const [variantError, setVariantError] = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const requiresVariantSelection = Boolean(product.variants && product.variants.length > 0);
 
   // Get image URLs
@@ -408,6 +410,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                 variant="outline"
                 size="lg"
                 icon={<MessageCircle className="w-5 h-5" />}
+                onClick={() => setIsChatModalOpen(true)}
               />
             </div>
             <Button
@@ -444,6 +447,21 @@ const DetailProduct: React.FC<DetailProductProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Shop Chat Modal with Product Info */}
+      {product.shop?._id && (
+        <ShopChatModal
+          isOpen={isChatModalOpen}
+          onClose={() => setIsChatModalOpen(false)}
+          shopId={product.shop._id}
+          shopName={product.shop.name}
+          shopAvatar={product.shop.logo}
+          productId={product._id}
+          productName={product.name}
+          productImage={imageUrls[0]}
+          productPrice={finalPrice}
+        />
+      )}
     </div>
   );
 };

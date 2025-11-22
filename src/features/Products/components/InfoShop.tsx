@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/app/store";
 import { selectProfile } from "@/features/Profile/slice/profile.selector";
 import { useShopFollowing } from "@/features/Profile/hooks/useShopFollowing";
+import ShopChatModal from "@/features/Chat/components/ShopChatModal";
 
 interface InfoShopProps {
   shop: Product["shop"];
@@ -21,6 +22,7 @@ const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
     toggleFollowShop,
   } = useShopFollowing();
   const [followLoading, setFollowLoading] = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
 
   const isOwnShop = Boolean(profile?.shop?.id && shop?._id && profile.shop.id === shop._id);
 
@@ -67,8 +69,7 @@ const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
 
   const handleChat = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // TODO: Implement chat functionality
-    // dispatch(addToast({ type: "info", message: "Tính năng chat đang được phát triển" }));
+    setIsChatModalOpen(true);
   };
 
   return (
@@ -149,6 +150,17 @@ const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
           </div>
         </div>
       </div>
+
+      {/* Shop Chat Modal */}
+      {shop?._id && (
+        <ShopChatModal
+          isOpen={isChatModalOpen}
+          onClose={() => setIsChatModalOpen(false)}
+          shopId={shop._id}
+          shopName={shop.name}
+          shopAvatar={shop.logo}
+        />
+      )}
     </div>
   );
 };

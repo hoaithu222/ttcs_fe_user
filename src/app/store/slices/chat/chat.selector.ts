@@ -15,7 +15,44 @@ export const selectCurrentConversation = createSelector(
 
 export const selectChatMessages = (conversationId: string) =>
   createSelector([selectChatState], (chatState) => {
-    return chatState?.messages?.[conversationId] || [];
+    const messages = chatState?.messages?.[conversationId] || [];
+    
+    // Remove duplicates by _id first
+    const uniqueById = Array.from(
+      new Map(messages.map((msg: any) => [msg._id, msg])).values()
+    );
+    
+    // Remove duplicates by content, senderId, and timestamp (within 1 second)
+    const uniqueMessages: any[] = [];
+    const seen = new Set<string>();
+    
+    uniqueById.forEach((msg: any) => {
+      const key = `${msg.message}|${msg.senderId}|${new Date(msg.createdAt).getTime()}`;
+      const timestamp = new Date(msg.createdAt).getTime();
+      
+      // Check if we've seen a similar message
+      let isDuplicate = false;
+      for (const seenKey of seen) {
+        const [seenMsg, seenSender, seenTime] = seenKey.split('|');
+        const timeDiff = Math.abs(timestamp - parseInt(seenTime));
+        if (seenMsg === msg.message && seenSender === msg.senderId && timeDiff < 1000) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      
+      if (!isDuplicate) {
+        seen.add(key);
+        uniqueMessages.push(msg);
+      }
+    });
+    
+    // Sort messages by createdAt (oldest first)
+    return uniqueMessages.sort((a: any, b: any) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateA - dateB;
+    });
   });
 
 export const selectChatPagination = createSelector(

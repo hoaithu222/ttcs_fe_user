@@ -1,6 +1,7 @@
 // Chat API endpoints for users
 export const CHAT_ENDPOINTS = {
   CONVERSATIONS: "/chat/conversations",
+  CREATE_CONVERSATION: "/chat/conversations",
   CONVERSATION_DETAIL: "/chat/conversations/:id",
   MESSAGES: "/chat/conversations/:id/messages",
   SEND_MESSAGE: "/chat/conversations/:id/messages",

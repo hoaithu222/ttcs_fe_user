@@ -39,6 +39,7 @@ import {
   markAllAsReadStart,
 } from "@/app/store/slices/notification/notification.slice";
 import { Notification } from "@/core/api/notifications/type";
+import { MessageSquare } from "lucide-react";
 
 const Header = () => {
   const { user, onLogout } = useAuth();
@@ -270,6 +271,13 @@ const Header = () => {
                   </div>
                 )}
               </div>
+              {/* Hien thi icon chat */}
+              <IconButton
+                icon={<MessageSquare className="w-5 h-5" />}
+                variant="ghost"
+                tooltip="Chat"
+                onClick={() => navigation(NAVIGATION_CONFIG.chat.path)}
+              />
 
               {/* User Profile Dropdown */}
               <div className="relative z-50" ref={dropdownRef}>

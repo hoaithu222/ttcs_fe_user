@@ -14,12 +14,16 @@ import {
   markAsReadStart,
   markAsReadSuccess,
   markAsReadFailure,
+  createConversationStart,
+  createConversationSuccess,
+  createConversationFailure,
 } from "./chat.slice";
 
 type GetConversationsAction = ReturnType<typeof getConversationsStart>;
 type GetMessagesAction = ReturnType<typeof getMessagesStart>;
 type SendMessageAction = ReturnType<typeof sendMessageStart>;
 type MarkAsReadAction = ReturnType<typeof markAsReadStart>;
+type CreateConversationAction = ReturnType<typeof createConversationStart>;
 
 // Helper function để lấy error message
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -131,11 +135,32 @@ function* markAsReadWorker(action: MarkAsReadAction): Generator {
   }
 }
 
+function* createConversationWorker(action: CreateConversationAction): Generator {
+  try {
+    const { data } = action.payload;
+    const response: any = yield call([chatApi, chatApi.createConversation], data);
+
+    if (response.success && response.data) {
+      yield put(createConversationSuccess(response.data));
+      yield put(addToast({ type: "success", message: "Tạo cuộc trò chuyện thành công" }));
+    } else {
+      const errorMessage = "Không thể tạo cuộc trò chuyện";
+      yield put(createConversationFailure(errorMessage));
+      yield put(addToast({ type: "error", message: errorMessage }));
+    }
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, "Không thể tạo cuộc trò chuyện");
+    yield put(createConversationFailure(message));
+    yield put(addToast({ type: "error", message }));
+  }
+}
+
 // Root watcher for Chat feature
 export function* chatSaga() {
   yield takeEvery("chat/getConversationsStart", getConversationsWorker);
   yield takeEvery("chat/getMessagesStart", getMessagesWorker);
   yield takeEvery("chat/sendMessageStart", sendMessageWorker);
   yield takeEvery("chat/markAsReadStart", markAsReadWorker);
+  yield takeEvery("chat/createConversationStart", createConversationWorker);
 }
 

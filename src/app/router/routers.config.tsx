@@ -25,7 +25,7 @@ const EditProductPage = lazy(() => import("@/features/Shop/pages/EditProductPage
 const ListProductPage = lazy(() => import("@/features/Shop/pages/ListProductPage"));
 const OrderShopPage = lazy(() => import("@/features/Shop/pages/OrderShopPage"));
 const ShopDetailPage = lazy(() => import("@/features/Shop/pages/ShopDetailPage"));
-
+const ChatPage = lazy(() => import("@/features/Chat/pages/ChatPage"));
 const defaultOptions = {
 
   requireAuth: false,
@@ -214,6 +214,12 @@ export const ROUTE = {
     element: <ShopDetailPage />,
     layout: "main",
     options: defaultOptions,
+  },
+  chat: {
+    path: "/chat",
+    element: <ChatPage />,
+    layout: "extension",
+    options: defaultProtectedOptions,
   },
 } satisfies Record<
   string,

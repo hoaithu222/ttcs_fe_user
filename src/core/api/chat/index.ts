@@ -7,6 +7,7 @@ import type {
   MessageListQuery,
   MessageListResponse,
   SendMessageRequest,
+  CreateConversationRequest,
   ApiSuccess,
 } from "./type";
 import { VpsHttpClient } from "@/core/base/http-client";
@@ -23,6 +24,14 @@ class ChatApiService extends VpsHttpClient {
     query?: ConversationListQuery
   ): Promise<ApiSuccess<ConversationListResponse>> {
     const response = await this.get(CHAT_ENDPOINTS.CONVERSATIONS, { params: query });
+    return response.data;
+  }
+
+  // Create a new conversation
+  async createConversation(
+    data: CreateConversationRequest
+  ): Promise<ApiSuccess<ChatConversation>> {
+    const response = await this.post(CHAT_ENDPOINTS.CREATE_CONVERSATION, data);
     return response.data;
   }
 
