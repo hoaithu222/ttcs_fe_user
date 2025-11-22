@@ -405,6 +405,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                 disabled={isWishlistLoading}
                 icon={<Heart className={`w-5 h-5 ${isWishlist ? "fill-current" : ""}`} />}
               />
+             {!isOwnShopProduct && (
               <Button
                 color="gray"
                 variant="outline"
@@ -412,6 +413,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                 icon={<MessageCircle className="w-5 h-5" />}
                 onClick={() => setIsChatModalOpen(true)}
               />
+             )}
             </div>
             <Button
               color="green"

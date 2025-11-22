@@ -13,7 +13,7 @@ interface MessageItemProps {
   currentUserId?: string;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, currentUserId }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn }) => {
   const messageDate = new Date(message.createdAt);
   const isToday = messageDate.toDateString() === new Date().toDateString();
   const timeStr = format(messageDate, isToday ? "HH:mm" : "dd/MM/yyyy HH:mm", {
@@ -53,8 +53,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, currentUserId
           </span>
         )}
 
-        {/* Product Card - Render when type is "product" */}
-        {message.type === "product" && message.metadata?.productId && (
+        {/* Product Card - Render for messages with product metadata */}
+        {/* Show for user's messages (isOwn) or if message type is "product" */}
+        {message.metadata?.productId && 
+         message.metadata?.productName && 
+         (isOwn || message.type === "product") && (
           <div className="mb-2 w-full">
             <ProductCard
               productId={message.metadata.productId}

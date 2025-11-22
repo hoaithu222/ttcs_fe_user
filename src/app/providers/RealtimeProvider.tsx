@@ -24,7 +24,8 @@ import {
   applyProfileOrderUpdate,
 } from "@/features/Profile/slice/profile.slice";
 import { updateNotificationFromSocket } from "@/app/store/slices/notification/notification.slice";
-import { updateMessageFromSocket, updateConversationFromSocket } from "@/app/store/slices/chat/chat.slice";
+import { updateMessageFromSocket, updateConversationFromSocket, getConversationsStart } from "@/app/store/slices/chat/chat.slice";
+import { selectUser } from "@/features/Auth/components/slice/auth.selector";
 
 const MAX_NOTIFICATIONS = 50;
 
@@ -102,7 +103,7 @@ const RealtimeProvider = ({ children }: PropsWithChildren) => {
   const profileOrdersQuery = useAppSelector(
     (state) => (state as any).profile.orders.lastQuery
   );
-  const authUser = useAppSelector((state) => (state as any).auth.user);
+  const authUser = useAppSelector(selectUser);
   const profileUserId = useAppSelector(
     (state) => (state as any).profile.profile.data?._id
   );
@@ -114,6 +115,14 @@ const RealtimeProvider = ({ children }: PropsWithChildren) => {
   const shopOrdersQueryRef = useRef(shopOrdersQuery);
   const profileOrdersQueryRef = useRef(profileOrdersQuery);
   const shopOwnerUserIdRef = useRef(shopOwnerUserId);
+  
+  // Load conversations when user is authenticated
+  useEffect(() => {
+    if (hasTokens && authUser?._id) {
+      // Load conversations list when app starts
+      dispatch(getConversationsStart({ query: { page: 1, limit: 50 } }));
+    }
+  }, [hasTokens, authUser?._id, dispatch]);
 
   useEffect(() => {
     shopOrdersQueryRef.current = shopOrdersQuery;

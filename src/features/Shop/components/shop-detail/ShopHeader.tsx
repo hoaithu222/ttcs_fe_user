@@ -4,8 +4,7 @@ import Button from "@/foundation/components/buttons/Button";
 import { Shop } from "@/core/api/shops/type";
 import { useShopFollowing } from "@/features/Profile/hooks/useShopFollowing";
 import { useNavigate } from "react-router-dom";
-import { useAppDispatch } from "@/app/store";
-import { addToast } from "@/app/store/slices/toast";
+import ShopChatModal from "@/features/Chat/components/ShopChatModal";
 
 interface ShopHeaderProps {
   shop: Shop;
@@ -14,12 +13,11 @@ interface ShopHeaderProps {
 
 const ShopHeader: React.FC<ShopHeaderProps> = ({ shop, isOwnShop = false }) => {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { isFollowing, toggleFollowShop, getFollowersCount } = useShopFollowing();
+  const { isFollowing, toggleFollowShop } = useShopFollowing();
   const [followLoading, setFollowLoading] = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
 
   const isFollowingShop = isFollowing(shop._id);
-  const followersCount = getFollowersCount(shop._id) || shop.followersCount || 0;
 
   const handleFollow = async () => {
     if (followLoading) return;
@@ -34,8 +32,7 @@ const ShopHeader: React.FC<ShopHeaderProps> = ({ shop, isOwnShop = false }) => {
   };
 
   const handleChat = () => {
-    // TODO: Implement chat functionality
-    dispatch(addToast({ type: "info", message: "Tính năng chat đang được phát triển" }));
+    setIsChatModalOpen(true);
   };
 
   return (
@@ -121,6 +118,18 @@ const ShopHeader: React.FC<ShopHeaderProps> = ({ shop, isOwnShop = false }) => {
           </Button>
         )}
       </div>
+
+      {/* Shop Chat Modal - No product metadata, just regular shop chat */}
+      {shop?._id && (
+        <ShopChatModal
+          isOpen={isChatModalOpen}
+          onClose={() => setIsChatModalOpen(false)}
+          shopId={shop._id}
+          shopName={shop.name}
+          shopAvatar={shop.logo}
+          // No productId, productName, etc. - this is regular shop chat
+        />
+      )}
     </div>
   );
 };

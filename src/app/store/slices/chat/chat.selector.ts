@@ -86,3 +86,22 @@ export const selectTotalUnreadCount = createSelector(
     conversations.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0)
 );
 
+// Selector to get unread count for a specific conversation from messages
+export const selectUnreadCountFromMessages = (conversationId: string, currentUserId?: string) =>
+  createSelector([selectChatState], (chatState) => {
+    const messages = chatState?.messages?.[conversationId] || [];
+    if (!currentUserId) return { myUnread: 0, theirUnread: 0 };
+    
+    // My unread: messages from others that I haven't read
+    const myUnread = messages.filter(
+      (msg: any) => msg.senderId !== currentUserId && !msg.isRead
+    ).length;
+    
+    // Their unread: messages I sent that they haven't read
+    const theirUnread = messages.filter(
+      (msg: any) => msg.senderId === currentUserId && !msg.isRead
+    ).length;
+    
+    return { myUnread, theirUnread };
+  });
+

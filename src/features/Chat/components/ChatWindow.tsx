@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { X } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/app/store";
 import {
   selectCurrentConversation,
@@ -6,7 +7,7 @@ import {
   selectChatStatus,
 } from "@/app/store/slices/chat/chat.selector";
 import { selectUser } from "@/features/Auth/components/slice/auth.selector";
-import { getMessagesStart, markAsReadStart } from "@/app/store/slices/chat/chat.slice";
+import { getMessagesStart, markAsReadStart, setCurrentConversation } from "@/app/store/slices/chat/chat.slice";
 import { socketClients, SOCKET_EVENTS } from "@/core/socket";
 import ScrollView from "@/foundation/components/scroll/ScrollView";
 import Spinner from "@/foundation/components/feedback/Spinner";
@@ -66,12 +67,17 @@ const ChatWindow: React.FC = () => {
     }
   }, [currentConversation?._id, dispatch]);
 
+  // Mark as read only when ChatWindow is actually visible and messages are loaded
   useEffect(() => {
-    if (currentConversation && messages.length > 0) {
-      // Mark as read when viewing conversation
+    if (
+      currentConversation && 
+      messages.length > 0 && 
+      status !== "LOADING" // Only mark as read after messages are loaded
+    ) {
+      // Mark as read when viewing conversation (ChatWindow is mounted and visible)
       dispatch(markAsReadStart({ conversationId: currentConversation._id }));
     }
-  }, [currentConversation?._id, dispatch]);
+  }, [currentConversation?._id, messages.length, status, dispatch]);
 
   useEffect(() => {
     // Auto scroll to bottom when new messages arrive
@@ -97,6 +103,10 @@ const ChatWindow: React.FC = () => {
     (p: { userId: string }) => p.userId !== currentUserId
   ) || currentConversation.participants[0];
 
+  const handleClose = () => {
+    dispatch(setCurrentConversation(null));
+  };
+
   return (
     <div className="flex flex-col h-full bg-neutral-1">
       {/* Header */}
@@ -120,6 +130,13 @@ const ChatWindow: React.FC = () => {
           </h3>
           <p className="text-xs text-neutral-6 text-start">Đang hoạt động</p>
         </div>
+        <button
+          onClick={handleClose}
+          className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-neutral-2 flex-shrink-0"
+          aria-label="Đóng cuộc trò chuyện"
+        >
+          <X className="w-4 h-4 text-neutral-7" />
+        </button>
       </div>
 
       {/* Messages */}

@@ -41,7 +41,14 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
       // Use existing conversation
       conversationId = currentConversation._id;
       channel = (currentConversation.channel as "admin" | "shop" | "ai") || "shop";
-      metadata = currentConversation.metadata || {};
+      // Only send shop metadata (shopId, shopName), not product metadata
+      // Product metadata should only be sent in the initial product message
+      const convMetadata = currentConversation.metadata || {};
+      metadata = {
+        shopId: convMetadata.shopId,
+        shopName: convMetadata.shopName,
+        // Explicitly exclude product metadata
+      };
     } else {
       // No conversation - determine type from metadata or default to admin
       // This should be set by CreateConversationButton or ChatTypeSelector
@@ -92,15 +99,16 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
       return;
     }
 
-    // Send message via socket
-    // Socket will emit the message back immediately, so no need for optimistic update
+    // Send message via socket without product metadata
+    // Product metadata should only be sent in the initial product message (from DetailProduct)
+    // For regular messages, don't send any metadata to avoid showing product card in shop replies
     socket.emit(SOCKET_EVENTS.CHAT_MESSAGE_SEND, {
       conversationId,
       message: messageText,
       type: "text", // Message type: text (default)
       conversationType: type, // Conversation type for creating new conversation
       targetId,
-      metadata,
+      // Don't send metadata for regular messages - only the first auto-sent product message has metadata
     });
 
     // Clear stored context after first message

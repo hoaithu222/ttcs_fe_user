@@ -81,7 +81,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
 
   // Auto create/open conversation when modal opens
   useEffect(() => {
-    if (!isOpen || !shopId || hasCreatedConversationRef.current) return;
+    if (!isOpen || !shopId) return;
 
     // Find existing conversation between user and this shop (check all conversations, not just current)
     // Look for conversation with type "shop" and metadata.shopId matching
@@ -98,18 +98,12 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
         dispatch(setCurrentConversation(existingShopConversation));
       }
       
-      dispatch(
-        getMessagesStart({
-          conversationId: existingShopConversation._id,
-          query: { page: 1, limit: 50 },
-        })
-      );
-      
-      hasCreatedConversationRef.current = true;
-      
-      // Mark to send product message if productId exists and not already sent
-      if (productId) {
-        conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
+      if (!hasCreatedConversationRef.current) {
+        hasCreatedConversationRef.current = true;
+        // Mark to send product message if productId exists and not already sent
+        if (productId) {
+          conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
+        }
       }
       
       return;
@@ -120,18 +114,12 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       currentConversation?.metadata?.shopId === shopId;
 
     if (isCurrentShopConversation && currentConversation?._id) {
-      // Current conversation is the right one, just load messages
-      dispatch(
-        getMessagesStart({
-          conversationId: currentConversation._id,
-          query: { page: 1, limit: 50 },
-        })
-      );
-      hasCreatedConversationRef.current = true;
-      
-      // Mark to send product message if productId exists and not already sent
-      if (productId) {
-        conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
+      if (!hasCreatedConversationRef.current) {
+        hasCreatedConversationRef.current = true;
+        // Mark to send product message if productId exists and not already sent
+        if (productId) {
+          conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
+        }
       }
       
       return;
@@ -140,30 +128,81 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
     // No existing conversation found, create new one
     // Note: Don't include productId in metadata to avoid creating separate conversations
     // Product info will be sent as a message instead
-    const metadata: Record<string, any> = {
-      shopId,
-      shopName,
-    };
+    if (!hasCreatedConversationRef.current) {
+      const metadata: Record<string, any> = {
+        shopId,
+        shopName,
+      };
 
-    dispatch(
-      createConversationStart({
-        data: {
-          type: "shop",
-          targetId: shopId,
-          metadata,
-        },
-      })
-    );
+      dispatch(
+        createConversationStart({
+          data: {
+            type: "shop",
+            targetId: shopId,
+            metadata,
+          },
+        })
+      );
 
-    hasCreatedConversationRef.current = true;
-    // Mark that we're creating a conversation with product for this shop
-    if (productId) {
-      conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
+      hasCreatedConversationRef.current = true;
+      // Mark that we're creating a conversation with product for this shop
+      if (productId) {
+        conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
+      }
     }
   }, [isOpen, shopId, shopName, productId, productName, productImage, productPrice, currentConversation, conversations, dispatch]);
 
-  // Auto send product message ONLY when conversation is first created and has productId
-  // This should only run once when user opens modal with product, not when shop replies
+  // Load messages and join socket room when current conversation is set for this shop
+  useEffect(() => {
+    if (!isOpen || !shopId || !currentConversation?._id) return;
+
+    // Check if this conversation is for the current shop
+    const isShopConversation = currentConversation.type === "shop" && 
+      currentConversation.metadata?.shopId === shopId;
+
+    if (!isShopConversation) return;
+
+    // Load messages if not already loaded
+    const hasMessages = messages.length > 0;
+    if (!hasMessages) {
+      dispatch(
+        getMessagesStart({
+          conversationId: currentConversation._id,
+          query: { page: 1, limit: 50 },
+        })
+      );
+    }
+
+    // Join socket room to receive real-time messages
+    const channel = (currentConversation.channel as "admin" | "shop" | "ai") || "shop";
+    let socketClient;
+
+    switch (channel) {
+      case "admin":
+        socketClient = socketClients.adminChat;
+        break;
+      case "shop":
+        socketClient = socketClients.shopChat;
+        break;
+      case "ai":
+        socketClient = socketClients.aiChat;
+        break;
+      default:
+        socketClient = socketClients.shopChat;
+    }
+
+    if (socketClient) {
+      const socket = socketClient.connect();
+      if (socket && socket.connected) {
+        socket.emit(SOCKET_EVENTS.CHAT_CONVERSATION_JOIN, {
+          conversationId: currentConversation._id,
+        });
+      }
+    }
+  }, [isOpen, shopId, currentConversation?._id, currentConversation?.type, currentConversation?.metadata?.shopId, messages.length, dispatch]);
+
+  // Auto send product message when opening from DetailProduct (has productId)
+  // Always send product metadata when opening chat from product page
   useEffect(() => {
     if (
       !isOpen ||
@@ -175,52 +214,10 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       return;
     }
 
-    // Only send if this conversation was just created for this product
-    // Check if we're waiting to send product message for this conversation
-    const isWaitingToSend = conversationIdForProductRef.current === `pending_${shopId}_${productId}`;
-    
-    if (!isWaitingToSend) {
-      // This is not a new conversation for product, don't send
-      return;
-    }
-
-    // Check if product message already exists in messages (from user only)
-    const hasProductMessageFromUser = messages.some(
-      (msg) => msg.metadata?.productId === productId && msg.senderId === user._id
-    );
-
-    if (hasProductMessageFromUser) {
-      hasSentProductMessageRef.current = true;
-      conversationIdForProductRef.current = currentConversation._id; // Mark as sent
-      return;
-    }
-
-    // Only send if this is a NEW conversation (no messages from shop yet)
-    // Don't send if shop has already replied (there are messages from other senders)
-    const hasMessagesFromShop = messages.some(
-      (msg) => msg.senderId !== user._id
-    );
-
-    // If shop has already replied, don't send product message
-    if (hasMessagesFromShop) {
-      hasSentProductMessageRef.current = true;
-      conversationIdForProductRef.current = currentConversation._id; // Mark as sent
-      return;
-    }
-
     // Wait a bit for conversation to be fully ready
     const timer = setTimeout(() => {
-      // Final check before sending
-      const stillNoProductMessage = !messages.some(
-        (msg) => msg.metadata?.productId === productId && msg.senderId === user._id
-      );
-      
-      const stillNoShopMessages = !messages.some(
-        (msg) => msg.senderId !== user._id
-      );
-      
-      if (!stillNoProductMessage || !stillNoShopMessages || hasSentProductMessageRef.current) {
-        conversationIdForProductRef.current = currentConversation._id; // Mark as sent
+      // Check if we should send (only if not already sent in this session)
+      if (hasSentProductMessageRef.current) {
         return;
       }
 
@@ -243,18 +240,16 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
 
       if (!socketClient) {
         console.error("Socket client not available");
-        conversationIdForProductRef.current = currentConversation._id; // Mark as sent
         return;
       }
 
       const socket = socketClient.connect();
       if (!socket || !socket.connected) {
         console.error("Socket not connected");
-        conversationIdForProductRef.current = currentConversation._id; // Mark as sent
         return;
       }
 
-      // Send product message with metadata
+      // Send product message with metadata (always send when opening from DetailProduct)
       const productMetadata: ProductMetadata = {
         productId,
         productName,
@@ -267,30 +262,30 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       socket.emit(SOCKET_EVENTS.CHAT_MESSAGE_SEND, {
         conversationId: currentConversation._id,
         message: productName ? `Tôi đang quan tâm đến sản phẩm: ${productName}` : "Tôi đang quan tâm đến sản phẩm này",
-        type: "product", // Set message type to "product" (not conversation type)
-        metadata: productMetadata, // Send product metadata to backend
+        type: "product", // Set message type to "product"
+        metadata: productMetadata, // Always send product metadata when opening from DetailProduct
       });
 
       hasSentProductMessageRef.current = true;
-      conversationIdForProductRef.current = currentConversation._id; // Mark as sent for this conversation
     }, 500);
 
     return () => clearTimeout(timer);
   }, [
     isOpen,
-    productId,
+    productId, // Key: only send when productId exists (opening from DetailProduct)
     productName,
     productImage,
     productPrice,
     shopId,
     shopName,
-    currentConversation?._id, // Only trigger when conversation ID changes (new conversation created)
+    currentConversation?._id,
     user?._id,
   ]);
 
   // Reset flag when modal closes
   useEffect(() => {
     if (!isOpen) {
+      // Reset flags when modal closes to allow reloading when reopening
       hasCreatedConversationRef.current = false;
       hasSentProductMessageRef.current = false;
       conversationIdForProductRef.current = null;
@@ -298,12 +293,19 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
     }
   }, [isOpen]);
 
-  // Mark as read when viewing conversation
+  // Mark as read only when modal is open, visible, and messages are loaded
   useEffect(() => {
-    if (currentConversation && messages.length > 0 && isOpen) {
+    if (
+      currentConversation && 
+      messages.length > 0 && 
+      isOpen && 
+      !isMinimized && // Only mark as read when modal is not minimized
+      status !== "LOADING" // Only mark as read after messages are loaded
+    ) {
+      // Mark as read when viewing conversation (modal is open and visible)
       dispatch(markAsReadStart({ conversationId: currentConversation._id }));
     }
-  }, [currentConversation?._id, messages.length, isOpen, dispatch]);
+  }, [currentConversation?._id, messages.length, isOpen, isMinimized, status, dispatch]);
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -382,20 +384,16 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       return;
     }
 
-    // Send message with basic metadata (shop info only, not product info)
-    // Product metadata should only be sent in the initial product message
-    const basicMetadata: Record<string, any> = {
-      shopId: currentConversation.metadata?.shopId || shopId,
-      shopName: currentConversation.metadata?.shopName || shopName,
-    };
-
+    // Send message without product metadata
+    // Product metadata should only be sent in the initial product message (auto-sent when opening from product)
+    // For subsequent messages, don't send any metadata to avoid showing product card in shop replies
     socket.emit(SOCKET_EVENTS.CHAT_MESSAGE_SEND, {
       conversationId: currentConversation._id,
       message: messageText,
       type: "text", // Message type: text (default)
       conversationType: "shop", // Conversation type for backward compatibility
       targetId: shopId,
-      metadata: basicMetadata, // Only send shop metadata, not product metadata
+      // Don't send metadata for subsequent messages - only the first auto-sent product message has metadata
     });
 
     // Scroll to bottom
