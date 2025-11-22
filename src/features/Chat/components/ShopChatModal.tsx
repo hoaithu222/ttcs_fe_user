@@ -62,6 +62,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
   const hasCreatedConversationRef = useRef(false);
   const hasSentProductMessageRef = useRef(false);
   const conversationIdForProductRef = useRef<string | null>(null);
+  const isNewlyCreatedConversationRef = useRef(false);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -100,6 +101,8 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       
       if (!hasCreatedConversationRef.current) {
         hasCreatedConversationRef.current = true;
+        // Mark that this is NOT a newly created conversation
+        isNewlyCreatedConversationRef.current = false;
         // Mark to send product message if productId exists and not already sent
         if (productId) {
           conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
@@ -116,6 +119,8 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
     if (isCurrentShopConversation && currentConversation?._id) {
       if (!hasCreatedConversationRef.current) {
         hasCreatedConversationRef.current = true;
+        // Mark that this is NOT a newly created conversation
+        isNewlyCreatedConversationRef.current = false;
         // Mark to send product message if productId exists and not already sent
         if (productId) {
           conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
@@ -145,6 +150,8 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       );
 
       hasCreatedConversationRef.current = true;
+      // Mark that this IS a newly created conversation - don't auto-send product message
+      isNewlyCreatedConversationRef.current = true;
       // Mark that we're creating a conversation with product for this shop
       if (productId) {
         conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
@@ -202,14 +209,15 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
   }, [isOpen, shopId, currentConversation?._id, currentConversation?.type, currentConversation?.metadata?.shopId, messages.length, dispatch]);
 
   // Auto send product message when opening from DetailProduct (has productId)
-  // Always send product metadata when opening chat from product page
+  // Only send if conversation already existed (not newly created)
   useEffect(() => {
     if (
       !isOpen ||
       !productId ||
       !currentConversation?._id ||
       hasSentProductMessageRef.current ||
-      !user?._id
+      !user?._id ||
+      isNewlyCreatedConversationRef.current // Don't send if this is a newly created conversation
     ) {
       return;
     }
@@ -289,6 +297,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       hasCreatedConversationRef.current = false;
       hasSentProductMessageRef.current = false;
       conversationIdForProductRef.current = null;
+      isNewlyCreatedConversationRef.current = false;
       setIsMinimized(false);
     }
   }, [isOpen]);

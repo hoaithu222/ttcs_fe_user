@@ -142,7 +142,6 @@ function* createConversationWorker(action: CreateConversationAction): Generator 
 
     if (response.success && response.data) {
       yield put(createConversationSuccess(response.data));
-      yield put(addToast({ type: "success", message: "Tạo cuộc trò chuyện thành công" }));
     } else {
       const errorMessage = "Không thể tạo cuộc trò chuyện";
       yield put(createConversationFailure(errorMessage));
