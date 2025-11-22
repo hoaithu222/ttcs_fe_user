@@ -12,14 +12,11 @@ import {
 import Button from "@/foundation/components/buttons/Button";
 import { useAuth } from "@/features/Auth/hooks/useAuth";
 import { useState, useRef, useEffect } from "react";
-import { useSelector } from "react-redux";
-
 import Image from "@/foundation/components/icons/Image";
 import IconButton from "@/foundation/components/buttons/IconButton";
 import { RootState } from "@/app/store";
 import { themeRootSelector } from "@/app/store/slices/theme/selectors";
 import { toggleTheme } from "@/app/store/slices/theme";
-import { useDispatch } from "react-redux";
 import SearchInput from "@/foundation/components/input/search-input/SearchInput";
 import * as Form from "@radix-ui/react-form";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +29,16 @@ import {
 } from "@/features/Shop/slice/shop.selector";
 import { fetchShopStatusByUserStart } from "@/features/Shop/slice/shop.slice";
 import { ReduxStateType } from "@/app/store/types";
-import { useNotificationCenter } from "@/app/providers/RealtimeProvider";
+import {
+  selectNotifications,
+  selectUnreadCount,
+} from "@/app/store/slices/notification/notification.selector";
+import {
+  getNotificationsStart,
+  markAsReadStart,
+  markAllAsReadStart,
+} from "@/app/store/slices/notification/notification.slice";
+import { Notification } from "@/core/api/notifications/type";
 
 const Header = () => {
   const { user, onLogout } = useAuth();
@@ -40,16 +46,25 @@ const Header = () => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
-  const dispatch = useDispatch();
-  const appDispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const navigation = useNavigate();
-  const { theme } = useSelector((state: RootState) => themeRootSelector(state));
+  const { theme } = useAppSelector((state: RootState) => themeRootSelector(state));
   const shopUi = useAppSelector(selectShopUiScreens);
   const shopFetchStatus = useAppSelector(selectShopFetchStatus);
   const shopStatusByUserStatus = useAppSelector(selectShopStatusByUserStatus);
-  const { notifications, unreadCount, markAllAsRead } = useNotificationCenter();
+  
+  // Get notifications from Redux slice
+  const notifications = useAppSelector(selectNotifications);
+  const unreadCount = useAppSelector(selectUnreadCount);
 
   const displayedNotifications = notifications.slice(0, 8);
+
+  // Load notifications when component mounts
+  useEffect(() => {
+    if (user?._id) {
+      dispatch(getNotificationsStart({ query: { page: 1, limit: 10 } }));
+    }
+  }, [dispatch, user?._id]);
 
   const formatRelativeTime = (value?: string) => {
     if (!value) return "";
@@ -74,13 +89,13 @@ const Header = () => {
     return "Đăng kí bán hàng";
   };
 
-  // Fetch shop status when user is logged in
+  // Fetch shop status when user is logged in (only once or when user changes)
   useEffect(() => {
-    if (user?._id && shopStatusByUserStatus !== ReduxStateType.LOADING) {
-      // Only fetch if not already loading and user exists
-      appDispatch(fetchShopStatusByUserStart({ userId: user._id }));
+    if (user?._id && shopStatusByUserStatus === ReduxStateType.INIT) {
+      // Only fetch if status is INIT (not fetched yet) and user exists
+      dispatch(fetchShopStatusByUserStart({ userId: user._id }));
     }
-  }, [user?._id, appDispatch]);
+  }, [user?._id, dispatch]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -103,9 +118,16 @@ const Header = () => {
 
   useEffect(() => {
     if (isNotificationOpen && unreadCount > 0) {
-      markAllAsRead();
+      dispatch(markAllAsReadStart());
     }
-  }, [isNotificationOpen, markAllAsRead, unreadCount]);
+  }, [isNotificationOpen, dispatch, unreadCount]);
+
+  // Load more notifications when notification panel opens
+  useEffect(() => {
+    if (isNotificationOpen && user?._id) {
+      dispatch(getNotificationsStart({ query: { page: 1, limit: 20 } }));
+    }
+  }, [isNotificationOpen, dispatch, user?._id]);
 
   const handleLogout = () => {
     onLogout();
@@ -188,44 +210,59 @@ const Header = () => {
                 />
 
                 {isNotificationOpen && (
-                  <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-border-2 bg-white shadow-lg dark:bg-gray-800 dark:border-gray-700">
+                  <div className="absolute right-0 z-50 mt-2 w-96 rounded-lg border border-border-2 bg-white shadow-lg dark:bg-gray-800 dark:border-gray-700">
                     <div className="flex justify-between items-center px-4 py-3 border-b border-border-2">
-                      <p className="text-sm font-semibold">Thông báo</p>
-                      <button
-                        onClick={() => markAllAsRead()}
-                        className="text-xs text-primary-6 hover:underline"
-                      >
-                        Đánh dấu đã đọc
-                      </button>
+                      <p className="text-lg text-primary-6 font-semibold">Thông báo</p>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => dispatch(markAllAsReadStart())}
+                          className="text-xs text-primary-6 hover:underline"
+                        >
+                          Đánh dấu đã đọc
+                        </button>
+                      )}
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="max-h-96 overflow-y-auto hidden-scrollbar">
                       {displayedNotifications.length === 0 ? (
                         <p className="px-4 py-6 text-sm text-gray-500">
                           Chưa có thông báo nào
                         </p>
                       ) : (
-                        displayedNotifications.map((notification) => (
+                        displayedNotifications.map((notification: Notification) => (
                           <button
-                            key={notification.id}
-                            className="flex flex-col px-4 py-3 w-full text-left hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                            key={notification._id}
+                            className={`flex flex-col px-4 py-3 w-full text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                              !notification.isRead ? "bg-blue-50 dark:bg-blue-900/10" : ""
+                            }`}
                             onClick={() => {
+                              // Mark as read when clicked
+                              if (!notification.isRead) {
+                                dispatch(markAsReadStart({ id: notification._id }));
+                              }
                               if (notification.actionUrl) {
                                 navigation(notification.actionUrl);
                               }
                               setIsNotificationOpen(false);
                             }}
                           >
-                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                              {notification.title || "Thông báo"}
-                            </p>
-                            {notification.content && (
-                              <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
-                                {notification.content}
-                              </p>
-                            )}
-                            <span className="mt-1 text-[11px] text-gray-400">
-                              {formatRelativeTime(notification.createdAt)}
-                            </span>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                                  {notification.title || "Thông báo"}
+                                </p>
+                                {notification.message && (
+                                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                                    {notification.message}
+                                  </p>
+                                )}
+                                <span className="mt-1 text-[11px] text-gray-400">
+                                  {formatRelativeTime(notification.createdAt)}
+                                </span>
+                              </div>
+                              {!notification.isRead && (
+                                <div className="ml-2 w-2 h-2 bg-blue-500 rounded-full" />
+                              )}
+                            </div>
                           </button>
                         ))
                       )}

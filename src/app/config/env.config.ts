@@ -1,16 +1,44 @@
 export const MODE = import.meta.env.MODE;
 
+const DEFAULT_SOCKET_BASE = "http://localhost:3000";
+
+const stripToOrigin = (value: string) => {
+  if (!value) return "";
+  if (!/^https?:\/\//i.test(value)) {
+    return value;
+  }
+  try {
+    const parsed = new URL(value);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    return value;
+  }
+};
+
+const resolveSocketBaseUrl = () => {
+  const explicit = stripToOrigin(
+    (import.meta.env.VITE_SOCKET_BASE_URL || "").trim()
+  );
+  if (explicit) {
+    return explicit;
+  }
+  const apiBase = stripToOrigin(
+    (import.meta.env.VITE_API_BASE_URL || "").trim()
+  );
+  if (apiBase) {
+    return apiBase;
+  }
+  return DEFAULT_SOCKET_BASE;
+};
+
 // Environment configuration
 export const ENV_CONFIG = {
   // API Configuration
   API_BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000",
   API_TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT) || 30000,
-  SOCKET_BASE_URL:
-    import.meta.env.VITE_SOCKET_BASE_URL ||
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:3000",
+  SOCKET_BASE_URL: resolveSocketBaseUrl(),
   SOCKET_PATH: import.meta.env.VITE_SOCKET_PATH || "/socket.io",
-  SOCKET_AUTO_CONNECT: import.meta.env.VITE_SOCKET_AUTO_CONNECT !== "false",
+  SOCKET_AUTO_CONNECT: import.meta.env.VITE_SOCKET_AUTO_CONNECT === "true",
   SOCKET_RECONNECT_ATTEMPTS:
     Number(import.meta.env.VITE_SOCKET_RECONNECT_ATTEMPTS) || 5,
   SOCKET_RECONNECT_DELAY:

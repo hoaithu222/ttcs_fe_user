@@ -7,6 +7,8 @@ import { categoriesSaga } from "@/features/Categories/slice/categories.saga";
 import { productSaga } from "@/features/Products/slices/product.saga";
 import { cartSaga } from "@/features/Cart/slice/Cart.saga";
 import { paymentSaga } from "@/features/Payment/slice/payment.saga";
+import { notificationSaga } from "./slices/notification/notification.saga";
+import { chatSaga } from "./slices/chat/chat.saga";
 
 export const rootSage = function* () {
   try {
@@ -19,6 +21,8 @@ export const rootSage = function* () {
       productSaga(),
       cartSaga(),
       paymentSaga(),
+      notificationSaga(),
+      chatSaga(),
     ]);
   } catch (error) {
     console.error(error);

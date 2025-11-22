@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -15,12 +16,15 @@ import { toastUtils } from "@/shared/utils/toast.utils";
 import { useAppDispatch, useAppSelector } from "@/app/store";
 import {
   applySocketOrderUpdate,
+  fetchShopStatusByUserStart,
   getOrdersStart,
 } from "@/features/Shop/slice/shop.slice";
 import {
   fetchOrdersStart as fetchProfileOrdersStart,
   applyProfileOrderUpdate,
 } from "@/features/Profile/slice/profile.slice";
+import { updateNotificationFromSocket } from "@/app/store/slices/notification/notification.slice";
+import { updateMessageFromSocket } from "@/app/store/slices/chat/chat.slice";
 
 const MAX_NOTIFICATIONS = 50;
 
@@ -93,15 +97,35 @@ const toRealtimeNotification = (
 const RealtimeProvider = ({ children }: PropsWithChildren) => {
   const dispatch = useAppDispatch();
   const shopOrdersQuery = useAppSelector(
-    (state) => state.shop.orders.lastQuery
+    (state) => (state as any).shop.orders.lastQuery
   );
   const profileOrdersQuery = useAppSelector(
-    (state) => state.profile.orders.lastQuery
+    (state) => (state as any).profile.orders.lastQuery
   );
+  const authUser = useAppSelector((state) => (state as any).auth.user);
+  const profileUserId = useAppSelector(
+    (state) => (state as any).profile.profile.data?._id
+  );
+  const shopOwnerUserId = profileUserId || authUser?._id;
   const [hasTokens, setHasTokens] = useState(() => tokenStorage.hasTokens());
   const [notifications, setNotifications] = useState<RealtimeNotification[]>(
     []
   );
+  const shopOrdersQueryRef = useRef(shopOrdersQuery);
+  const profileOrdersQueryRef = useRef(profileOrdersQuery);
+  const shopOwnerUserIdRef = useRef(shopOwnerUserId);
+
+  useEffect(() => {
+    shopOrdersQueryRef.current = shopOrdersQuery;
+  }, [shopOrdersQuery]);
+
+  useEffect(() => {
+    profileOrdersQueryRef.current = profileOrdersQuery;
+  }, [profileOrdersQuery]);
+
+  useEffect(() => {
+    shopOwnerUserIdRef.current = shopOwnerUserId;
+  }, [shopOwnerUserId]);
 
   useEffect(() => {
     const handleTokenChange = (event: Event) => {
@@ -170,13 +194,14 @@ const RealtimeProvider = ({ children }: PropsWithChildren) => {
       const metadata = payload.metadata as Record<string, any>;
       const orderId = metadata.orderId as string | undefined;
       if (!orderId) return;
+      const currentQuery = shopOrdersQueryRef.current;
 
       if (type === "order:new") {
         dispatch(
           getOrdersStart({
-            page: shopOrdersQuery?.page || 1,
-            limit: shopOrdersQuery?.limit || 10,
-            orderStatus: shopOrdersQuery?.orderStatus,
+            page: currentQuery?.page || 1,
+            limit: currentQuery?.limit || 10,
+            orderStatus: currentQuery?.orderStatus,
           })
         );
         return;
@@ -210,12 +235,13 @@ const RealtimeProvider = ({ children }: PropsWithChildren) => {
       const metadata = payload.metadata as Record<string, any>;
       const orderId = metadata.orderId as string | undefined;
       if (!orderId) return;
+      const currentQuery = profileOrdersQueryRef.current;
 
       if (type === "order:placed") {
         dispatch(
           fetchProfileOrdersStart({
-            page: profileOrdersQuery?.page || 1,
-            limit: profileOrdersQuery?.limit || 10,
+            page: currentQuery?.page || 1,
+            limit: currentQuery?.limit || 10,
           })
         );
         return;
@@ -243,16 +269,41 @@ const RealtimeProvider = ({ children }: PropsWithChildren) => {
     [dispatch, profileOrdersQuery]
   );
 
+  const handleShopStatusEvent = useCallback(() => {
+    const currentUserId = shopOwnerUserIdRef.current;
+    if (!currentUserId) return;
+    dispatch(fetchShopStatusByUserStart({ userId: currentUserId }));
+  }, [dispatch]);
+
   useEffect(() => {
     if (!hasTokens) {
       socketClients.notifications.disconnect(true);
       return;
     }
 
-    const socket = socketClients.notifications.connect(true);
+    const socket = socketClients.notifications.connect();
 
     const handleNotification = (payload: Record<string, any>) => {
       addNotification(payload);
+      
+      // Update notification in Redux store
+      dispatch(
+        updateNotificationFromSocket({
+          notification: {
+            _id: payload.notificationId || payload.id || generateNotificationId(),
+            userId: authUser?._id || "",
+            title: payload.title || "",
+            message: payload.content || payload.title || "",
+            type: payload.type || "system",
+            isRead: false,
+            data: payload.metadata || {},
+            actionUrl: payload.actionUrl,
+            createdAt: payload.createdAt || new Date().toISOString(),
+          },
+          notificationId: payload.notificationId || payload.id,
+        })
+      );
+
       const message =
         payload?.content ||
         payload?.title ||
@@ -275,20 +326,111 @@ const RealtimeProvider = ({ children }: PropsWithChildren) => {
           handleUserOrderEvent(payload);
         }
       }
+
+      if (payload?.type?.startsWith("shop:")) {
+        handleShopStatusEvent();
+      }
     };
 
     socket.on(SOCKET_EVENTS.NOTIFICATION_SEND, handleNotification);
 
     return () => {
       socket.off(SOCKET_EVENTS.NOTIFICATION_SEND, handleNotification);
-      socketClients.notifications.disconnect();
+      socketClients.notifications.disconnect(true);
     };
   }, [
     addNotification,
     hasTokens,
     handleShopOrderEvent,
     handleUserOrderEvent,
+    handleShopStatusEvent,
+    dispatch,
+    authUser,
   ]);
+
+  // Handle chat socket events
+  useEffect(() => {
+    if (!hasTokens) {
+      socketClients.shopChat?.disconnect(true);
+      socketClients.adminChat?.disconnect(true);
+      socketClients.aiChat?.disconnect(true);
+      return;
+    }
+
+    // Handle shop chat messages
+    const shopChatSocket = socketClients.shopChat?.connect();
+    if (shopChatSocket) {
+      const handleShopChatMessage = (payload: Record<string, any>) => {
+        if (payload?.conversationId && payload?.message) {
+          dispatch(
+            updateMessageFromSocket({
+              conversationId: payload.conversationId,
+              message: {
+                _id: payload.messageId || payload._id || generateNotificationId(),
+                conversationId: payload.conversationId,
+                senderId: payload.senderId || "",
+                senderName: payload.senderName,
+                senderAvatar: payload.senderAvatar,
+                message: payload.message || "",
+                attachments: payload.attachments,
+                metadata: payload.metadata,
+                isRead: false,
+                isDelivered: false,
+                createdAt: payload.sentAt || payload.createdAt || new Date().toISOString(),
+              },
+            })
+          );
+        }
+      };
+
+      shopChatSocket.on(SOCKET_EVENTS.CHAT_MESSAGE_RECEIVE, handleShopChatMessage);
+
+      return () => {
+        shopChatSocket.off(SOCKET_EVENTS.CHAT_MESSAGE_RECEIVE, handleShopChatMessage);
+        socketClients.shopChat?.disconnect(true);
+      };
+    }
+  }, [hasTokens, dispatch]);
+
+  // Handle admin chat messages
+  useEffect(() => {
+    if (!hasTokens) {
+      return;
+    }
+
+    const adminChatSocket = socketClients.adminChat?.connect();
+    if (adminChatSocket) {
+      const handleAdminChatMessage = (payload: Record<string, any>) => {
+        if (payload?.conversationId && payload?.message) {
+          dispatch(
+            updateMessageFromSocket({
+              conversationId: payload.conversationId,
+              message: {
+                _id: payload.messageId || payload._id || generateNotificationId(),
+                conversationId: payload.conversationId,
+                senderId: payload.senderId || "",
+                senderName: payload.senderName,
+                senderAvatar: payload.senderAvatar,
+                message: payload.message || "",
+                attachments: payload.attachments,
+                metadata: payload.metadata,
+                isRead: false,
+                isDelivered: false,
+                createdAt: payload.sentAt || payload.createdAt || new Date().toISOString(),
+              },
+            })
+          );
+        }
+      };
+
+      adminChatSocket.on(SOCKET_EVENTS.CHAT_MESSAGE_RECEIVE, handleAdminChatMessage);
+
+      return () => {
+        adminChatSocket.off(SOCKET_EVENTS.CHAT_MESSAGE_RECEIVE, handleAdminChatMessage);
+        socketClients.adminChat?.disconnect(true);
+      };
+    }
+  }, [hasTokens, dispatch]);
 
   const contextValue = useMemo(
     () => ({
