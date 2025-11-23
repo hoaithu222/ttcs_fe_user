@@ -414,7 +414,7 @@ const SearchInputEnhance: React.FC<SearchInputProps> = ({
           style={{ height: Number(style.height) - gapItemValue }}
           className={clsx(
             "text-body-14 flex w-full cursor-pointer items-center px-4",
-            isSel ? "bg-purple-2 text-neutral-9" : "text-neutral-9 hover:bg-purple-2",
+            isSel ? "bg-primary-1 text-neutral-9" : "text-neutral-9 hover:bg-primary-1",
             itemClassName
           )}
           onMouseEnter={() => setHighlightedIndex(gIdx)}

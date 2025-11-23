@@ -52,7 +52,7 @@ const RatingBar = ({
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       {/* Số sao (ví dụ: "5 sao") */}
-      <span className="min-w-[48px] text-sm font-medium text-slate-700">{stars} sao</span>
+      <span className="min-w-[48px] text-sm font-medium text-neutral-9">{stars} sao</span>
 
       {/* Thanh tỷ lệ hiển thị phần trăm */}
       <div
@@ -72,7 +72,7 @@ const RatingBar = ({
       </div>
 
       {/* Hiển thị phần trăm hoặc số lượng đánh giá */}
-      <span className="min-w-[32px] text-right text-sm font-semibold text-slate-800">
+      <span className="min-w-[32px] text-right text-sm font-semibold text-neutral-9">
         {showPercentage ? `${percentage}%` : count}
       </span>
     </div>

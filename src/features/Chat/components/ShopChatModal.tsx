@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Minus, Send, X } from "lucide-react";
+import { Minus, Send, X, Image as ImageIcon, Smile } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
 import { useAppDispatch, useAppSelector } from "@/app/store";
 import {
@@ -7,11 +7,13 @@ import {
   selectChatMessages,
   selectChatStatus,
   selectConversations,
+  selectTypingUsers,
 } from "@/app/store/slices/chat/chat.selector";
 import { selectUser } from "@/features/Auth/components/slice/auth.selector";
-import { getMessagesStart, markAsReadStart, setCurrentConversation } from "@/app/store/slices/chat/chat.slice";
+import { getMessagesStart, markAsReadStart, setCurrentConversation, setTyping } from "@/app/store/slices/chat/chat.slice";
 import { createConversationStart } from "@/app/store/slices/chat/chat.slice";
 import { socketClients, SOCKET_EVENTS } from "@/core/socket";
+import { imagesApi } from "@/core/api/images";
 import Button from "@/foundation/components/buttons/Button";
 import TextArea from "@/foundation/components/input/TextArea";
 import MessageItem from "./MessageItem";
@@ -20,6 +22,9 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import type { ChatMessage, ProductMetadata } from "@/core/api/chat/type";
 import Image from "@/foundation/components/icons/Image";
+import { images } from "@/assets/image";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import Popover from "@/foundation/components/popover/Popever";
 
 interface ShopChatModalProps {
   isOpen: boolean;
@@ -55,10 +60,22 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
   const status = useAppSelector(selectChatStatus);
   const user = useAppSelector(selectUser);
   const currentUserId = user?._id;
+  const typingUsers = useAppSelector((state) =>
+    currentConversation ? selectTypingUsers(currentConversation._id)(state) : []
+  );
   const [message, setMessage] = useState("");
   const [isMinimized, setIsMinimized] = useState(false);
+  const [attachments, setAttachments] = useState<Array<{
+    url: string;
+    type: string;
+    name?: string;
+    file?: File;
+  }>>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const hasCreatedConversationRef = useRef(false);
   const hasSentProductMessageRef = useRef(false);
   const conversationIdForProductRef = useRef<string | null>(null);
@@ -204,9 +221,41 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
         socket.emit(SOCKET_EVENTS.CHAT_CONVERSATION_JOIN, {
           conversationId: currentConversation._id,
         });
+
+        // Listen for typing events
+        socket.on(SOCKET_EVENTS.CHAT_TYPING, (payload: any) => {
+          if (payload?.conversationId === currentConversation._id && payload?.userId !== currentUserId) {
+            dispatch(setTyping({
+              conversationId: payload.conversationId,
+              userId: payload.userId,
+              isTyping: payload.isTyping !== false,
+            }));
+            
+            // Auto clear typing after 3 seconds
+            if (payload.isTyping !== false) {
+              setTimeout(() => {
+                dispatch(setTyping({
+                  conversationId: payload.conversationId,
+                  userId: payload.userId,
+                  isTyping: false,
+                }));
+              }, 3000);
+            }
+          }
+        });
       }
     }
-  }, [isOpen, shopId, currentConversation?._id, currentConversation?.type, currentConversation?.metadata?.shopId, messages.length, dispatch]);
+
+    return () => {
+      // Cleanup: remove typing listener when leaving conversation
+      if (socketClient) {
+        const socket = socketClient.connect();
+        if (socket) {
+          socket.off(SOCKET_EVENTS.CHAT_TYPING);
+        }
+      }
+    };
+  }, [isOpen, shopId, currentConversation?._id, currentConversation?.type, currentConversation?.metadata?.shopId, messages.length, currentUserId, dispatch]);
 
   // Auto send product message when opening from DetailProduct (has productId)
   // Only send if conversation already existed (not newly created)
@@ -299,8 +348,64 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       conversationIdForProductRef.current = null;
       isNewlyCreatedConversationRef.current = false;
       setIsMinimized(false);
+      setAttachments([]);
+      setMessage("");
     }
   }, [isOpen]);
+
+  // Handle file selection and upload
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Filter only image files
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      alert("Vui lòng chọn file ảnh");
+      return;
+    }
+
+    // Check file size (max 5MB per image)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const validFiles = imageFiles.filter((file) => {
+      if (file.size > maxSize) {
+        alert(`File ${file.name} vượt quá 5MB`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setIsUploading(true);
+
+    try {
+      const uploadPromises = validFiles.map(async (file) => {
+        const result = await imagesApi.uploadImage(file);
+        return {
+          url: result.url,
+          type: file.type,
+          name: file.name,
+          file: file, // Keep for preview
+        };
+      });
+
+      const uploadedAttachments = await Promise.all(uploadPromises);
+      setAttachments((prev) => [...prev, ...uploadedAttachments]);
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      alert("Lỗi khi upload ảnh. Vui lòng thử lại.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
 
   // Mark as read only when modal is open, visible, and messages are loaded
   useEffect(() => {
@@ -353,14 +458,30 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
     return currentConversation.participants.find((p: { userId: string }) => p.userId !== currentUserId) || currentConversation.participants[0];
   }, [currentConversation, currentUserId]);
 
+  // Get avatar - use CSKH.png for CSKH conversation, otherwise use participant avatar or shop avatar
+  const displayAvatar = useMemo(() => {
+    if (currentConversation?.type === "admin" && currentConversation?.metadata?.context === "CSKH") {
+      return images.CSKH;
+    }
+    return otherParticipant?.avatar || shopAvatar;
+  }, [currentConversation, otherParticipant?.avatar, shopAvatar]);
+
   const displayName = otherParticipant?.name || shopName;
-  const displayAvatar = otherParticipant?.avatar || shopAvatar;
+  const isOtherUserTyping = otherParticipant && typingUsers.includes(otherParticipant.userId);
 
   const handleSend = () => {
-    if (!message.trim() || !currentConversation) return;
+    if ((!message.trim() && attachments.length === 0) || !currentConversation) return;
 
     const messageText = message.trim();
+    const attachmentsToSend = attachments.map((att) => ({
+      url: att.url,
+      type: att.type,
+      name: att.name,
+    }));
+
+    // Clear state
     setMessage("");
+    setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -393,13 +514,21 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       return;
     }
 
+    // Determine message type based on content
+    let messageType: "text" | "image" | "file" = "text";
+    if (attachmentsToSend.length > 0) {
+      const hasImages = attachmentsToSend.some((att) => att.type.startsWith("image/"));
+      messageType = hasImages ? "image" : "file";
+    }
+
     // Send message without product metadata
     // Product metadata should only be sent in the initial product message (auto-sent when opening from product)
     // For subsequent messages, don't send any metadata to avoid showing product card in shop replies
     socket.emit(SOCKET_EVENTS.CHAT_MESSAGE_SEND, {
       conversationId: currentConversation._id,
-      message: messageText,
-      type: "text", // Message type: text (default)
+      message: messageText || "", // Allow empty message if only images
+      type: messageType,
+      attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined,
       conversationType: "shop", // Conversation type for backward compatibility
       targetId: shopId,
       // Don't send metadata for subsequent messages - only the first auto-sent product message has metadata
@@ -420,6 +549,22 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
     }
   };
 
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    const cursorPosition = textareaRef.current?.selectionStart || 0;
+    const textBefore = message.substring(0, cursorPosition);
+    const textAfter = message.substring(cursorPosition);
+    setMessage(textBefore + emojiData.emoji + textAfter);
+    
+    // Focus back to textarea and set cursor position
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPosition = cursorPosition + emojiData.emoji.length;
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newPosition, newPosition);
+      }
+    }, 0);
+  };
+
   if (!isOpen) return null;
 
   const isConnected = true; // TODO: Get from socket status
@@ -429,7 +574,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       className={`fixed right-4 bottom-4 z-50 flex flex-col transition-all duration-300 ${
         isMinimized
           ? "h-[60px] w-[60px]"
-          : "h-[550px] w-[400px] lg:h-[600px] lg:w-[450px]  xl:h-[640px] xl:w-[500px]"
+          : "h-[600px] w-[420px] lg:h-[650px] lg:w-[480px] xl:h-[750px] xl:w-[580px] 2xl:h-[800px] 2xl:w-[600px]"
       }`}
       style={{
         borderRadius: isMinimized ? "50%" : "12px",
@@ -458,8 +603,8 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
         </button>
       ) : (
         <div className="flex h-full w-full flex-col overflow-hidden rounded-xl bg-white shadow-2xl border border-neutral-3">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-neutral-3 bg-background-2 px-4 py-3">
+          {/* Header - Sticky */}
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-3 bg-background-2 px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="relative h-10 w-10 overflow-hidden rounded-full flex-shrink-0">
                 {displayAvatar ? (
@@ -471,14 +616,20 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
                 )}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-neutral-10 truncate">{displayName}</span>
+                <span className="text-sm font-semibold text-start  text-neutral-10 truncate">{displayName}</span>
                 <div className="flex items-center gap-2">
+                  {isOtherUserTyping ? (
+                    <span className="text-xs text-primary-7 italic">Đang nhập...</span>
+                  ) : (
+                    <>
                   <span
                     className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}
                   />
                   <span className={`text-xs ${isConnected ? "text-green-600" : "text-red-600"}`}>
                     {isConnected ? "Đang hoạt động" : "Mất kết nối"}
                   </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -530,10 +681,42 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
                         message={msg}
                         isOwn={msg.senderId === currentUserId}
                         currentUserId={currentUserId}
+                        conversation={currentConversation}
                       />
                     ))}
                   </div>
                 ))}
+                {isOtherUserTyping && (
+                  <div className="flex gap-3 mb-3">
+                    {otherParticipant && otherParticipant.userId !== currentUserId && (
+                      <div className="flex-shrink-0">
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-primary-5 to-primary-7 flex items-center justify-center shadow-sm">
+                          {displayAvatar ? (
+                            <Image
+                              src={displayAvatar}
+                              alt={displayName}
+                              rounded
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-primary-6 text-neutral-1 flex items-center justify-center text-sm font-semibold">
+                              {displayName[0].toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex flex-col max-w-[75%] sm:max-w-[65%]">
+                      <div className="rounded-2xl px-4 py-2.5 bg-gradient-to-br from-background-2 to-background-1 text-neutral-10 rounded-bl-md border border-neutral-3">
+                        <div className="flex gap-1">
+                          <span className="w-2 h-2 bg-neutral-6 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                          <span className="w-2 h-2 bg-neutral-6 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                          <span className="w-2 h-2 bg-neutral-6 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
             )}
@@ -542,7 +725,89 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
           {/* Input Area */}
           <div className="border-t border-neutral-3 bg-background-2 p-3">
             <Form.Root onSubmit={(e) => e.preventDefault()}>
+              {/* Image previews */}
+              {attachments.length > 0 && (
+                <div className="mb-2 p-2 bg-background-2 rounded-lg border border-neutral-3">
+                  <div className="flex gap-2 overflow-x-auto">
+                    {attachments.map((attachment, index) => (
+                      <div
+                        key={index}
+                        className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-neutral-3 group"
+                      >
+                        {attachment.file ? (
+                          <img
+                            src={URL.createObjectURL(attachment.file)}
+                            alt={attachment.name || "Preview"}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Image
+                            src={attachment.url}
+                            alt={attachment.name || "Preview"}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAttachment(index)}
+                          className="absolute top-1 right-1 w-5 h-5 bg-neutral-9/80 hover:bg-neutral-9 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Xóa ảnh"
+                        >
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex items-end gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || !currentConversation || status === "LOADING"}
+                  className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                  title="Đính kèm ảnh"
+                >
+                  {isUploading ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <ImageIcon className="w-4 h-4" />
+                  )}
+                </button>
+                <Popover
+                  open={isEmojiPickerOpen}
+                  onOpenChange={setIsEmojiPickerOpen}
+                  side="top"
+                  align="start"
+                  contentClassName="!p-0 border border-neutral-3 rounded-lg shadow-lg overflow-hidden"
+                  content={
+                    <EmojiPicker
+                      onEmojiClick={handleEmojiClick}
+                      width={350}
+                      height={400}
+                      previewConfig={{ showPreview: false }}
+                      skinTonesDisabled
+                    />
+                  }
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
+                    disabled={!currentConversation || status === "LOADING"}
+                    className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                    title="Emoji"
+                  >
+                    <Smile className="w-4 h-4" />
+                  </button>
+                </Popover>
                 <div className="flex-1">
                   <TextArea
                     name="message"
@@ -559,7 +824,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
                 </div>
                 <Button
                   onClick={handleSend}
-                  disabled={!message.trim() || !currentConversation || status === "LOADING"}
+                  disabled={(!message.trim() && attachments.length === 0) || !currentConversation || status === "LOADING" || isUploading}
                   size="md"
                   rounded="full"
                   icon={<Send className="w-4 h-4" />}

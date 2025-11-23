@@ -123,8 +123,8 @@ const Tooltip: FC<TooltipProps> = ({
             sideOffset={sideOffset}
             collisionPadding={8}
             className={clsx(
-              "text-caption-11 z-50 text-white shadow-lg",
-              bgColor ? `bg-${bgColor}` : "bg-base-black",
+              "text-caption-11 z-50 text-neutral-0 shadow-lg",
+              bgColor ? `bg-${bgColor}` : "bg-neutral-9",
               ROUNDED_MAP[rounded],
               PADDING_X_MAP[paddingX],
               PADDING_Y_MAP[paddingY],

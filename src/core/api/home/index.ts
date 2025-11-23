@@ -17,7 +17,7 @@ class HomeApiService extends VpsHttpClient {
     super(API_BASE_URL);
   }
 
-  // Get home banner
+  // Get home banner (active configuration only)
   async getBanner(): Promise<ApiSuccess<HomeBannerResponse>> {
     const response = await this.get(HOME_ENDPOINTS.BANNER);
     return response.data;

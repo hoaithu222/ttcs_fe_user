@@ -1,6 +1,9 @@
 import clsx from "clsx";
 import { Outlet } from "react-router-dom";
+import { lazy } from "react";
 import ToastContainer from "./widgets/toast/ToastContainer";
+
+const FloatingChatBubble = lazy(() => import("./widgets/floating-chat/FloatingChatBuble"));
 
 /**
  * Appshell là layout chính của toàn bộ ứng dụng
@@ -25,6 +28,8 @@ const AppShell = () => {
       </div>
       {/* Các Modal,Toast,Dialog,Tooltip,Popover, sẽ được render ở đây */}
       <ToastContainer />
+      {/* Floating Chat Bubble - Always available */}
+      <FloatingChatBubble />
     </div>
   );
 };

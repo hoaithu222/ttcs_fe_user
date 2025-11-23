@@ -152,14 +152,14 @@ const ImageIconUpload: React.FC<ImageIconUploadProps> = ({
             config.container,
             shapeClass,
             disabled
-              ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
+              ? "border-border-1 bg-input-bg-disabled cursor-not-allowed opacity-60"
               : "cursor-pointer hover:shadow-lg active:scale-95",
-            isUploading && "border-blue-400 bg-blue-50",
-            displayError && "border-red-300 bg-red-50",
+            isUploading && "border-primary-5 bg-primary-1",
+            displayError && "border-error bg-error/10",
             !value &&
               !isUploading &&
               !displayError &&
-              "border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50/30"
+              "border-dashed border-border-2 hover:border-primary-5 hover:bg-primary-1"
           )}
           onClick={handleClick}
           onMouseEnter={() => setIsHovering(true)}
@@ -178,7 +178,7 @@ const ImageIconUpload: React.FC<ImageIconUploadProps> = ({
 
           {isUploading ? (
             // Loading State
-            <div className="flex absolute inset-0 flex-col gap-1 justify-center items-center bg-blue-50">
+            <div className="flex absolute inset-0 flex-col gap-1 justify-center items-center bg-primary-1">
               <Spinner size="sm" />
             </div>
           ) : value ? (
@@ -194,8 +194,8 @@ const ImageIconUpload: React.FC<ImageIconUploadProps> = ({
               />
               {/* Hover Overlay */}
               {isHovering && !disabled && (
-                <div className="flex absolute inset-0 justify-center items-center bg-black/40 backdrop-blur-[1px]">
-                  <ImageIcon className={clsx("text-white", config.uploadIcon)} strokeWidth={2} />
+                <div className="flex absolute inset-0 justify-center items-center bg-overlay backdrop-blur-[1px]">
+                  <ImageIcon className={clsx("text-button-text", config.uploadIcon)} strokeWidth={2} />
                 </div>
               )}
             </div>
@@ -205,15 +205,15 @@ const ImageIconUpload: React.FC<ImageIconUploadProps> = ({
               <div
                 className={clsx(
                   "p-2 rounded-lg transition-all duration-200",
-                  isHovering ? "bg-blue-500 scale-110" : "bg-gray-200"
+                  isHovering ? "bg-primary-6 scale-110" : "bg-neutral-3"
                 )}
               >
                 <ImageUp
-                  className={clsx(config.uploadIcon, isHovering ? "text-white" : "text-gray-500")}
+                  className={clsx(config.uploadIcon, isHovering ? "text-button-text" : "text-neutral-5")}
                   strokeWidth={2}
                 />
               </div>
-              <span className={clsx(config.text, "font-medium text-gray-400 text-center px-1")}>
+              <span className={clsx(config.text, "font-medium text-neutral-5 text-center px-1")}>
                 {placeholder}
               </span>
             </div>
@@ -226,22 +226,22 @@ const ImageIconUpload: React.FC<ImageIconUploadProps> = ({
             type="button"
             onClick={handleRemove}
             className={clsx(
-              "absolute flex justify-center items-center bg-red-500 shadow-lg transition-all duration-200 hover:bg-red-600 hover:scale-110 active:scale-95",
+              "absolute flex justify-center items-center bg-error shadow-lg transition-all duration-200 hover:bg-error/90 hover:scale-110 active:scale-95",
               config.removeButton,
               shape === "circle" ? "rounded-full" : "rounded-lg"
             )}
             data-testid={`${testId}-remove`}
           >
-            <X className={clsx("text-white", config.removeIcon)} strokeWidth={2.5} />
+            <X className={clsx("text-button-text", config.removeIcon)} strokeWidth={2.5} />
           </button>
         )}
       </div>
 
       {/* Error Message */}
       {displayError && (
-        <div className="flex gap-1.5 items-start p-2 max-w-xs bg-red-50 rounded-lg border border-red-200">
+        <div className="flex gap-1.5 items-start p-2 max-w-xs bg-error/10 rounded-lg border border-error/30">
           <svg
-            className="w-3.5 h-3.5 text-red-500 mt-0.5 flex-shrink-0"
+            className="w-3.5 h-3.5 text-error mt-0.5 flex-shrink-0"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -251,13 +251,13 @@ const ImageIconUpload: React.FC<ImageIconUploadProps> = ({
               clipRule="evenodd"
             />
           </svg>
-          <p className="text-xs font-medium text-red-700 leading-tight">{displayError}</p>
+          <p className="text-xs font-medium text-error leading-tight">{displayError}</p>
         </div>
       )}
 
       {/* Helper Text */}
       {!displayError && (
-        <p className="text-[10px] text-gray-500 text-center max-w-xs">
+        <p className="text-[10px] text-neutral-5 text-center max-w-xs">
           PNG, JPG tối đa {maxSizeInMB}MB
         </p>
       )}

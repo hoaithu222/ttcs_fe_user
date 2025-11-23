@@ -4,28 +4,29 @@ import { selectCurrentConversation, selectConversations } from "@/app/store/slic
 import ConversationsList from "../components/ConversationsList";
 import ChatWindow from "../components/ChatWindow";
 import MessageInput from "../components/MessageInput";
-import ChatTypeSelector from "../components/ChatTypeSelector";
 import { MessageSquare } from "lucide-react";
+import { getConversationsStart } from "@/app/store/slices/chat/chat.slice";
+import { useAppDispatch } from "@/app/store";
 
 const ChatPage: React.FC = () => {
   const currentConversation = useAppSelector(selectCurrentConversation);
   const conversations = useAppSelector(selectConversations);
   const [isMobile, setIsMobile] = useState(false);
-  const [showTypeSelector, setShowTypeSelector] = useState(false);
+  const dispatch = useAppDispatch();
+
+
+  console.log("conversations", conversations);
 
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
     checkMobile();
+    // dispatch lấy conversations 
+    dispatch(getConversationsStart({ query: { page: 1, limit: 50 } }));
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-
-  // Show type selector if no conversations and no current conversation
-  useEffect(() => {
-    setShowTypeSelector(conversations.length === 0 && !currentConversation);
-  }, [conversations.length, currentConversation]);
 
   if (isMobile) {
     return (
@@ -44,24 +45,6 @@ const ChatPage: React.FC = () => {
     );
   }
 
-  const handleSelectChatType = (type: "admin" | "shop", shopId?: string) => {
-    const metadata: Record<string, any> = {};
-    if (type === "admin") {
-      metadata.context = "CSKH";
-    }
-
-    // Store context in sessionStorage for MessageInput to use
-    sessionStorage.setItem(
-      "chatContext",
-      JSON.stringify({
-        type,
-        targetId: type === "shop" ? shopId : undefined,
-        metadata,
-      })
-    );
-
-    setShowTypeSelector(false);
-  };
 
   return (
     <div className="h-full flex bg-neutral-1 overflow-hidden">
@@ -77,12 +60,6 @@ const ChatPage: React.FC = () => {
             <ChatWindow />
             <MessageInput />
           </>
-        ) : showTypeSelector ? (
-          <div className="flex-1 flex items-center justify-center bg-background-base">
-            <div className="w-full max-w-2xl">
-              <ChatTypeSelector onSelectType={handleSelectChatType} />
-            </div>
-          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">

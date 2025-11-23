@@ -308,7 +308,7 @@ function InfiniteScrollTable<TData extends object>({
     >
       {error && (
         <div
-          className="flex justify-between items-center p-4 bg-red-1 text-red-8"
+          className="flex justify-between items-center p-4 bg-error/10 text-error"
           data-testid={`${testId}-error`}
         >
           {errorComponent ?? <span data-testid={`${testId}-error-message`}>{error}</span>}

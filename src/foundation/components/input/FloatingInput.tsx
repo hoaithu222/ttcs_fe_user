@@ -48,17 +48,17 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
     const isFloating = isFocused || hasValue || (value && value.toString().length > 0);
 
     const baseClasses =
-      "w-full transition-all duration-300 ease-out focus:outline-none placeholder:text-gray-400 placeholder:text-sm";
+      "w-full transition-all duration-300 ease-out focus:outline-none placeholder:text-input-placeholder placeholder:text-sm";
 
     const variantClasses = {
       default:
-        "border-2 border-gray-200 bg-white rounded-xl focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/10",
+        "border-2 border-input-border bg-input-bg rounded-xl focus:border-input-border-focus focus:shadow-lg focus:shadow-primary-6/10",
       outlined:
-        "border-2 border-gray-200 bg-white rounded-xl focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/10",
+        "border-2 border-input-border bg-input-bg rounded-xl focus:border-input-border-focus focus:shadow-lg focus:shadow-primary-6/10",
       filled:
-        "border-0 bg-gray-50 rounded-xl focus:bg-white focus:shadow-lg focus:shadow-gray-500/10 focus:ring-2 focus:ring-blue-500/20",
+        "border-0 bg-input-bg-disabled rounded-xl focus:bg-input-bg focus:shadow-lg focus:shadow-neutral-5/10 focus:ring-2 focus:ring-primary-6/20",
       underlined:
-        "border-0 border-b-2 border-gray-300 bg-transparent rounded-none focus:border-blue-500 pb-2",
+        "border-0 border-b-2 border-input-border bg-transparent rounded-none focus:border-input-border-focus pb-2",
     };
 
     const sizeClasses = {
@@ -69,9 +69,9 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
 
     const statusClasses = {
       default: "",
-      success: "border-green-500 focus:border-green-600 focus:shadow-green-500/10",
-      error: "border-red-500 focus:border-red-600 focus:shadow-red-500/10",
-      warning: "border-amber-500 focus:border-amber-600 focus:shadow-amber-500/10",
+      success: "border-success focus:border-success focus:shadow-success/10",
+      error: "border-error focus:border-error focus:shadow-error/10",
+      warning: "border-warning focus:border-warning focus:shadow-warning/10",
     };
 
     const labelClasses = {
@@ -92,11 +92,11 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
     const getStatusIcon = () => {
       switch (status) {
         case "success":
-          return <Check className="w-5 h-5 text-green-500" />;
+          return <Check className="w-5 h-5 text-success" />;
         case "error":
-          return <X className="w-5 h-5 text-red-500" />;
+          return <X className="w-5 h-5 text-error" />;
         case "warning":
-          return <AlertTriangle className="w-5 h-5 text-amber-500" />;
+          return <AlertTriangle className="w-5 h-5 text-warning" />;
         default:
           return null;
       }
@@ -112,7 +112,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
       variantClasses[variant],
       sizeClasses[size],
       status !== "default" ? statusClasses[status] : "",
-      disabled ? "opacity-60 cursor-not-allowed bg-gray-100" : "",
+      disabled ? "opacity-60 cursor-not-allowed bg-input-bg-disabled" : "",
       paddingLeft,
       paddingRight,
       className,
@@ -121,22 +121,22 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
       .join(" ");
 
     const helperTextColor = {
-      default: "text-gray-500",
-      success: "text-green-600",
-      error: "text-red-600",
-      warning: "text-amber-600",
+      default: "text-neutral-5",
+      success: "text-success",
+      error: "text-error",
+      warning: "text-warning",
     };
 
     const labelColor = {
-      default: isFocused ? "text-blue-600" : "text-gray-500",
-      success: "text-green-600",
-      error: "text-red-600",
-      warning: "text-amber-600",
+      default: isFocused ? "text-primary-6" : "text-input-label",
+      success: "text-success",
+      error: "text-error",
+      warning: "text-warning",
     };
 
     const labelBgClass = isFloating
       ? variant === "outlined" || variant === "default"
-        ? "bg-white"
+        ? "bg-input-bg"
         : variant === "filled"
           ? "bg-transparent"
           : ""
@@ -146,7 +146,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
       <div className={`${fullWidth ? "w-full" : "w-auto"}`}>
         <div className="relative">
           {iconLeft && (
-            <div className="absolute left-4 top-1/2 text-gray-400 -translate-y-1/2 pointer-events-none">
+            <div className="absolute left-4 top-1/2 text-input-placeholder -translate-y-1/2 pointer-events-none">
               {iconLeft}
             </div>
           )}
@@ -189,14 +189,14 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="p-1 text-gray-400 rounded-lg transition-colors duration-200 hover:text-gray-600 hover:bg-gray-100"
+                className="p-1 text-input-placeholder rounded-lg transition-colors duration-200 hover:text-input-text hover:bg-neutral-2"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             )}
             {statusIcon && <div>{statusIcon}</div>}
-            {iconRight && !statusIcon && <div className="text-gray-400">{iconRight}</div>}
+            {iconRight && !statusIcon && <div className="text-input-placeholder">{iconRight}</div>}
           </div>
         </div>
 

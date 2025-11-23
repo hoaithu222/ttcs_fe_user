@@ -9,7 +9,6 @@ import {
   selectConversations,
   selectCurrentConversation,
   selectChatStatus,
-  selectChatMessages,
 } from "@/app/store/slices/chat/chat.selector";
 import { selectUser } from "@/features/Auth/components/slice/auth.selector";
 import { getConversationsStart, setCurrentConversation, createConversationStart } from "@/app/store/slices/chat/chat.slice";
@@ -19,6 +18,7 @@ import Input from "@/foundation/components/input/Input";
 import Tabs from "@/foundation/components/navigation/tabs/Tab";
 import Popover from "@/foundation/components/popover/Popever";
 import type { ChatConversation } from "@/core/api/chat/type";
+import { images } from "@/assets/image";
 
 type FilterTab = "all" | "unread";
 type SortOption = "time" | "name";
@@ -50,25 +50,35 @@ const ConversationsList: React.FC = () => {
     return conversation.participants.find((p) => p.userId !== currentUserId) || conversation.participants[0];
   };
 
+  // Helper function to get avatar for conversation
+  const getConversationAvatar = (conversation: ChatConversation, participantAvatar?: string) => {
+    // If CSKH conversation, use CSKH.png
+    if (conversation.type === "admin" && conversation.metadata?.context === "CSKH") {
+      return images.CSKH;
+    }
+    // Otherwise use participant avatar from backend
+    return participantAvatar;
+  };
+
   // Component to render conversation item with unread count calculation
   const ConversationItem: React.FC<{ conversation: ChatConversation }> = ({ conversation }) => {
     const otherParticipant = getOtherParticipant(conversation);
     const isActive = currentConversation?._id === conversation._id;
     
-    // Get messages for this conversation
-    const messagesSelector = selectChatMessages(conversation._id);
-    const messages = useAppSelector(messagesSelector);
+    // Use unread counts from backend (calculated correctly per user)
+    // unreadCountMe: messages from others that current user hasn't read
+    // IMPORTANT: Always use unreadCountMe, never fallback to unreadCount (could be wrong value)
+    const myUnread = typeof conversation.unreadCountMe === 'number' 
+      ? conversation.unreadCountMe 
+      : 0; // If unreadCountMe is not provided, default to 0
     
-    // Calculate unread counts
-    // My unread: use backend unreadCount (messages from others that I haven't read)
-    const myUnread = conversation.unreadCount || 0;
-    
-    // Their unread: messages I sent that they haven't read (calculate from messages)
-    const theirUnread = currentUserId
-      ? messages.filter((msg: any) => msg.senderId === currentUserId && !msg.isRead).length
+    // unreadCountTo: messages from current user that others haven't read
+    const theirUnread = typeof conversation.unreadCountTo === 'number' 
+      ? conversation.unreadCountTo 
       : 0;
     
     const hasUnread = myUnread > 0;
+    const avatar = getConversationAvatar(conversation, otherParticipant?.avatar);
 
     return (
       <div
@@ -84,10 +94,10 @@ const ConversationsList: React.FC = () => {
       >
         <div className="flex-shrink-0 relative">
           <div className="w-14 h-14 rounded-full overflow-hidden bg-neutral-3 flex items-center justify-center shadow-sm">
-            {otherParticipant?.avatar ? (
+            {avatar ? (
               <Image
-                src={otherParticipant.avatar}
-                alt={otherParticipant.name || "User"}
+                src={avatar}
+                alt={otherParticipant?.name || "User"}
                 rounded
                 className="w-full h-full object-cover"
               />
@@ -125,13 +135,45 @@ const ConversationsList: React.FC = () => {
             )}
           </div>
           <div className="flex items-center justify-between">
-            <p className={clsx(
-              "text-sm truncate",
-              isActive ? "text-neutral-8" : "text-neutral-7",
-              hasUnread && !isActive && "font-medium text-neutral-9"
-            )}>
-              {conversation.lastMessage?.message || "Chưa có tin nhắn"}
-            </p>
+            {(() => {
+              const lastMessage = conversation.lastMessage;
+              const hasText = lastMessage?.message && typeof lastMessage.message === 'string' && lastMessage.message.trim();
+              const hasImageAttachments = lastMessage?.attachments && lastMessage.attachments.some((att: { type?: string }) => att.type?.startsWith("image/"));
+              const firstImage = lastMessage?.attachments?.find((att: { type?: string }) => att.type?.startsWith("image/"));
+              
+              // If only images (no text), show image preview
+              if (!hasText && hasImageAttachments && firstImage) {
+                return (
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-neutral-3">
+                      <Image
+                        src={firstImage.url}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <span className={clsx(
+                      "text-sm truncate",
+                      isActive ? "text-neutral-8" : "text-neutral-7",
+                      hasUnread && !isActive && "font-medium text-neutral-9"
+                    )}>
+                      📷 Ảnh
+                    </span>
+                  </div>
+                );
+              }
+              
+              // If has text or no message, show text
+              return (
+                <p className={clsx(
+                  "text-sm truncate",
+                  isActive ? "text-neutral-8" : "text-neutral-7",
+                  hasUnread && !isActive && "font-medium text-neutral-9"
+                )}>
+                  {hasText ? lastMessage.message : "Chưa có tin nhắn"}
+                </p>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -181,7 +223,7 @@ const ConversationsList: React.FC = () => {
     
     // Filter by tab (all/unread)
     if (activeTab === "unread") {
-      const hasUnread = (cskhConversation.unreadCount || 0) > 0;
+      const hasUnread = (cskhConversation.unreadCountMe ?? cskhConversation.unreadCount ?? 0) > 0;
       if (!hasUnread) return false;
     }
 
@@ -207,7 +249,7 @@ const ConversationsList: React.FC = () => {
 
     // Filter by tab (all/unread)
     if (activeTab === "unread") {
-      filtered = filtered.filter((conv: ChatConversation) => (conv.unreadCount || 0) > 0);
+      filtered = filtered.filter((conv: ChatConversation) => (conv.unreadCountMe ?? conv.unreadCount ?? 0) > 0);
     }
 
     // Filter by search query
@@ -242,7 +284,9 @@ const ConversationsList: React.FC = () => {
     if (!shouldShowCSKH || !cskhConversation) return null;
     
     const isActive = currentConversation?._id === cskhConversation._id;
-    const hasUnread = (cskhConversation.unreadCount || 0) > 0;
+    // Use unreadCountMe (messages from others that current user hasn't read)
+    const myUnread = cskhConversation.unreadCountMe ?? 0;
+    const hasUnread = myUnread > 0;
 
     return (
       <div
@@ -256,14 +300,17 @@ const ConversationsList: React.FC = () => {
         )}
       >
         <div className="flex-shrink-0 relative">
-          <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-primary-6 to-primary-7 flex items-center justify-center shadow-sm">
-            <div className="w-full h-full bg-primary-6 text-neutral-1 flex items-center justify-center text-sm font-bold">
-              CSKH
-            </div>
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-neutral-3 flex items-center justify-center shadow-sm">
+            <Image
+              src={images.CSKH}
+              alt="Chăm sóc khách hàng"
+              rounded
+              className="w-full h-full object-cover"
+            />
           </div>
           {hasUnread && (
             <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-error rounded-full flex items-center justify-center text-xs text-white font-bold shadow-md">
-              {cskhConversation.unreadCount > 9 ? "9+" : cskhConversation.unreadCount}
+              {myUnread > 9 ? "9+" : myUnread}
             </div>
           )}
         </div>
@@ -275,7 +322,7 @@ const ConversationsList: React.FC = () => {
               isActive ? "text-primary-9" : "text-neutral-10",
               hasUnread && !isActive && "font-bold"
             )}>
-              Chăm sóc khách hàng
+              CSKH
             </h3>
             {cskhConversation.lastMessage && (
               <span className="text-xs text-neutral-6 flex-shrink-0 ml-2 font-medium">
@@ -284,13 +331,45 @@ const ConversationsList: React.FC = () => {
             )}
           </div>
           <div className="flex items-center justify-between">
-            <p className={clsx(
-              "text-sm truncate",
-              isActive ? "text-neutral-8" : "text-neutral-7",
-              hasUnread && !isActive && "font-medium text-neutral-9"
-            )}>
-              {cskhConversation.lastMessage?.message || "Nhắn tin để được hỗ trợ"}
-            </p>
+            {(() => {
+              const lastMessage = cskhConversation.lastMessage;
+              const hasText = lastMessage?.message && typeof lastMessage.message === 'string' && lastMessage.message.trim();
+              const hasImageAttachments = lastMessage?.attachments && lastMessage.attachments.some((att: { type?: string }) => att.type?.startsWith("image/"));
+              const firstImage = lastMessage?.attachments?.find((att: { type?: string }) => att.type?.startsWith("image/"));
+              
+              // If only images (no text), show image preview
+              if (!hasText && hasImageAttachments && firstImage) {
+                return (
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-neutral-3">
+                      <Image
+                        src={firstImage.url}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <span className={clsx(
+                      "text-sm truncate",
+                      isActive ? "text-neutral-8" : "text-neutral-7",
+                      hasUnread && !isActive && "font-medium text-neutral-9"
+                    )}>
+                      📷 Ảnh
+                    </span>
+                  </div>
+                );
+              }
+              
+              // If has text or no message, show text
+              return (
+                <p className={clsx(
+                  "text-sm truncate",
+                  isActive ? "text-neutral-8" : "text-neutral-7",
+                  hasUnread && !isActive && "font-medium text-neutral-9"
+                )}>
+                  {hasText ? lastMessage.message : "Nhắn tin để được hỗ trợ"}
+                </p>
+              );
+            })()}
           </div>
         </div>
       </div>

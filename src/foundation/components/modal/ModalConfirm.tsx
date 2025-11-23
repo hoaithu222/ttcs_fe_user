@@ -220,7 +220,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           )}
           {hasClose && (
             <div className="absolute right-0 top-0 p-1 rounded-full hover:bg-neutral-2 transition-colors">
-              <X className="text-neutral-6 dark:text-white w-6 h-6"   onClick={onCancel} />
+              <X className="text-neutral-6 dark:text-neutral-0 w-6 h-6"   onClick={onCancel} />
             </div>
           )}
         </div>

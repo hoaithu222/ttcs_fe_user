@@ -119,18 +119,18 @@ const ImageUploadMulti: React.FC<ImageUploadMultiProps> = ({
             key={`${image.publicId || image.url}-${index}`}
             className="relative group aspect-square"
           >
-            <div className="w-full h-full overflow-hidden rounded-xl border-2 border-gray-200 shadow-sm transition-all duration-200 hover:shadow-md">
+            <div className="w-full h-full overflow-hidden rounded-xl border-2 border-border-1 shadow-sm transition-all duration-200 hover:shadow-md">
               <img
                 src={image.url}
                 alt={`Upload ${index + 1}`}
                 className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
               />
               {!disabled && (
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                <div className="absolute inset-0 bg-overlay opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                   <button
                     type="button"
                     onClick={() => handleRemove(index)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg shadow-lg transition-all duration-200 hover:scale-105"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-error hover:bg-error/90 text-button-text text-xs font-medium rounded-lg shadow-lg transition-all duration-200 hover:scale-105"
                   >
                     <X className="w-3.5 h-3.5" />
                     Remove
@@ -146,10 +146,10 @@ const ImageUploadMulti: React.FC<ImageUploadMultiProps> = ({
           <div
             className={`relative aspect-square border-2 border-dashed rounded-xl transition-all duration-200 ${
               disabled
-                ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
-                : "border-gray-300 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer active:scale-[0.98]"
-            } ${isUploading && "border-blue-400 bg-blue-50/50"} ${
-              (error || uploadError) && "border-red-300 bg-red-50/30"
+                ? "border-border-1 bg-input-bg-disabled cursor-not-allowed opacity-60"
+                : "border-border-2 hover:border-primary-5 hover:bg-primary-1 cursor-pointer active:scale-[0.98]"
+            } ${isUploading && "border-primary-5 bg-primary-1"} ${
+              (error || uploadError) && "border-error bg-error/10"
             }`}
             onClick={handleClick}
           >
@@ -165,19 +165,19 @@ const ImageUploadMulti: React.FC<ImageUploadMultiProps> = ({
 
             {isUploading ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4">
-                <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs font-medium text-blue-600 text-center">
+                <div className="w-8 h-8 border-3 border-primary-6 border-t-transparent rounded-full animate-spin" />
+                <p className="text-xs font-medium text-primary-6 text-center">
                   Uploading {uploadingCount}...
                 </p>
               </div>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
-                <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full shadow-lg">
-                  <Upload className="w-5 h-5 text-white" />
+                <div className="p-2.5 bg-gradient-to-br from-primary-5 to-primary-6 rounded-full shadow-lg">
+                  <Upload className="w-5 h-5 text-button-text" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-700">Add Images</p>
-                  <p className="mt-0.5 text-[10px] text-gray-500">Up to {maxSizeInMB}MB</p>
+                  <p className="text-xs font-semibold text-neutral-9">Add Images</p>
+                  <p className="mt-0.5 text-[10px] text-neutral-5">Up to {maxSizeInMB}MB</p>
                 </div>
               </div>
             )}
@@ -187,9 +187,9 @@ const ImageUploadMulti: React.FC<ImageUploadMultiProps> = ({
 
       {/* Error Message */}
       {(error || uploadError) && (
-        <div className="flex items-start gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+        <div className="flex items-start gap-2 p-3 bg-error/10 rounded-lg border border-error/30">
           <svg
-            className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0"
+            className="w-4 h-4 text-error mt-0.5 flex-shrink-0"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -199,13 +199,13 @@ const ImageUploadMulti: React.FC<ImageUploadMultiProps> = ({
               clipRule="evenodd"
             />
           </svg>
-          <p className="text-xs font-medium text-red-700">{error || uploadError}</p>
+          <p className="text-xs font-medium text-error">{error || uploadError}</p>
         </div>
       )}
 
       {/* Helper Text */}
       {!error && !uploadError && canUploadMore && (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-neutral-5">
           You can upload up to {maxFiles - images.length} more image
           {maxFiles - images.length !== 1 ? "s" : ""}. Supported formats: PNG, JPG, GIF
         </p>

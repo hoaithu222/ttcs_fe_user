@@ -77,29 +77,29 @@ const IconButton: React.FC<IconButtonProps> = ({
   // Variant classes
   const variantClasses = {
     default: active
-      ? "bg-gray-200 text-gray-900 hover:bg-gray-300"
-      : "bg-gray-100 text-gray-700 hover:bg-gray-200",
+      ? "bg-neutral-3 text-neutral-9 hover:bg-neutral-4"
+      : "bg-neutral-2 text-neutral-7 hover:bg-neutral-3",
     primary: active
-      ? "bg-blue-700 text-white hover:bg-blue-800"
-      : "bg-blue-600 text-white hover:bg-blue-700",
+      ? "bg-primary-7 text-button-text hover:bg-primary-8"
+      : "bg-primary-6 text-button-text hover:bg-primary-7",
     success: active
-      ? "bg-green-700 text-white hover:bg-green-800"
-      : "bg-green-600 text-white hover:bg-green-700",
+      ? "bg-success/90 text-button-text hover:bg-success"
+      : "bg-success text-button-text hover:bg-success/90",
     danger: active
-      ? "bg-red-700 text-white hover:bg-red-800"
-      : "bg-red-600 text-white hover:bg-red-700",
+      ? "bg-error/90 text-button-text hover:bg-error"
+      : "bg-error text-button-text hover:bg-error/90",
     warning: active
-      ? "bg-yellow-600 text-white hover:bg-yellow-700"
-      : "bg-yellow-500 text-white hover:bg-yellow-600",
+      ? "bg-warning/90 text-button-text hover:bg-warning"
+      : "bg-warning text-button-text hover:bg-warning/90",
     ghost: active
-      ? "bg-gray-100 text-gray-900 hover:bg-gray-200"
-      : "bg-transparent text-gray-700 hover:bg-gray-100",
+      ? "bg-neutral-2 text-neutral-9 hover:bg-neutral-3"
+      : "bg-transparent text-neutral-7 hover:bg-neutral-2",
     outline: active
-      ? "bg-gray-50 border-2 border-gray-400 text-gray-900"
-      : "bg-transparent border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50",
+      ? "bg-neutral-1 border-2 border-neutral-5 text-neutral-9"
+      : "bg-transparent border-2 border-neutral-4 text-neutral-7 hover:border-neutral-5 hover:bg-neutral-1",
     gradient: active
-      ? "bg-gradient-to-r from-purple-600 to-blue-700 text-white"
-      : "bg-gradient-to-r from-purple-500 to-blue-600 text-white hover:from-purple-600 hover:to-blue-700",
+      ? "bg-gradient-to-r from-primary-8 to-primary-6 text-button-text"
+      : "bg-gradient-to-r from-primary-7 to-primary-6 text-button-text hover:from-primary-8 hover:to-primary-7",
   };
 
   // Icon size based on button size
@@ -114,7 +114,7 @@ const IconButton: React.FC<IconButtonProps> = ({
 
   const buttonClasses = [
     "relative inline-flex items-center justify-center",
-    "transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+    "transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-6",
     sizeClasses[size],
     shapeClasses[shape],
     variantClasses[variant],
@@ -150,19 +150,19 @@ const IconButton: React.FC<IconButtonProps> = ({
 
         {/* Badge */}
         {badge && !loading && (
-          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center">
+          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-error text-button-text rounded-full min-w-[18px] text-center">
             {badge}
           </span>
         )}
 
         {/* Notification dot */}
         {notification && !notificationCount && !badge && !loading && (
-          <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+          <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-error rounded-full border-2 border-background-1" />
         )}
 
         {/* Notification count */}
         {notificationCount !== undefined && notificationCount > 0 && !badge && !loading && (
-          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center">
+          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-error text-button-text rounded-full min-w-[18px] text-center">
             {notificationCount > 99 ? "99+" : notificationCount}
           </span>
         )}
@@ -170,9 +170,9 @@ const IconButton: React.FC<IconButtonProps> = ({
 
       {/* Tooltip on hover */}
       {tooltip && isHovered && !disabled && (
-        <div className="absolute -bottom-8 left-1/2 z-50 px-2 py-1 text-xs text-white whitespace-nowrap bg-gray-900 rounded shadow-lg transform -translate-x-1/2">
+        <div className="absolute -bottom-8 left-1/2 z-50 px-2 py-1 text-xs text-neutral-0 whitespace-nowrap bg-neutral-9 rounded shadow-lg transform -translate-x-1/2">
           {tooltip}
-          <div className="absolute -top-1 left-1/2 w-2 h-2 bg-gray-900 transform rotate-45 -translate-x-1/2" />
+          <div className="absolute -top-1 left-1/2 w-2 h-2 bg-neutral-9 transform rotate-45 -translate-x-1/2" />
         </div>
       )}
     </div>

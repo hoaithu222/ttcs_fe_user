@@ -43,6 +43,8 @@ const initialState: ChatState = {
     error: null,
     message: null,
   },
+  typing: {}, // conversationId -> userIds who are typing
+  onlineUsers: {}, // conversationId -> userIds who are online
 };
 
 const chatSlice = createSlice({
@@ -64,20 +66,30 @@ const chatSlice = createSlice({
     ) => {
       state.getConversations.status = ReduxStateType.SUCCESS;
       
-      // Update conversations while preserving unreadCount for currently viewing conversation
+      // Update conversations while preserving unreadCountMe for currently viewing conversation
       const newConversations = action.payload.conversations;
       const currentlyViewingId = state.currentConversation?._id;
       
       state.conversations = newConversations.map((newConv) => {
-        // If this is the currently viewing conversation, always set unreadCount to 0
-        if (currentlyViewingId && newConv._id === currentlyViewingId) {
+        // If this is the currently viewing conversation, always set unreadCountMe to 0
+        // Use String() to ensure consistent comparison (handle ObjectId vs string)
+        if (currentlyViewingId && String(newConv._id) === String(currentlyViewingId)) {
           return {
             ...newConv,
-            unreadCount: 0, // Reset unread count when viewing
+            unreadCountMe: 0, // Reset unread count when viewing
+            unreadCount: 0, // Backward compatibility
+            // Keep unreadCountTo from backend (messages from me that others haven't read)
+            unreadCountTo: typeof newConv.unreadCountTo === 'number' ? newConv.unreadCountTo : 0,
           };
         }
-        // Otherwise, use unreadCount from backend (already calculated correctly)
-        return newConv;
+        // Otherwise, use unreadCountMe and unreadCountTo from backend (already calculated correctly)
+        return {
+          ...newConv,
+          // Ensure unreadCountMe is a number, default to 0 if not provided
+          unreadCountMe: typeof newConv.unreadCountMe === 'number' ? newConv.unreadCountMe : 0,
+          unreadCountTo: typeof newConv.unreadCountTo === 'number' ? newConv.unreadCountTo : 0,
+          unreadCount: typeof newConv.unreadCountMe === 'number' ? newConv.unreadCountMe : 0,
+        };
       });
       
       // Also update current conversation's unread count if it exists in the list
@@ -88,6 +100,7 @@ const chatSlice = createSlice({
         if (currentInList && state.currentConversation) {
           state.currentConversation = {
             ...currentInList,
+            unreadCountMe: 0,
             unreadCount: 0,
           };
         }
@@ -111,29 +124,40 @@ const chatSlice = createSlice({
     ) => {
       const newConversation = action.payload;
       
-      // Reset unread count of previous conversation
-      if (state.currentConversation?._id) {
-        const prevIndex = state.conversations.findIndex(
-          (c) => c._id === state.currentConversation?._id
-        );
-        if (prevIndex !== -1) {
-          state.conversations[prevIndex].unreadCount = 0;
-        }
-      }
+      // DON'T reset unread count of previous conversation when switching
+      // The previous conversation's unread count should remain until user actually reads it
       
       // Set new current conversation and reset its unread count
       if (newConversation) {
+        // Find conversation in list to get latest data
+        // Use String() to ensure consistent comparison (handle ObjectId vs string)
+        const conversationIndex = state.conversations.findIndex(
+          (c) => String(c._id) === String(newConversation._id)
+        );
+        
+        // Use conversation from list if exists, otherwise use the one passed in
+        const conversationToSet = conversationIndex !== -1 
+          ? state.conversations[conversationIndex]
+          : newConversation;
+        
+        // Set current conversation with unreadCountMe = 0 (user is viewing it)
         state.currentConversation = {
-          ...newConversation,
-          unreadCount: 0, // Reset unread count when viewing
+          ...conversationToSet,
+          unreadCountMe: 0, // Reset unread count when viewing
+          unreadCount: 0, // Backward compatibility
         };
         
-        // Also update in conversations list
-        const conversationIndex = state.conversations.findIndex(
-          (c) => c._id === newConversation._id
-        );
+        // Also update in conversations list - set unreadCountMe to 0 for the one being viewed
         if (conversationIndex !== -1) {
-          state.conversations[conversationIndex].unreadCount = 0;
+          state.conversations[conversationIndex] = {
+            ...state.conversations[conversationIndex],
+            unreadCountMe: 0,
+            unreadCount: 0,
+            // Keep unreadCountTo from existing conversation
+            unreadCountTo: typeof state.conversations[conversationIndex].unreadCountTo === 'number' 
+              ? state.conversations[conversationIndex].unreadCountTo 
+              : 0,
+          };
         }
       } else {
         state.currentConversation = null;
@@ -243,34 +267,35 @@ const chatSlice = createSlice({
       }
 
       // Update conversation's last message
+      // Use String() to ensure consistent comparison (handle ObjectId vs string)
       const conversationIndex = state.conversations.findIndex(
-        (c) => c._id === conversationId
+        (c) => String(c._id) === String(conversationId)
       );
       
-      const isCurrentlyViewing = state.currentConversation?._id === conversationId;
+      const isCurrentlyViewing = state.currentConversation?._id 
+        ? String(state.currentConversation._id) === String(conversationId)
+        : false;
       
       if (conversationIndex !== -1) {
         state.conversations[conversationIndex].lastMessage = message;
         state.conversations[conversationIndex].updatedAt = message.createdAt;
         
-        // If viewing the conversation, always reset unread count to 0
-        // If not viewing and message is from someone else, increment unread count
+        // Don't manually update unreadCountMe here - wait for backend to send conversation update
+        // Backend will send correct unreadCountMe via updateConversationFromSocket
+        // Only reset to 0 if currently viewing (user is actively reading)
         if (isCurrentlyViewing) {
+          state.conversations[conversationIndex].unreadCountMe = 0;
           state.conversations[conversationIndex].unreadCount = 0;
-        } else if (!isSender) {
-          // Only increment if not from current user and not viewing
-          // Increment unread count when receiving new message from others
-          const currentUnread = state.conversations[conversationIndex].unreadCount || 0;
-          state.conversations[conversationIndex].unreadCount = currentUnread + 1;
         }
-        // If message is from current user, don't change unread count
+        // If not viewing and message is from others, backend will send conversation update with correct unreadCountMe
       }
 
       // Update current conversation if it matches
-      if (isCurrentlyViewing) {
+      if (isCurrentlyViewing && state.currentConversation) {
         state.currentConversation.lastMessage = message;
         state.currentConversation.updatedAt = message.createdAt;
         // Always reset unread count to 0 when viewing conversation
+        state.currentConversation.unreadCountMe = 0;
         state.currentConversation.unreadCount = 0;
       }
     },
@@ -283,45 +308,62 @@ const chatSlice = createSlice({
       }>
     ) => {
       const { conversation } = action.payload;
+      // Use String() to ensure consistent comparison (handle ObjectId vs string)
       const conversationIndex = state.conversations.findIndex(
-        (c) => c._id === conversation._id
+        (c) => String(c._id) === String(conversation._id)
       );
 
-      const isCurrentlyViewing = state.currentConversation?._id === conversation._id;
+      // Use String() to ensure consistent comparison (handle ObjectId vs string)
+      const isCurrentlyViewing = state.currentConversation?._id 
+        ? String(state.currentConversation._id) === String(conversation._id)
+        : false;
       
       if (conversationIndex !== -1) {
         // Update existing conversation
-        const currentConv = state.conversations[conversationIndex];
-        const currentUnreadCount = currentConv.unreadCount || 0;
-        const newUnreadCount = conversation.unreadCount || 0;
+        // Backend now sends correct unreadCountMe and unreadCountTo for current user via direct room
+        // IMPORTANT: Always use unreadCountMe from backend, never fallback to unreadCount (could be wrong value)
+        let finalUnreadCountMe = typeof conversation.unreadCountMe === 'number' 
+          ? conversation.unreadCountMe 
+          : 0; // If unreadCountMe is not provided, default to 0 (not fallback to unreadCount)
+        const finalUnreadCountTo = typeof conversation.unreadCountTo === 'number' 
+          ? conversation.unreadCountTo 
+          : 0;
         
-        // If viewing, always reset to 0
-        // If not viewing, only update if new count is higher (to prevent reset to 0 when shouldn't)
-        // Or if new count is 0 and current is also 0 (both are 0, so it's fine)
-        let finalUnreadCount: number;
+        // If viewing, always reset unreadCountMe to 0 (user is actively viewing, so no unread)
         if (isCurrentlyViewing) {
-          finalUnreadCount = 0;
-        } else {
-          // Only update unreadCount if:
-          // 1. New count is higher than current (new messages arrived)
-          // 2. New count equals current (no change, safe to update)
-          // 3. Both are 0 (no unread messages, safe to update)
-          // Don't update if new count is 0 but current is > 0 (prevent reset when shouldn't)
-          if (newUnreadCount >= currentUnreadCount || (newUnreadCount === 0 && currentUnreadCount === 0)) {
-            finalUnreadCount = newUnreadCount;
-          } else {
-            // Keep current unread count to prevent reset
-            finalUnreadCount = currentUnreadCount;
-          }
+          finalUnreadCountMe = 0;
         }
         
         state.conversations[conversationIndex] = {
           ...conversation,
-          unreadCount: finalUnreadCount,
+          unreadCountMe: finalUnreadCountMe,
+          unreadCountTo: finalUnreadCountTo,
+          unreadCount: finalUnreadCountMe, // Backward compatibility - use unreadCountMe, not old unreadCount
         };
       } else {
         // Add new conversation at the beginning
-        state.conversations.unshift(conversation);
+        // IMPORTANT: Always use unreadCountMe from backend, never fallback to unreadCount
+        const unreadCountMe = typeof conversation.unreadCountMe === 'number' 
+          ? conversation.unreadCountMe 
+          : 0; // If unreadCountMe is not provided, default to 0
+        const unreadCountTo = typeof conversation.unreadCountTo === 'number' 
+          ? conversation.unreadCountTo 
+          : 0;
+        
+        const newConversation = isCurrentlyViewing
+          ? { 
+              ...conversation, 
+              unreadCountMe: 0, 
+              unreadCountTo: unreadCountTo, // Keep unreadCountTo even when viewing
+              unreadCount: 0 
+            }
+          : { 
+              ...conversation, 
+              unreadCountMe: unreadCountMe,
+              unreadCountTo: unreadCountTo,
+              unreadCount: unreadCountMe // Use unreadCountMe, not old unreadCount
+            };
+        state.conversations.unshift(newConversation);
       }
 
       // Sort conversations by lastMessageAt or updatedAt (newest first)
@@ -333,9 +375,14 @@ const chatSlice = createSlice({
 
       // Update current conversation if it matches
       if (isCurrentlyViewing) {
+        const unreadCountTo = typeof conversation.unreadCountTo === 'number' 
+          ? conversation.unreadCountTo 
+          : 0;
         state.currentConversation = {
           ...conversation,
-          unreadCount: 0, // Always reset unread count when viewing
+          unreadCountMe: 0, // Always reset unread count when viewing
+          unreadCountTo: unreadCountTo, // Keep unreadCountTo even when viewing
+          unreadCount: 0, // Backward compatibility
         };
       }
     },
@@ -412,8 +459,9 @@ const chatSlice = createSlice({
       }
 
       // Update conversation's last message
+      // Use String() to ensure consistent comparison (handle ObjectId vs string)
       const conversationIndex = state.conversations.findIndex(
-        (c) => c._id === conversationId
+        (c) => String(c._id) === String(conversationId)
       );
       if (conversationIndex !== -1) {
         state.conversations[conversationIndex].lastMessage = message;
@@ -479,15 +527,21 @@ const chatSlice = createSlice({
       const { conversationId } = action.payload;
 
       // Update conversation unread count
+      // Use String() to ensure consistent comparison (handle ObjectId vs string)
       const conversationIndex = state.conversations.findIndex(
-        (c) => c._id === conversationId
+        (c) => String(c._id) === String(conversationId)
       );
       if (conversationIndex !== -1) {
+        state.conversations[conversationIndex].unreadCountMe = 0;
         state.conversations[conversationIndex].unreadCount = 0;
       }
 
       // Update current conversation
-      if (state.currentConversation?._id === conversationId) {
+      const isCurrentlyViewing = state.currentConversation?._id 
+        ? String(state.currentConversation._id) === String(conversationId)
+        : false;
+      if (isCurrentlyViewing) {
+        state.currentConversation.unreadCountMe = 0;
         state.currentConversation.unreadCount = 0;
       }
 
@@ -524,8 +578,9 @@ const chatSlice = createSlice({
       const conversation = action.payload;
 
       // Add to conversations list if not exists
+      // Use String() to ensure consistent comparison (handle ObjectId vs string)
       const existingIndex = state.conversations.findIndex(
-        (c) => c._id === conversation._id
+        (c) => String(c._id) === String(conversation._id)
       );
       if (existingIndex === -1) {
         state.conversations.unshift(conversation);
@@ -542,6 +597,59 @@ const chatSlice = createSlice({
       state.status = ReduxStateType.ERROR;
       state.error = action.payload;
       state.message = action.payload;
+    },
+
+    // Typing indicators
+    setTyping: (
+      state,
+      action: PayloadAction<{ conversationId: string; userId: string; isTyping: boolean }>
+    ) => {
+      const { conversationId, userId, isTyping } = action.payload;
+      if (!state.typing[conversationId]) {
+        state.typing[conversationId] = [];
+      }
+      if (isTyping) {
+        if (!state.typing[conversationId].includes(userId)) {
+          state.typing[conversationId].push(userId);
+        }
+      } else {
+        state.typing[conversationId] = state.typing[conversationId].filter(
+          (id) => id !== userId
+        );
+      }
+    },
+    
+    // Online users
+    setOnlineUsers: (
+      state,
+      action: PayloadAction<{ conversationId: string; userIds: string[] }>
+    ) => {
+      state.onlineUsers[action.payload.conversationId] = action.payload.userIds;
+    },
+    
+    addOnlineUser: (
+      state,
+      action: PayloadAction<{ conversationId: string; userId: string }>
+    ) => {
+      const { conversationId, userId } = action.payload;
+      if (!state.onlineUsers[conversationId]) {
+        state.onlineUsers[conversationId] = [];
+      }
+      if (!state.onlineUsers[conversationId].includes(userId)) {
+        state.onlineUsers[conversationId].push(userId);
+      }
+    },
+    
+    removeOnlineUser: (
+      state,
+      action: PayloadAction<{ conversationId: string; userId: string }>
+    ) => {
+      const { conversationId, userId } = action.payload;
+      if (state.onlineUsers[conversationId]) {
+        state.onlineUsers[conversationId] = state.onlineUsers[conversationId].filter(
+          (id) => id !== userId
+        );
+      }
     },
 
     // Reset state
@@ -570,6 +678,10 @@ export const {
   createConversationStart,
   createConversationSuccess,
   createConversationFailure,
+  setTyping,
+  setOnlineUsers,
+  addOnlineUser,
+  removeOnlineUser,
   resetChatState,
 } = chatSlice.actions;
 

@@ -1,15 +1,27 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Paperclip, Smile } from "lucide-react";
+import { Send, Smile, X, Image as ImageIcon } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
 import { useAppDispatch, useAppSelector } from "@/app/store";
 import { selectCurrentConversation } from "@/app/store/slices/chat/chat.selector";
 import { selectUser } from "@/features/Auth/components/slice/auth.selector";
 import { socketClients, SOCKET_EVENTS } from "@/core/socket";
+import { imagesApi } from "@/core/api/images";
 import Button from "@/foundation/components/buttons/Button";
 import TextArea from "@/foundation/components/input/TextArea";
+import Image from "@/foundation/components/icons/Image";
+import Spinner from "@/foundation/components/feedback/Spinner";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import Popover from "@/foundation/components/popover/Popever";
 
 interface MessageInputProps {
   onSend?: () => void;
+}
+
+interface ImageAttachment {
+  url: string;
+  type: string;
+  name?: string;
+  file?: File; // Keep file reference for preview
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
@@ -17,13 +29,80 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
   const currentConversation = useAppSelector(selectCurrentConversation);
   const currentUser = useAppSelector(selectUser);
   const [message, setMessage] = useState("");
+  const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTypingEmitRef = useRef<number>(0);
 
-  const handleSend = () => {
-    if (!message.trim()) return;
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Filter only image files
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      alert("Vui lòng chọn file ảnh");
+      return;
+    }
+
+    // Check file size (max 5MB per image)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const validFiles = imageFiles.filter((file) => {
+      if (file.size > maxSize) {
+        alert(`File ${file.name} vượt quá 5MB`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setIsUploading(true);
+
+    try {
+      const uploadPromises = validFiles.map(async (file) => {
+        const result = await imagesApi.uploadImage(file);
+        return {
+          url: result.url,
+          type: file.type,
+          name: file.name,
+          file: file, // Keep for preview
+        };
+      });
+
+      const uploadedAttachments = await Promise.all(uploadPromises);
+      setAttachments((prev) => [...prev, ...uploadedAttachments]);
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      alert("Lỗi khi upload ảnh. Vui lòng thử lại.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSend = async () => {
+    if (!message.trim() && attachments.length === 0) return;
 
     const messageText = message.trim();
+    const attachmentsToSend = attachments.map((att) => ({
+      url: att.url,
+      type: att.type,
+      name: att.name,
+    }));
+
+    // Clear state
     setMessage("");
+    setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -99,13 +178,21 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
       return;
     }
 
+    // Determine message type based on content
+    let messageType: "text" | "image" | "file" = "text";
+    if (attachmentsToSend.length > 0) {
+      const hasImages = attachmentsToSend.some((att) => att.type.startsWith("image/"));
+      messageType = hasImages ? "image" : "file";
+    }
+
     // Send message via socket without product metadata
     // Product metadata should only be sent in the initial product message (from DetailProduct)
     // For regular messages, don't send any metadata to avoid showing product card in shop replies
     socket.emit(SOCKET_EVENTS.CHAT_MESSAGE_SEND, {
       conversationId,
-      message: messageText,
-      type: "text", // Message type: text (default)
+      message: messageText || "", // Allow empty message if only images
+      type: messageType,
+      attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined,
       conversationType: type, // Conversation type for creating new conversation
       targetId,
       // Don't send metadata for regular messages - only the first auto-sent product message has metadata
@@ -119,12 +206,106 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
     onSend?.();
   };
 
+  const emitTyping = (isTyping: boolean) => {
+    if (!currentConversation) return;
+    
+    const now = Date.now();
+    // Throttle typing events (max once per 2 seconds)
+    if (isTyping && now - lastTypingEmitRef.current < 2000) {
+      return;
+    }
+    lastTypingEmitRef.current = now;
+    
+    const channel = (currentConversation.channel as "admin" | "shop" | "ai") || "shop";
+    let socketClient;
+    
+    switch (channel) {
+      case "admin":
+        socketClient = socketClients.adminChat;
+        break;
+      case "shop":
+        socketClient = socketClients.shopChat;
+        break;
+      case "ai":
+        socketClient = socketClients.aiChat;
+        break;
+      default:
+        socketClient = socketClients.adminChat;
+    }
+    
+    if (socketClient) {
+      const socket = socketClient.connect();
+      if (socket && socket.connected) {
+        socket.emit(SOCKET_EVENTS.CHAT_TYPING, {
+          conversationId: currentConversation._id,
+          isTyping,
+        });
+      }
+    }
+  };
+
+  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    
+    // Emit typing start
+    if (e.target.value.trim() && currentConversation) {
+      emitTyping(true);
+      
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Emit typing stop after 2 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        emitTyping(false);
+      }, 2000);
+    } else {
+      // Stop typing if message is empty
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      emitTyping(false);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      // Stop typing when sending
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      emitTyping(false);
       handleSend();
     }
   };
+
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    const cursorPosition = textareaRef.current?.selectionStart || 0;
+    const textBefore = message.substring(0, cursorPosition);
+    const textAfter = message.substring(cursorPosition);
+    setMessage(textBefore + emojiData.emoji + textAfter);
+    
+    // Focus back to textarea and set cursor position
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPosition = cursorPosition + emojiData.emoji.length;
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newPosition, newPosition);
+      }
+    }, 0);
+  };
+  
+  useEffect(() => {
+    // Cleanup typing timeout on unmount
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      emitTyping(false);
+    };
+  }, [currentConversation?._id]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -138,52 +319,121 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
   }
 
   return (
-    <div className="p-4 bg-background-2 border-t border-neutral-3">
-      <Form.Root onSubmit={(e) => e.preventDefault()}>
-        <div className="flex items-end gap-2">
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors"
-              title="Đính kèm file"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors"
-              title="Emoji"
-            >
-              <Smile className="w-5 h-5" />
-            </button>
-          </div>
+    <div className="bg-background-2 border-t border-neutral-3 relative">
+      <div className="p-4">
+        <Form.Root onSubmit={(e) => e.preventDefault()}>
+          <div className="flex items-end gap-2">
+            <div className="flex items-center gap-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Đính kèm ảnh"
+              >
+                {isUploading ? (
+                  <Spinner size="sm" />
+                ) : (
+                  <ImageIcon className="w-4 h-4" />
+                )}
+              </button>
+              <Popover
+                open={isEmojiPickerOpen}
+                onOpenChange={setIsEmojiPickerOpen}
+                side="top"
+                align="start"
+                contentClassName="!p-0 border border-neutral-3 rounded-lg shadow-lg overflow-hidden"
+                content={
+                  <EmojiPicker
+                    onEmojiClick={handleEmojiClick}
+                    width={350}
+                    height={400}
+                    previewConfig={{ showPreview: false }}
+                    skinTonesDisabled
+                  />
+                }
+              >
+              <button
+                type="button"
+                  onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
+                className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors"
+                title="Emoji"
+              >
+                  <Smile className="w-4 h-4" />
+              </button>
+              </Popover>
+            </div>
 
-          <div className="flex-1 relative">
-            <TextArea
-              name="message"
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Nhập tin nhắn..."
-              rows={1}
-              className="resize-none min-h-[44px] max-h-[120px] pr-12"
-              textSize="large"
-            />
-          </div>
+            <div className="flex-1 relative">
+              {/* Image previews - absolute positioned above input */}
+              {attachments.length > 0 && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 p-2 bg-background-2 rounded-lg border border-neutral-3 shadow-lg z-10">
+                  <div className="flex gap-2 overflow-x-auto">
+                    {attachments.map((attachment, index) => (
+                      <div
+                        key={index}
+                        className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-neutral-3 group"
+                      >
+                        {attachment.file ? (
+                          <img
+                            src={URL.createObjectURL(attachment.file)}
+                            alt={attachment.name || "Preview"}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Image
+                            src={attachment.url}
+                            alt={attachment.name || "Preview"}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAttachment(index)}
+                          className="absolute top-1 right-1 w-5 h-5 bg-neutral-9/80 hover:bg-neutral-9 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Xóa ảnh"
+                        >
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <TextArea
+                name="message"
+                ref={textareaRef}
+                value={message}
+                onChange={handleMessageChange}
+                onKeyDown={handleKeyPress}
+                placeholder="Nhập tin nhắn..."
+                rows={1}
+                className="resize-none min-h-[44px] max-h-[120px] pr-12"
+                textSize="large"
+              />
+            </div>
 
-          <Button
-            onClick={handleSend}
-            disabled={!message.trim()}
-            size="md"
-            rounded="full"
-            icon={<Send className="w-4 h-4" />}
-            className="flex-shrink-0"
-          >
-            Gửi
-          </Button>
-        </div>
-      </Form.Root>
+            <Button
+              onClick={handleSend}
+              disabled={(!message.trim() && attachments.length === 0) || isUploading}
+              size="md"
+              rounded="full"
+              icon={<Send className="w-4 h-4" />}
+              className="flex-shrink-0"
+            >
+              Gửi
+            </Button>
+          </div>
+        </Form.Root>
+      </div>
     </div>
   );
 };

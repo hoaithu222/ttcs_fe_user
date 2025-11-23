@@ -179,32 +179,32 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
   const variantClasses = {
     default:
       active || selected
-        ? "bg-blue-50 border-blue-200 text-blue-700"
-        : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300",
+        ? "bg-primary-1 border-primary-3 text-primary-9"
+        : "bg-background-1 border-border-1 text-neutral-9 hover:bg-background-2 hover:border-border-2",
     primary:
       active || selected
-        ? "bg-blue-600 border-blue-700 text-white"
-        : "bg-blue-500 border-blue-600 text-white hover:bg-blue-600",
+        ? "bg-primary-7 border-primary-8 text-button-text"
+        : "bg-primary-6 border-primary-7 text-button-text hover:bg-primary-7",
     success:
       active || selected
-        ? "bg-green-600 border-green-700 text-white"
-        : "bg-green-500 border-green-600 text-white hover:bg-green-600",
+        ? "bg-success/90 border-success text-button-text"
+        : "bg-success border-success/90 text-button-text hover:bg-success/90",
     danger:
       active || selected
-        ? "bg-red-600 border-red-700 text-white"
-        : "bg-red-500 border-red-600 text-white hover:bg-red-600",
+        ? "bg-error/90 border-error text-button-text"
+        : "bg-error border-error/90 text-button-text hover:bg-error/90",
     warning:
       active || selected
-        ? "bg-yellow-500 border-yellow-600 text-white"
-        : "bg-yellow-400 border-yellow-500 text-white hover:bg-yellow-500",
+        ? "bg-warning/90 border-warning text-button-text"
+        : "bg-warning border-warning/90 text-button-text hover:bg-warning/90",
     ghost:
       active || selected
-        ? "bg-gray-100 border-transparent text-gray-900"
-        : "bg-transparent border-transparent text-gray-700 hover:bg-gray-100",
+        ? "bg-neutral-2 border-transparent text-neutral-9"
+        : "bg-transparent border-transparent text-neutral-7 hover:bg-neutral-2",
     info:
       active || selected
-        ? "bg-cyan-600 border-cyan-700 text-white"
-        : "bg-cyan-500 border-cyan-600 text-white hover:bg-cyan-600",
+        ? "bg-primary-6 border-primary-7 text-button-text"
+        : "bg-primary-5 border-primary-6 text-button-text hover:bg-primary-6",
   };
 
   // Size classes
@@ -263,9 +263,9 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
     disabled ? "opacity-50 cursor-not-allowed" : "",
     elevation ? "shadow-md hover:shadow-lg" : "",
     featured ? "ring-2 ring-yellow-400 ring-offset-2" : "",
-    gradient && variant === "primary" ? "bg-gradient-to-r from-blue-500 to-purple-600" : "",
-    gradient && variant === "success" ? "bg-gradient-to-r from-green-500 to-teal-600" : "",
-    gradient && variant === "danger" ? "bg-gradient-to-r from-red-500 to-pink-600" : "",
+    gradient && variant === "primary" ? "bg-gradient-to-r from-primary-5 to-primary-8" : "",
+    gradient && variant === "success" ? "bg-gradient-to-r from-success to-primary-5" : "",
+    gradient && variant === "danger" ? "bg-gradient-to-r from-error to-primary-5" : "",
     hoverScale ? "hover:scale-105" : "",
     className,
   ]
@@ -309,20 +309,20 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
 
         {/* Notification dot */}
         {notification && !notificationCount && (
-          <span className="absolute top-2 right-2 z-10 w-2 h-2 bg-red-500 rounded-full" />
+          <span className="absolute top-2 right-2 z-10 w-2 h-2 bg-error rounded-full" />
         )}
 
         {/* Status indicator */}
         {statusIndicator && (
           <span
-            className={`absolute top-2 left-2 w-3 h-3 rounded-full border-2 border-white z-10 ${
+            className={`absolute top-2 left-2 w-3 h-3 rounded-full border-2 border-background-1 z-10 ${
               statusIndicator === "online"
-                ? "bg-green-500"
+                ? "bg-success"
                 : statusIndicator === "offline"
-                  ? "bg-gray-400"
+                  ? "bg-neutral-4"
                   : statusIndicator === "away"
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
+                    ? "bg-warning"
+                    : "bg-error"
             }`}
           />
         )}
@@ -335,7 +335,7 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
               e.stopPropagation();
               leftAction.onClick(e);
             }}
-            className="flex-shrink-0 p-1 rounded transition-colors hover:bg-black hover:bg-opacity-10"
+            className="flex-shrink-0 p-1 rounded transition-colors hover:bg-overlay"
             title={leftAction.label}
           >
             {leftAction.icon}
@@ -371,14 +371,14 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
 
             {/* Badge */}
             {badge && (
-              <span className="px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full">
+              <span className="px-2 py-0.5 text-xs font-semibold bg-primary-1 text-primary-9 rounded-full">
                 {badge}
               </span>
             )}
 
             {/* Notification count */}
             {notificationCount !== undefined && notificationCount > 0 && (
-              <span className="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[20px] text-center">
+              <span className="px-2 py-0.5 text-xs font-bold bg-error text-button-text rounded-full min-w-[20px] text-center">
                 {notificationCount > 99 ? "99+" : notificationCount}
               </span>
             )}
@@ -389,7 +389,7 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
 
           {/* Progress bar */}
           {progress !== undefined && (
-            <div className="mt-2 w-full bg-black bg-opacity-20 rounded-full h-1.5 overflow-hidden">
+            <div className="mt-2 w-full bg-overlay rounded-full h-1.5 overflow-hidden">
               <div
                 className="h-full bg-current transition-all duration-300"
                 style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
@@ -421,7 +421,7 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
               e.stopPropagation();
               rightAction.onClick(e);
             }}
-            className="z-10 flex-shrink-0 p-1 rounded transition-colors hover:bg-black hover:bg-opacity-10"
+            className="z-10 flex-shrink-0 p-1 rounded transition-colors hover:bg-overlay"
             title={rightAction.label}
           >
             {rightAction.icon}
@@ -433,10 +433,10 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
           <div className="absolute top-2 left-2 z-10">
             <div
               className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                selected ? "bg-blue-500 border-blue-500" : "bg-white border-gray-300"
+                selected ? "bg-primary-6 border-primary-6" : "bg-background-1 border-border-2"
               }`}
             >
-              {selected && <Check className="w-3 h-3 text-white" />}
+              {selected && <Check className="w-3 h-3 text-button-text" />}
             </div>
           </div>
         )}
@@ -444,14 +444,14 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
 
       {/* Collapsible content */}
       {collapsible && !isCollapsed && children && (
-        <div className="pr-4 pb-2 pl-8 mt-2 text-sm text-gray-600">{children}</div>
+        <div className="pr-4 pb-2 pl-8 mt-2 text-sm text-neutral-6">{children}</div>
       )}
 
       {/* Tooltip */}
       {tooltip && showTooltip && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-neutral-9 text-neutral-0 text-xs rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
           {tooltip}
-          <div className="absolute top-full left-1/2 w-0 h-0 border-t-4 border-r-4 border-l-4 border-transparent transform -translate-x-1/2 border-t-gray-900" />
+          <div className="absolute top-full left-1/2 w-0 h-0 border-t-4 border-r-4 border-l-4 border-transparent transform -translate-x-1/2 border-t-neutral-9" />
         </div>
       )}
 
@@ -460,7 +460,7 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowContextMenu(false)} />
           <div
-            className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[180px] z-50"
+            className="fixed bg-background-1 rounded-lg shadow-xl border border-border-2 py-1 min-w-[180px] z-50"
             style={{
               top: contextMenuPos.y,
               left: contextMenuPos.x,
@@ -474,8 +474,8 @@ const DrawerTile: React.FC<DrawerTileProps> = ({
                   item.onClick();
                   setShowContextMenu(false);
                 }}
-                className={`w-full px-4 py-2 text-left text-sm flex items-center gap-3 hover:bg-gray-100 transition-colors ${
-                  item.danger ? "text-red-600" : "text-gray-700"
+                className={`w-full px-4 py-2 text-left text-sm flex items-center gap-3 hover:bg-background-2 transition-colors ${
+                  item.danger ? "text-error" : "text-neutral-9"
                 }`}
               >
                 {item.icon && <span className="w-4 h-4">{item.icon}</span>}

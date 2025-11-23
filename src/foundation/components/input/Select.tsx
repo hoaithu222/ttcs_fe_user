@@ -207,7 +207,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                 value={opt.value}
                 className={clsx(
                   "flex relative items-center px-3 py-2 outline-none select-none",
-                  "text-neutral-9 hover:bg-background-2 focus:bg-background-2",
+                  "text-select-text-value hover:bg-select-item-hover focus:bg-select-item-hover data-[highlighted]:bg-select-item-hover data-[state=checked]:bg-select-item-selected data-[state=checked]:text-select-item-selected-text",
                   itemClassName
                 )}
                 data-testid={`${testId}-item-${opt.value}`}
@@ -224,7 +224,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           value={opt.value}
           className={clsx(
             "relative flex select-none items-center px-3 py-2 outline-none",
-            "text-neutral-9 hover:bg-background-2 focus:bg-background-2",
+            "text-select-text-value hover:bg-select-item-hover focus:bg-select-item-hover data-[highlighted]:bg-select-item-hover data-[state=checked]:bg-select-item-selected data-[state=checked]:text-select-item-selected-text",
             `${opt.value === valueFilter && "hidden"}`,
             itemClassName
           )}

@@ -118,7 +118,7 @@ const RatingInput = ({
               {/* Empty star background */}
               <Star
                 size={size}
-                className="text-gray-300"
+                className="text-neutral-4"
                 style={{ color: emptyStarColor, fill: 'none' }}
               />
 
@@ -140,7 +140,7 @@ const RatingInput = ({
         })}
       </div>
 
-      {showLabel && <span className="text-xs font-medium text-slate-600">{getLabelText()}</span>}
+      {showLabel && <span className="text-xs font-medium text-neutral-6">{getLabelText()}</span>}
     </div>
   );
 };

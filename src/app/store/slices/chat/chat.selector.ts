@@ -77,13 +77,26 @@ export const selectChatError = createSelector(
 
 export const selectUnreadConversations = createSelector(
   [selectConversations],
-  (conversations) => conversations.filter((c: any) => (c.unreadCount || 0) > 0)
+  (conversations) => {
+    // Chỉ lấy conversations có unreadCountMe > 0 (số tin nhắn chưa đọc của chính user)
+    return conversations.filter((c: any) => {
+      const unreadCountMe = typeof c.unreadCountMe === 'number' ? c.unreadCountMe : 0;
+      return unreadCountMe > 0;
+    });
+  }
 );
 
 export const selectTotalUnreadCount = createSelector(
   [selectConversations],
-  (conversations) =>
-    conversations.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0)
+  (conversations) => {
+    if (!conversations || conversations.length === 0) return 0;
+    return conversations.reduce((sum: number, c: any) => {
+      // Chỉ lấy unreadCountMe (số tin nhắn chưa đọc của chính user hiện tại)
+      // Không fallback về unreadCount vì có thể là số của người khác
+      const unreadCountMe = typeof c.unreadCountMe === 'number' ? Math.max(0, c.unreadCountMe) : 0;
+      return sum + unreadCountMe;
+    }, 0);
+  }
 );
 
 // Selector to get unread count for a specific conversation from messages
@@ -103,5 +116,15 @@ export const selectUnreadCountFromMessages = (conversationId: string, currentUse
     ).length;
     
     return { myUnread, theirUnread };
+  });
+
+export const selectTypingUsers = (conversationId: string) =>
+  createSelector([selectChatState], (chatState) => {
+    return chatState?.typing?.[conversationId] || [];
+  });
+
+export const selectOnlineUsers = (conversationId: string) =>
+  createSelector([selectChatState], (chatState) => {
+    return chatState?.onlineUsers?.[conversationId] || [];
   });
 

@@ -140,22 +140,22 @@ const Empty = ({
     >
       <div className={`${sizeSettings.spacing}`}>
         {/* Icon with animation */}
-        <div className={`mx-auto ${sizeSettings.iconSize} text-gray-300 relative`}>
+        <div className={`mx-auto ${sizeSettings.iconSize} text-neutral-4 relative`}>
           <div className={`${animated ? "animate-pulse" : ""}`}>{displayIcon}</div>
 
           {/* Floating dots animation */}
           {animated && (
             <>
               <div
-                className="absolute -top-2 -right-2 w-2 h-2 bg-blue-200 rounded-full animate-bounce"
+                className="absolute -top-2 -right-2 w-2 h-2 bg-primary-2 rounded-full animate-bounce"
                 style={{ animationDelay: "0s", animationDuration: "2s" }}
               ></div>
               <div
-                className="absolute -bottom-1 -left-1 w-1.5 h-1.5 bg-purple-200 rounded-full animate-bounce"
+                className="absolute -bottom-1 -left-1 w-1.5 h-1.5 bg-primary-3 rounded-full animate-bounce"
                 style={{ animationDelay: "0.5s", animationDuration: "2s" }}
               ></div>
               <div
-                className="absolute -right-3 top-1/2 w-1 h-1 bg-green-200 rounded-full animate-bounce"
+                className="absolute -right-3 top-1/2 w-1 h-1 bg-success/30 rounded-full animate-bounce"
                 style={{ animationDelay: "1s", animationDuration: "2s" }}
               ></div>
             </>
@@ -164,14 +164,14 @@ const Empty = ({
 
         {/* Title */}
         <h3
-          className={`${sizeSettings.title} text-gray-700 ${animated ? "animate-fade-in-up" : ""}`}
+          className={`${sizeSettings.title} text-neutral-9 ${animated ? "animate-fade-in-up" : ""}`}
         >
           {displayTitle}
         </h3>
 
         {/* Description */}
         <p
-          className={`${sizeSettings.description} text-gray-500 max-w-sm mx-auto ${animated ? "animate-fade-in-up" : ""}`}
+          className={`${sizeSettings.description} text-neutral-6 max-w-sm mx-auto ${animated ? "animate-fade-in-up" : ""}`}
           style={{ animationDelay: animated ? "0.2s" : "0s" }}
         >
           {displayDescription}
@@ -191,8 +191,8 @@ const Empty = ({
       {/* Background decoration */}
       {animated && (
         <div className="overflow-hidden absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full opacity-30 animate-float"></div>
-          <div className="absolute right-1/4 bottom-1/3 w-24 h-24 bg-gradient-to-r from-green-50 to-blue-50 rounded-full opacity-20 animate-float-delayed"></div>
+          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-gradient-to-r from-primary-1 to-primary-2 rounded-full opacity-30 animate-float"></div>
+          <div className="absolute right-1/4 bottom-1/3 w-24 h-24 bg-gradient-to-r from-success/20 to-primary-1 rounded-full opacity-20 animate-float-delayed"></div>
         </div>
       )}
     </div>

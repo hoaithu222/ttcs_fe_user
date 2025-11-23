@@ -2,17 +2,44 @@ import { Category } from "../categories/type";
 import { Product } from "../products/type";
 import { Shop } from "../shops/type";
 
+export type DisplayType = "default" | "compact" | "modern" | "classic";
+
 // Home Banner Response
 export interface HomeBannerResponse {
-  banners: Array<{
+  mainBanners: Array<{
     _id: string;
     title?: string;
     description?: string;
-    image: string;
+    image: {
+      url: string;
+      publicId?: string;
+    };
     link?: string;
-    order: number;
-    isActive: boolean;
   }>;
+  sideBanners: Array<{
+    _id: string;
+    categoryId: string;
+    category?: {
+      _id: string;
+      name: string;
+    };
+    image?: {
+      url: string;
+      publicId?: string;
+    };
+  }>;
+  features: Array<{
+    icon: string;
+    text: string;
+    iconBg: string;
+    hoverColor: string;
+  }>;
+  settings: {
+    autoSlideInterval: number;
+    showCounter: boolean;
+    showDots: boolean;
+  };
+  displayType?: DisplayType;
 }
 
 // Home Categories Response

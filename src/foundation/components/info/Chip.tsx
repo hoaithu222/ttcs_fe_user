@@ -53,7 +53,7 @@ const baseClasses =
 
 const variantClasses: Record<ChipVariant, string> = {
   primary: "border-primary-6 bg-transparent text-primary-6 hover:opacity-90",
-  secondary: "bg-button-outlined text-base-white border border-button-outlined",
+  secondary: "bg-button-outlined text-button-text border border-button-outlined",
   outlined:
     "bg-transparent text-neutral-7 border border-button-disable-text hover:text-button-outlined-hover hover:border-button-outlined-hover",
   outlinedPrimary: "border border-primary-5 bg-background-popup text-primary-5 hover:opacity-90",

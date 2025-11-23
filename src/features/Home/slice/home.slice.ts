@@ -1,9 +1,10 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import {  PayloadAction } from "@reduxjs/toolkit";
 import { HomeState } from "./home.types";
 import { Category } from "@/core/api/categories/type";
 import { Product } from "@/core/api/products/type";
 import { Shop } from "@/core/api/shops/type";
 import { ReduxStateType } from "@/app/store/types";
+import { createResettableSlice } from "@/app/store/create-resettabable-slice";
 
 const initialState: HomeState = {
   home_banner: {
@@ -76,7 +77,7 @@ const initialState: HomeState = {
   },
 };
 
-const homeSlice = createSlice({
+const homeSlice = createResettableSlice({
   name: "home",
   initialState,
   reducers: {
@@ -238,6 +239,9 @@ const homeSlice = createSlice({
     resetHomeState: () => {
       return initialState;
     },
+  },
+  persist: {
+    whitelist: ["home_banner", "home_category", "home_product_best_seller", "home_shop", "home_product_flash_sale", "home_product_search_suggestion"],
   },
 });
 

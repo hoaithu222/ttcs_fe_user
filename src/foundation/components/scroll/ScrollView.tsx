@@ -82,7 +82,7 @@ const ScrollView = React.forwardRef<
           }}
         >
           <ScrollAreaPrimitive.Thumb
-            className={clsx("relative bg-gray-400 rounded-full", thumbClassName)}
+            className={clsx("relative bg-neutral-4 rounded-full", thumbClassName)}
             data-testid={`${testId}-thumb-vertical`}
             style={{
               width: scrollbarThickness,
@@ -106,7 +106,7 @@ const ScrollView = React.forwardRef<
           }}
         >
           <ScrollAreaPrimitive.Thumb
-            className={clsx("relative bg-gray-400 rounded-full", thumbClassName)}
+            className={clsx("relative bg-neutral-4 rounded-full", thumbClassName)}
             data-testid={`${testId}-thumb-horizontal`}
           />
         </ScrollAreaPrimitive.Scrollbar>

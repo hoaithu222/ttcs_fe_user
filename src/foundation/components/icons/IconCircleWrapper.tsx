@@ -18,24 +18,24 @@ const COLOR_MAP = {
     extra: "after:border-neutral-3 dark:after:border-neutral-7",
   },
   success: {
-    bg: "bg-green-50 dark:bg-green-900  ",
-    border: "border-green-100 dark:border-green-800",
-    extra: "after:border-green-200 dark:after:border-green-700",
+    bg: "bg-success/10 dark:bg-success/20",
+    border: "border-success/30 dark:border-success/40",
+    extra: "after:border-success/40 dark:after:border-success/50",
   },
   error: {
-    bg: "bg-red-50 dark:bg-red-900",
-    border: "border-red-100 dark:border-red-800",
-    extra: "after:border-red-200 dark:after:border-red-700",
+    bg: "bg-error/10 dark:bg-error/20",
+    border: "border-error/30 dark:border-error/40",
+    extra: "after:border-error/40 dark:after:border-error/50",
   },
   warning: {
-    bg: "bg-yellow-50 dark:bg-yellow-900",
-    border: "border-yellow-100 dark:border-yellow-800",
-    extra: "after:border-yellow-200 dark:after:border-yellow-700",
+    bg: "bg-warning/10 dark:bg-warning/20",
+    border: "border-warning/30 dark:border-warning/40",
+    extra: "after:border-warning/40 dark:after:border-warning/50",
   },
   info: {
-    bg: "bg-blue-50 dark:bg-blue-800",
-    border: "border-blue-100 dark:border-blue-600",
-    extra: "after:border-blue-200 dark:after:border-blue-500",
+    bg: "bg-primary-1 dark:bg-primary-2",
+    border: "border-primary-3 dark:border-primary-4",
+    extra: "after:border-primary-4 dark:after:border-primary-5",
   },
 } as const;
 

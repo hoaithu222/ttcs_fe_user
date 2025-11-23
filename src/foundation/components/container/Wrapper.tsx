@@ -2,7 +2,7 @@ import { FC, ReactNode, useState } from "react";
 
 // Styled header component (you can keep your existing styles)
 const Header = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
-  <div className={`bg-gray-800 text-white p-4 flex items-center justify-between ${className}`}>
+  <div className={`bg-header text-neutral-9 p-4 flex items-center justify-between ${className}`}>
     {children}
   </div>
 );
@@ -62,7 +62,7 @@ const Wrapper: FC<WrapperProps> = ({
           {collapsible && (
             <button
               onClick={handleToggleCollapse}
-              className="p-1 transition-colors rounded hover:bg-gray-700"
+              className="p-1 transition-colors rounded hover:bg-neutral-3"
               aria-label={collapsed ? "Expand" : "Collapse"}
             >
               <svg
@@ -93,22 +93,22 @@ const Wrapper: FC<WrapperProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full bg-white shadow-lg rounded-lg ${className}`}>
+    <div className={`flex flex-col h-full bg-background-1 shadow-lg rounded-lg ${className}`}>
       {renderHeader()}
 
       {!collapsed && (
         <>
           <div
-            className={`flex-1 bg-gray-50 ${padding ? "p-4" : ""} ${contentClassName}`}
+            className={`flex-1 bg-background-2 ${padding ? "p-4" : ""} ${contentClassName}`}
             style={contentStyle}
           >
             {loading ? (
               <div className="flex items-center justify-center h-full">
-                <div className="w-12 h-12 border-b-2 border-blue-500 rounded-full animate-spin"></div>
+                <div className="w-12 h-12 border-b-2 border-primary-6 rounded-full animate-spin"></div>
               </div>
             ) : error ? (
               <div className="flex items-center justify-center h-full">
-                <div className="px-4 py-3 text-red-700 bg-red-100 border border-red-400 rounded">
+                <div className="px-4 py-3 text-error bg-error/10 border border-error rounded">
                   <p className="font-bold">Lỗi</p>
                   <p>{error}</p>
                 </div>
@@ -118,7 +118,7 @@ const Wrapper: FC<WrapperProps> = ({
             )}
           </div>
 
-          {footer && <div className="p-4 bg-gray-100 border-t border-gray-200">{footer}</div>}
+          {footer && <div className="p-4 bg-background-2 border-t border-divider-1">{footer}</div>}
         </>
       )}
     </div>

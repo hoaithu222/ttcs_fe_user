@@ -114,13 +114,13 @@ const Button = ({
     "blue-purple":
       "bg-gradient-to-r from-primary-6 to-brand text-button-text hover:from-primary-7 hover:to-primary-6 focus:ring-primary-6",
     "pink-orange":
-      "bg-gradient-to-r from-pink-500 to-orange-500 text-white hover:from-pink-600 hover:to-orange-600 focus:ring-pink-500",
+      "bg-gradient-to-r from-primary-5 to-warning text-button-text hover:from-primary-6 hover:to-warning/90 focus:ring-primary-6",
     "green-blue":
       "bg-gradient-to-r from-success to-primary-6 text-button-text hover:from-success/90 hover:to-primary-7 focus:ring-success",
     "purple-pink":
-      "bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 focus:ring-purple-500",
+      "bg-gradient-to-r from-primary-8 to-primary-5 text-button-text hover:from-primary-9 hover:to-primary-6 focus:ring-primary-6",
     "orange-red":
-      "bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700 focus:ring-orange-500",
+      "bg-gradient-to-r from-warning to-error text-button-text hover:from-warning/90 hover:to-error/90 focus:ring-warning",
     "cyan-blue":
       "bg-gradient-to-r from-cyan-500 to-primary-6 text-button-text hover:from-cyan-600 hover:to-primary-7 focus:ring-cyan-500",
   };

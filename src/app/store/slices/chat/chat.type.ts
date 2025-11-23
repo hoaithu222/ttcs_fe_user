@@ -41,5 +41,7 @@ export interface ChatState {
     error: string | null;
     message: string | null;
   };
+  typing: Record<string, string[]>; // conversationId -> userIds who are typing
+  onlineUsers: Record<string, string[]>; // conversationId -> userIds who are online
 }
 

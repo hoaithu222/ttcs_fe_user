@@ -119,11 +119,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 className="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105"
               />
               {!disabled && (
-                <div className="flex absolute inset-0 justify-center items-center opacity-0 transition-opacity duration-200 bg-black/60 group-hover:opacity-100">
+                <div className="flex absolute inset-0 justify-center items-center opacity-0 transition-opacity duration-200 bg-overlay group-hover:opacity-100">
                   <button
                     type="button"
                     onClick={handleRemove}
-                    className="flex gap-2 items-center px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg shadow-lg transition-all duration-200 hover:bg-red-600 hover:scale-105"
+                    className="flex gap-2 items-center px-4 py-2 text-sm font-medium text-button-text bg-error rounded-lg shadow-lg transition-all duration-200 hover:bg-error/90 hover:scale-105"
                     data-testid={`${testId}-remove`}
                   >
                     <X className="w-4 h-4" />
@@ -138,10 +138,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             className={clsx(
               "relative border-2 border-dashed rounded-xl transition-all duration-200",
               disabled
-                ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
-                : "border-gray-300 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer active:scale-[0.98]",
-              isUploading && "border-blue-400 bg-blue-50/50",
-              (error || uploadError) && "border-red-300 bg-red-50/30",
+                ? "border-border-1 bg-input-bg-disabled cursor-not-allowed opacity-60"
+                : "border-border-2 hover:border-primary-5 hover:bg-primary-1 cursor-pointer active:scale-[0.98]",
+              isUploading && "border-primary-5 bg-primary-1",
+              (error || uploadError) && "border-error bg-error/10",
               typeof width === "string" ? width : "",
               typeof height === "string" ? height : "",
               aspectRatioClasses[aspectRatio]
@@ -166,7 +166,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             {isUploading ? (
               <div className="flex absolute inset-0 flex-col gap-3 justify-center items-center">
                 <Spinner />
-                <p className="text-sm font-medium text-blue-600">Uploading...</p>
+                <p className="text-sm font-medium text-primary-6">Uploading...</p>
               </div>
             ) : (
               <div
@@ -175,12 +175,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                   padding
                 )}
               >
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full shadow-lg">
-                  <ImageUp className="w-7 h-7 text-white" />
+                <div className="p-3 bg-gradient-to-br from-primary-5 to-primary-6 rounded-full shadow-lg">
+                  <ImageUp className="w-7 h-7 text-button-text" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-700">Click to upload</p>
-                  <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF up to {maxSizeInMB}MB</p>
+                  <p className="text-sm font-semibold text-neutral-9">Click to upload</p>
+                  <p className="mt-1 text-xs text-neutral-6">PNG, JPG, GIF up to {maxSizeInMB}MB</p>
                 </div>
               </div>
             )}
@@ -189,9 +189,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       </div>
 
       {(error || uploadError) && (
-        <div className="flex gap-2 items-start p-3 bg-red-50 rounded-lg border border-red-200">
+        <div className="flex gap-2 items-start p-3 bg-error/10 rounded-lg border border-error/30">
           <svg
-            className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0"
+            className="w-4 h-4 text-error mt-0.5 flex-shrink-0"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -201,7 +201,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
               clipRule="evenodd"
             />
           </svg>
-          <p className="text-xs font-medium text-red-700">{error || uploadError}</p>
+          <p className="text-xs font-medium text-error">{error || uploadError}</p>
         </div>
       )}
     </div>

@@ -72,7 +72,7 @@ const RatingFill = ({
         <Star
           key={index}
           size={size}
-          className="text-gray-300"
+          className="text-neutral-4"
           style={{ color: emptyStarColor, fill: 'none' }}
         />
       );

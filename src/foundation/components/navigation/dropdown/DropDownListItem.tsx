@@ -35,14 +35,14 @@ const DropdownListItem: React.FC<{
   paddingY,
   paddingX,
 }) => {
-  const className = `hover:bg-purple-2 cursor-pointer w-full text-body-14`;
+  const className = `hover:bg-primary-1 cursor-pointer w-full text-body-14`;
   return (
     <li
       onClick={onClick}
       className={clsx(
         className,
         dropdownItemClassName,
-        highlight && "bg-purple-2",
+        highlight && "bg-primary-1",
         paddingY ? `${paddingY}` : "py-1",
         paddingX ? `${paddingX}` : "px-2"
       )}

@@ -1,7 +1,7 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { RootState } from "@/app/store";
 
-const homeState = (state: RootState) => state.home;
+const homeState = (state: RootState) => (state as any).home;
 
 // Banner selectors
 export const selectBanner = createSelector([homeState], (home) => home.home_banner.data);

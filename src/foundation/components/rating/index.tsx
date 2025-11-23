@@ -29,7 +29,7 @@ const Rating = ({ rating, maxRating = 5, size = '20', className = '' }: Props) =
           <div key={index} className="relative" style={{ width: sizeNum, height: sizeNum }}>
             <Star
               size={sizeNum}
-              className="absolute top-0 left-0 text-gray-300"
+              className="absolute top-0 left-0 text-neutral-4"
               style={{ fill: 'none' }}
             />
             <div
@@ -38,8 +38,7 @@ const Rating = ({ rating, maxRating = 5, size = '20', className = '' }: Props) =
             >
               <Star
                 size={sizeNum}
-                className="fill-yellow-400 text-yellow-400"
-                style={{ fill: '#FFBB00' }}
+                className="fill-warning text-warning"
               />
             </div>
           </div>
@@ -50,9 +49,9 @@ const Rating = ({ rating, maxRating = 5, size = '20', className = '' }: Props) =
         <div key={index} className={`${isFilled ? 'rating-fill' : ''}`}>
           <Star
             size={sizeNum}
-            className={isFilled ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+            className={isFilled ? 'fill-warning text-warning' : 'text-neutral-4'}
             style={{
-              fill: isFilled ? '#FFBB00' : 'none',
+              fill: isFilled ? undefined : 'none',
             }}
           />
         </div>

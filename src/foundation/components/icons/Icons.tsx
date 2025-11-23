@@ -105,7 +105,7 @@ export interface IconProps {
 // Các màu theme
 const themeColors = {
   primary: getTailwindHexColor("text-blue-600"),
-  secondary: getTailwindHexColor("text-gray-500"),
+  secondary: getTailwindHexColor("text-neutral-5"),
   success: getTailwindHexColor("text-green-600"),
   warning: getTailwindHexColor("text-yellow-400"),
   danger: getTailwindHexColor("text-red-600"),
@@ -409,16 +409,16 @@ const Icon: React.FC<IconProps> = ({
         {/* Status indicator */}
         {statusIndicator && (
           <span
-            className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white z-10 ${
+            className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background-1 z-10 ${
               statusIndicator === "online"
-                ? "bg-green-500"
+                ? "bg-success"
                 : statusIndicator === "offline"
-                  ? "bg-gray-400"
+                  ? "bg-neutral-4"
                   : statusIndicator === "away"
-                    ? "bg-yellow-500"
+                    ? "bg-warning"
                     : statusIndicator === "busy"
-                      ? "bg-red-500"
-                      : "bg-purple-500"
+                      ? "bg-error"
+                      : "bg-primary-5"
             }`}
           />
         )}
@@ -444,19 +444,19 @@ const Icon: React.FC<IconProps> = ({
 
         {/* Badge */}
         {badge && !loading && (
-          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center z-10">
+          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-error text-button-text rounded-full min-w-[18px] text-center z-10">
             {badge}
           </span>
         )}
 
         {/* Notification dot */}
         {notification && !notificationCount && !badge && !loading && (
-          <span className="absolute top-0 right-0 z-10 w-2 h-2 bg-red-500 rounded-full border border-white" />
+          <span className="absolute top-0 right-0 z-10 w-2 h-2 bg-error rounded-full border border-background-1" />
         )}
 
         {/* Notification count */}
         {notificationCount !== undefined && notificationCount > 0 && !badge && !loading && (
-          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center z-10">
+          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-error text-button-text rounded-full min-w-[18px] text-center z-10">
             {notificationCount > 99 ? "99+" : notificationCount}
           </span>
         )}
@@ -465,11 +465,11 @@ const Icon: React.FC<IconProps> = ({
       {/* Tooltip */}
       {tooltip && isHovered && !disabled && (
         <div
-          className={`absolute z-50 px-2 py-1 text-xs text-white whitespace-nowrap bg-gray-900 rounded shadow-lg pointer-events-none ${tooltipPositionClasses[tooltipPosition]}`}
+          className={`absolute z-50 px-2 py-1 text-xs text-neutral-0 whitespace-nowrap bg-neutral-9 rounded shadow-lg pointer-events-none ${tooltipPositionClasses[tooltipPosition]}`}
         >
           {tooltip}
           <div
-            className={`absolute w-2 h-2 transform rotate-45 bg-gray-900 ${
+            className={`absolute w-2 h-2 transform rotate-45 bg-neutral-9 ${
               tooltipPosition === "top"
                 ? "top-full left-1/2 -translate-x-1/2 -mt-1"
                 : tooltipPosition === "bottom"
@@ -487,7 +487,7 @@ const Icon: React.FC<IconProps> = ({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowContextMenu(false)} />
           <div
-            className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[180px] z-50"
+            className="fixed bg-background-1 rounded-lg shadow-xl border border-border-2 py-1 min-w-[180px] z-50"
             style={{
               top: contextMenuPos.y,
               left: contextMenuPos.x,
@@ -508,8 +508,8 @@ const Icon: React.FC<IconProps> = ({
                   item.disabled
                     ? "opacity-50 cursor-not-allowed"
                     : item.danger
-                      ? "text-red-600 hover:bg-red-50"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "text-error hover:bg-error/10"
+                      : "text-neutral-9 hover:bg-background-2"
                 }`}
               >
                 {item.icon && <Icon name={item.icon} size="sm" className="flex-shrink-0" />}

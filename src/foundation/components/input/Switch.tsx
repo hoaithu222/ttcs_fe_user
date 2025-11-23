@@ -109,7 +109,7 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
           {...props}
           data-testid={testId}
         >
-          <RadixSwitch.Thumb className="absolute left-0.5 top-1/2 z-10 block h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out will-change-transform data-[state=checked]:translate-x-4 data-[disabled]:opacity-50" />
+          <RadixSwitch.Thumb className="absolute left-0.5 top-1/2 z-10 block h-5 w-5 -translate-y-1/2 rounded-full bg-background-1 shadow-sm transition-transform duration-200 ease-in-out will-change-transform data-[state=checked]:translate-x-4 data-[disabled]:opacity-50" />
         </RadixSwitch.Root>
         {labelPosition === "right" && label && (
           <SwitchLabel
@@ -150,7 +150,7 @@ const SwitchLabel: React.FC<{
       className={`text-body-13 text-neutral-9 cursor-pointer select-none whitespace-nowrap leading-tight ${disabled ? "cursor-not-allowed opacity-50" : ""} ${className}`}
     >
       {label}
-      {required && <span className="ml-0.5 text-red-5">*</span>}
+      {required && <span className="ml-0.5 text-error">*</span>}
     </label>
   );
 };

@@ -29,7 +29,9 @@ export interface ChatConversation {
     role?: string;
   }>;
   lastMessage?: ChatMessage;
-  unreadCount?: number;
+  unreadCountMe?: number; // Messages from others that current user hasn't read
+  unreadCountTo?: number; // Messages from current user that others haven't read
+  unreadCount?: number; // Deprecated: kept for backward compatibility, same as unreadCountMe
   type?: "direct" | "group" | "admin" | "shop" | "ai";
   channel?: string;
   metadata?: Record<string, any>;
@@ -75,7 +77,7 @@ export interface ProductMetadata {
 }
 
 export interface CreateConversationRequest {
-  type: "admin" | "shop";
+  type: "admin" | "shop" | "ai";
   targetId?: string; // shopId nếu type là "shop"
   metadata?: Record<string, any> | ShopConversationMetadata; // context: productId, orderId, etc.
   initialMessage?: string;
