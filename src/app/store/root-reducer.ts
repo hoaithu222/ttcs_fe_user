@@ -12,6 +12,7 @@ import cartReducer from "@/features/Cart/slice/Cart.slice";
 import paymentReducer from "@/features/Payment/slice/payment.slice";
 import notificationReducer from "./slices/notification/notification.slice";
 import chatReducer from "./slices/chat/chat.slice";
+import { aiChatReducer } from "@/features/Chat/slice-chat-ai/chatai.slice";
 import { AppReducerType } from "./types";
 
 export const rootReducer = combineReducers({
@@ -28,4 +29,5 @@ export const rootReducer = combineReducers({
   payment: paymentReducer,
   notification: notificationReducer,
   chat: chatReducer,
+  aiChat: aiChatReducer,
 });

@@ -4,6 +4,9 @@ export const APP_VERSION = "1.0.0";
 
 // API constants
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+export const AI_CHAT_API_URL =
+  import.meta.env.VITE_AI_CHAT_API_URL ||
+  "https://multivendorchatbot-production.up.railway.app/api/chat/";
 export const API_TIMEOUT = 30000;
 
 // Date formats

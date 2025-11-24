@@ -1,16 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { X, Send, Image as ImageIcon, Smile, Minus } from "lucide-react";
+import { X, Send, Smile, Minus } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
 import { useAppDispatch, useAppSelector } from "@/app/store";
-import {
-  selectCurrentConversation,
-  selectChatMessages,
-  selectChatStatus,
-} from "@/app/store/slices/chat/chat.selector";
 import { selectUser } from "@/features/Auth/components/slice/auth.selector";
-import { getMessagesStart, markAsReadStart, updateMessageFromSocket } from "@/app/store/slices/chat/chat.slice";
-import { imagesApi } from "@/core/api/images";
-import { chatApi } from "@/core/api/chat";
 import Button from "@/foundation/components/buttons/Button";
 import TextArea from "@/foundation/components/input/TextArea";
 import MessageItem from "./MessageItem";
@@ -22,6 +14,12 @@ import Image from "@/foundation/components/icons/Image";
 import { images } from "@/assets/image";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import Popover from "@/foundation/components/popover/Popever";
+import { aiChatActions } from "@/features/Chat/slice-chat-ai/chatai.slice";
+import {
+  selectAiChatMessages,
+  selectAiChatStatus,
+  selectAiChatError,
+} from "@/features/Chat/slice-chat-ai/chatai.selector";
 
 interface ModalChatWithAiProps {
   open: boolean;
@@ -30,29 +28,19 @@ interface ModalChatWithAiProps {
 
 const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange }) => {
   const dispatch = useAppDispatch();
-  const currentConversation = useAppSelector(selectCurrentConversation);
-  const messages = useAppSelector((state) =>
-    currentConversation
-      ? selectChatMessages(currentConversation._id)(state)
-      : []
-  );
-  const status = useAppSelector(selectChatStatus);
   const user = useAppSelector(selectUser);
   const currentUserId = user?._id;
+  const aiMessagesSelector = useMemo(() => selectAiChatMessages(currentUserId), [currentUserId]);
+  const aiStatusSelector = useMemo(() => selectAiChatStatus(currentUserId), [currentUserId]);
+  const aiErrorSelector = useMemo(() => selectAiChatError(currentUserId), [currentUserId]);
+  const messages = useAppSelector(aiMessagesSelector);
+  const status = useAppSelector(aiStatusSelector);
+  const aiError = useAppSelector(aiErrorSelector);
   const [message, setMessage] = useState("");
   const [isMinimized, setIsMinimized] = useState(false);
-  const [attachments, setAttachments] = useState<Array<{
-    url: string;
-    type: string;
-    name?: string;
-    file?: File;
-  }>>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -70,101 +58,20 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
     }
   }, [open, isMinimized]);
 
-  // Load messages when current conversation is set
+  // Hydrate AI thread from local storage whenever modal opens
   useEffect(() => {
-    if (!open || !currentConversation?._id) return;
-
-    // Check if this is AI conversation
-    const isAiConversation = currentConversation.type === "ai" || currentConversation.channel === "ai";
-
-    if (!isAiConversation) return;
-
-    // Load messages if not already loaded
-    const hasMessages = messages.length > 0;
-    if (!hasMessages) {
-      dispatch(
-        getMessagesStart({
-          conversationId: currentConversation._id,
-          query: { page: 1, limit: 50 },
-        })
-      );
+    if (open && currentUserId) {
+      dispatch(aiChatActions.hydrateThreadRequested({ userId: currentUserId }));
     }
-  }, [open, currentConversation?._id, currentConversation?.type, currentConversation?.channel, messages.length, dispatch]);
-
-  // Mark as read when modal is open and messages are loaded
-  useEffect(() => {
-    if (
-      currentConversation && 
-      messages.length > 0 && 
-      open && 
-      status !== "LOADING"
-    ) {
-      dispatch(markAsReadStart({ conversationId: currentConversation._id }));
-    }
-  }, [currentConversation?._id, messages.length, open, status, dispatch]);
+  }, [open, currentUserId, dispatch]);
 
   // Reset state when modal closes
   useEffect(() => {
     if (!open) {
-      setAttachments([]);
       setMessage("");
       setIsMinimized(false);
     }
   }, [open]);
-
-  // Handle file selection and upload
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    // Filter only image files
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
-    if (imageFiles.length === 0) {
-      alert("Vui lòng chọn file ảnh");
-      return;
-    }
-
-    // Check file size (max 5MB per image)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    const validFiles = imageFiles.filter((file) => {
-      if (file.size > maxSize) {
-        alert(`File ${file.name} vượt quá 5MB`);
-        return false;
-      }
-      return true;
-    });
-
-    if (validFiles.length === 0) return;
-
-    setIsUploading(true);
-
-    try {
-      const uploadPromises = validFiles.map(async (file) => {
-        const result = await imagesApi.uploadImage(file);
-        return {
-          url: result.url,
-          type: file.type,
-          name: file.name,
-          file: file, // Keep for preview
-        };
-      });
-
-      const uploadedAttachments = await Promise.all(uploadPromises);
-      setAttachments((prev) => [...prev, ...uploadedAttachments]);
-    } catch (error) {
-      console.error("Error uploading images:", error);
-      alert("Lỗi khi upload ảnh. Vui lòng thử lại.");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const handleRemoveAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -200,63 +107,24 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
   // Get other participant info (AI)
   const displayName = "Chatbot";
 
-  const handleSend = async () => {
-    if ((!message.trim() && attachments.length === 0) || !currentConversation || !isAiConversation || isSending) return;
+  const isSending = status === "sending";
 
-    const messageText = message.trim();
-    const attachmentsToSend = attachments.map((att) => ({
-      url: att.url,
-      type: att.type,
-      name: att.name,
-    }));
+  const handleSend = () => {
+    if (!message.trim() || !currentUserId || isSending) return;
 
-    // Determine message type based on content
-    let messageType: "text" | "image" | "file" = "text";
-    if (attachmentsToSend.length > 0) {
-      const hasImages = attachmentsToSend.some((att) => att.type.startsWith("image/"));
-      messageType = hasImages ? "image" : "file";
-    }
+    const userName = user?.name || user?.email || user?.phone || "Bạn";
 
-    setIsSending(true);
+    dispatch(
+      aiChatActions.sendMessageRequested({
+        userId: currentUserId,
+        message: message.trim(),
+        userName,
+      })
+    );
 
-    try {
-      // Send message via API
-      const response = await chatApi.sendMessage(currentConversation._id, {
-        message: messageText || "",
-        type: messageType,
-        attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined,
-      });
-
-      if (response.success && response.data) {
-        // Add message to Redux store
-        dispatch(updateMessageFromSocket({
-          conversationId: currentConversation._id,
-          message: response.data,
-          isSender: true,
-        }));
-
-        // Clear state
-        setMessage("");
-        setAttachments([]);
-        if (textareaRef.current) {
-          textareaRef.current.style.height = "auto";
-        }
-
-        // Scroll to bottom
-        setTimeout(() => {
-          if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-          }
-        }, 100);
-
-        // Note: AI response will be handled by polling or webhook
-        // For now, we'll just show the user's message
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      alert("Lỗi khi gửi tin nhắn. Vui lòng thử lại.");
-    } finally {
-      setIsSending(false);
+    setMessage("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
     }
   };
 
@@ -284,11 +152,6 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
   };
 
   if (!open) return null;
-
-  // Check if current conversation is AI conversation (if exists)
-  const isAiConversation = currentConversation 
-    ? (currentConversation.type === "ai" || currentConversation.channel === "ai")
-    : true; // Allow showing UI even if no conversation yet (will be created)
 
   return (
     <div
@@ -344,21 +207,26 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto px-4 py-3 bg-neutral-1">
-            {!currentConversation ? (
-              <div className="flex h-64 items-center justify-center">
-                <span className="text-sm text-neutral-6">Đang tạo cuộc trò chuyện AI...</span>
+            {!currentUserId ? (
+              <div className="flex h-64 flex-col items-center justify-center text-center space-y-2">
+                <span className="text-sm text-neutral-6">Vui lòng đăng nhập để trò chuyện với AI.</span>
               </div>
-            ) : !isAiConversation ? (
-              <div className="flex h-64 items-center justify-center">
-                <span className="text-sm text-neutral-6">Chưa có cuộc trò chuyện AI</span>
-              </div>
-            ) : status === "LOADING" && messages.length === 0 ? (
+            ) : status === "hydrating" && messages.length === 0 ? (
               <div className="flex h-64 items-center justify-center">
                 <Spinner size="lg" />
               </div>
+            ) : aiError && messages.length === 0 ? (
+              <div className="flex h-64 flex-col items-center justify-center space-y-3">
+                <span className="text-sm text-neutral-6 text-center">
+                  {aiError || "Không thể tải cuộc trò chuyện AI."}
+                </span>
+                <Button size="sm" onClick={() => currentUserId && dispatch(aiChatActions.hydrateThreadRequested({ userId: currentUserId }))}>
+                  Thử lại
+                </Button>
+              </div>
             ) : messages.length === 0 ? (
               <div className="flex h-64 items-center justify-center">
-                <span className="text-sm text-neutral-6">Chưa có tin nhắn nào</span>
+                <span className="text-sm text-neutral-6">Hãy bắt đầu cuộc trò chuyện với AI ngay bây giờ.</span>
               </div>
             ) : (
               <div className="space-y-4">
@@ -378,9 +246,8 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                       <MessageItem
                         key={msg._id}
                         message={msg}
-                        isOwn={msg.senderId === currentUserId}
+                        isOwn={msg.senderId === currentUserId || msg.metadata?.role === "user"}
                         currentUserId={currentUserId}
-                        conversation={currentConversation}
                       />
                     ))}
                   </div>
@@ -393,63 +260,7 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
           {/* Input Area */}
           <div className="border-t border-neutral-3 bg-background-2 p-3">
             <Form.Root onSubmit={(e) => e.preventDefault()}>
-              {/* Image previews */}
-              {attachments.length > 0 && (
-                <div className="mb-2 p-2 bg-background-2 rounded-lg border border-neutral-3">
-                  <div className="flex gap-2 overflow-x-auto">
-                    {attachments.map((attachment, index) => (
-                      <div
-                        key={index}
-                        className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-neutral-3 group"
-                      >
-                        {attachment.file ? (
-                          <img
-                            src={URL.createObjectURL(attachment.file)}
-                            alt={attachment.name || "Preview"}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Image
-                            src={attachment.url}
-                            alt={attachment.name || "Preview"}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveAttachment(index)}
-                          className="absolute top-1 right-1 w-5 h-5 bg-neutral-9/80 hover:bg-neutral-9 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Xóa ảnh"
-                        >
-                          <X className="w-3 h-3 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
               <div className="flex items-end gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading || !isAiConversation || status === "LOADING" || isSending}
-                  className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                  title="Đính kèm ảnh"
-                >
-                  {isUploading ? (
-                    <Spinner size="sm" />
-                  ) : (
-                    <ImageIcon className="w-4 h-4" />
-                  )}
-                </button>
                 <Popover
                   open={isEmojiPickerOpen}
                   onOpenChange={setIsEmojiPickerOpen}
@@ -469,7 +280,7 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                   <button
                     type="button"
                     onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
-                    disabled={!isAiConversation || status === "LOADING" || isSending}
+                    disabled={!currentUserId || isSending}
                     className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                     title="Emoji"
                   >
@@ -487,12 +298,12 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                     rows={1}
                     className="resize-none min-h-[44px] max-h-[120px]"
                     textSize="large"
-                    disabled={!isAiConversation || status === "LOADING" || isSending}
+                    disabled={!currentUserId || isSending}
                   />
                 </div>
                 <Button
                   onClick={handleSend}
-                  disabled={(!message.trim() && attachments.length === 0) || !isAiConversation || status === "LOADING" || isUploading || isSending}
+                  disabled={!message.trim() || !currentUserId || isSending}
                   size="md"
                   rounded="full"
                   icon={isSending ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}

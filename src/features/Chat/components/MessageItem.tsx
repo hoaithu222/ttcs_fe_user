@@ -32,7 +32,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
       {!isOwn && (() => {
         // Get avatar - use CSKH.png for CSKH conversation, otherwise use sender avatar from backend
         const getSenderAvatar = () => {
-          if (conversation?.type === "admin" && conversation?.metadata?.context === "CSKH") {
+          if (message.metadata?.role === "assistant") {
+            return images.chatAi;
+          }
+           if (conversation?.type === "admin" && conversation?.metadata?.context === "CSKH") {
             return images.CSKH;
           }
           return message.senderAvatar;
@@ -63,7 +66,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
       <div className={clsx("flex flex-col max-w-[75%] sm:max-w-[65%]", isOwn ? "items-end" : "items-start")}>
         {!isOwn && (
           <span className="text-xs text-neutral-7 mb-1.5 px-1 font-medium">
-            {message.senderName || "Người dùng"}
+            {message.metadata?.role === "assistant" ? "AI Assistant" : message.senderName || "Người dùng"}
           </span>
         )}
 
@@ -84,15 +87,16 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
 
         {/* Check if message has text content */}
         {(() => {
-          const hasText = message.message && typeof message.message === 'string' && message.message.trim();
-          const hasAttachments = message.attachments && message.attachments.length > 0;
+          const attachments = message.attachments ?? [];
+          const hasText = message.message && typeof message.message === "string" && message.message.trim();
+          const hasAttachments = attachments.length > 0;
           const onlyImages = hasAttachments && !hasText;
 
           // If only images, render without background bubble
           if (onlyImages) {
             return (
               <div className="space-y-2">
-                {message.attachments.map((attachment, idx) => (
+                {attachments.map((attachment, idx) => (
                   <div key={idx} className="rounded-lg overflow-hidden">
                     {attachment.type?.startsWith("image/") ? (
                       <Image
@@ -132,7 +136,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
 
               {hasAttachments && (
                 <div className={clsx("space-y-2", hasText ? "mt-2" : "")}>
-                  {message.attachments.map((attachment, idx) => (
+                  {attachments.map((attachment, idx) => (
                     <div key={idx} className="rounded-lg overflow-hidden">
                       {attachment.type?.startsWith("image/") ? (
                         <Image

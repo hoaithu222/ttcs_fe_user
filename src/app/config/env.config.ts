@@ -46,6 +46,11 @@ export const ENV_CONFIG = {
   SOCKET_DEBUG:
     import.meta.env.VITE_SOCKET_DEBUG === "true" || import.meta.env.DEV,
 
+  // AI Chat
+  AI_CHAT_API_URL:
+    import.meta.env.VITE_AI_CHAT_API_URL ||
+    "https://multivendorchatbot-production.up.railway.app/api/chat/",
+
   // App Configuration
   APP_NAME: import.meta.env.VITE_APP_NAME || "Client User",
   APP_VERSION: import.meta.env.VITE_APP_VERSION || "1.0.0",
@@ -89,6 +94,7 @@ export const ENV_CONFIG = {
 export const {
   API_BASE_URL,
   API_TIMEOUT,
+  AI_CHAT_API_URL,
   APP_NAME,
   APP_VERSION,
   APP_ENV,
