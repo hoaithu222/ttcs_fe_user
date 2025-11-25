@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "@/foundation/components/info/Card";
+import * as Form from "@radix-ui/react-form";
+import { MapPin } from "lucide-react";
+import Modal from "@/foundation/components/modal/Modal";
+import ScrollView from "@/foundation/components/scroll/ScrollView";
+import IconCircleWrapper from "@/foundation/components/icons/IconCircleWrapper";
 import Button from "@/foundation/components/buttons/Button";
-import addressData from "./common/addressData";
+import Input from "@/foundation/components/input/Input";
+import AddressSelector from "@/shared/components/AddressSelector";
+import AlertMessage from "@/foundation/components/info/AlertMessage";
+import FreeMap, { type MapCoordinates } from "@/foundation/components/map/FreeMap";
+import addressData, { AddressProvince } from "@/shared/common/data-address/addressData";
 import type { Address, UpdateAddressRequest } from "@/core/api/addresses/type";
 import { useProfileAddresses } from "../../hooks/useAddress";
 
@@ -9,6 +17,21 @@ interface EditAddressModalProps {
   address: Address;
   onClose: () => void;
 }
+
+const DEFAULT_MAP_CENTER: MapCoordinates = [20.9706, 105.7968];
+
+const parseLocationNote = (note?: string): MapCoordinates | null => {
+  if (!note) return null;
+  try {
+    const parsed = JSON.parse(note);
+    if (typeof parsed?.lat === "number" && typeof parsed?.lng === "number") {
+      return [parsed.lat, parsed.lng];
+    }
+  } catch {
+    // ignore invalid json
+  }
+  return null;
+};
 
 const EditAddressModal = ({ address, onClose }: EditAddressModalProps) => {
   const { updateAddress } = useProfileAddresses();
@@ -20,14 +43,10 @@ const EditAddressModal = ({ address, onClose }: EditAddressModalProps) => {
   const [districtCode, setDistrictCode] = useState<number | "">("");
   const [wardCode, setWardCode] = useState<number | "">("");
   const [addressLine1, setAddressLine1] = useState(address.address || "");
+  const [mapPosition, setMapPosition] = useState<MapCoordinates | null>(() => parseLocationNote(address.notes));
 
-  const provinces = addressData as Array<{
-    code: number;
-    name: string;
-    districts: Array<{ code: number; name: string; wards: Array<{ code: number; name: string }> }>;
-  }>;
+  const provinces = addressData as AddressProvince[];
 
-  // Preselect codes by name matching if possible
   useEffect(() => {
     const province = provinces.find((p) => p.name === address.city);
     if (province) {
@@ -61,7 +80,13 @@ const EditAddressModal = ({ address, onClose }: EditAddressModalProps) => {
     setWardCode("");
   }, [districtCode]);
 
-  const handleSubmit = async () => {
+  const handleClose = () => {
+    if (isSubmitting) return;
+    onClose();
+  };
+
+  const handleSubmit = () => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const city = cityCode
@@ -70,7 +95,9 @@ const EditAddressModal = ({ address, onClose }: EditAddressModalProps) => {
       const district = districtCode
         ? districts.find((d) => d.code === districtCode)?.name || address.district
         : address.district;
-      const ward = wardCode ? wards.find((w) => w.code === wardCode)?.name || (address as any).ward : (address as any).ward;
+      const ward = wardCode
+        ? wards.find((w) => w.code === wardCode)?.name || (address as any).ward
+        : (address as any).ward;
       const data: UpdateAddressRequest = {
         _id: address._id,
         name,
@@ -79,6 +106,7 @@ const EditAddressModal = ({ address, onClose }: EditAddressModalProps) => {
         city,
         district,
         ward,
+        ...(mapPosition && { notes: JSON.stringify({ lat: mapPosition[0], lng: mapPosition[1] }) }),
       };
       updateAddress(address._id, data);
       onClose();
@@ -87,92 +115,124 @@ const EditAddressModal = ({ address, onClose }: EditAddressModalProps) => {
     }
   };
 
+  const coordinateLabel = mapPosition
+    ? `${mapPosition[0].toFixed(5)}, ${mapPosition[1].toFixed(5)}`
+    : "Chưa chọn vị trí";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <Card className="w-[90%] max-w-xl space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="text-lg font-semibold">Cập nhật địa chỉ</div>
-          <Button size="sm" variant="ghost" onClick={onClose}>
-            Đóng
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 gap-3">
+    <Modal
+      open
+      size="3xl"
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+      onCancel={handleClose}
+      onConfirm={handleSubmit}
+      closeText="Hủy"
+      confirmText={isSubmitting ? "Đang lưu..." : "Cập nhật"}
+      disabled={isSubmitting}
+      title={
+        <div className="flex gap-3 items-center">
+          <IconCircleWrapper size="md" color="info">
+            <MapPin className="text-info" />
+          </IconCircleWrapper>
           <div>
-            <div className="text-xs font-medium text-neutral-5">Họ và tên</div>
-            <input
-              className="w-full px-3 py-2 mt-1 border rounded-lg border-border-2 bg-background-1"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div>
-            <div className="text-xs font-medium text-neutral-5">Số điện thoại</div>
-            <input
-              className="w-full px-3 py-2 mt-1 border rounded-lg border-border-2 bg-background-1"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              inputMode="numeric"
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <select
-              className="w-full px-3 py-2 border rounded-lg border-border-2 bg-background-1"
-              value={cityCode}
-              onChange={(e) => setCityCode(e.target.value ? Number(e.target.value) : "")}
-            >
-              <option value="">Chọn Tỉnh/Thành phố</option>
-              {provinces.map((p) => (
-                <option key={p.code} value={p.code}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="w-full px-3 py-2 border rounded-lg border-border-2 bg-background-1"
-              value={districtCode}
-              onChange={(e) => setDistrictCode(e.target.value ? Number(e.target.value) : "")}
-              disabled={!cityCode}
-            >
-              <option value="">Chọn Quận/Huyện</option>
-              {districts.map((d) => (
-                <option key={d.code} value={d.code}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="w-full px-3 py-2 border rounded-lg border-border-2 bg-background-1"
-              value={wardCode}
-              onChange={(e) => setWardCode(e.target.value ? Number(e.target.value) : "")}
-              disabled={!districtCode}
-            >
-              <option value="">Chọn Phường/Xã</option>
-              {wards.map((w) => (
-                <option key={w.code} value={w.code}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <div className="text-xs font-medium text-neutral-5">Địa chỉ</div>
-            <input
-              className="w-full px-3 py-2 mt-1 border rounded-lg border-border-2 bg-background-1"
-              value={addressLine1}
-              onChange={(e) => setAddressLine1(e.target.value)}
-            />
+            <h2 className="text-xl font-bold text-neutral-9">Cập nhật địa chỉ</h2>
+            <p className="text-sm text-neutral-6 mt-0.5">Điều chỉnh thông tin giao nhận</p>
           </div>
         </div>
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
-            Hủy
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Đang lưu..." : "Cập nhật"}
-          </Button>
-        </div>
-      </Card>
-    </div>
+      }
+      testId="profile-edit-address-modal"
+      className="flex flex-col gap-6"
+    >
+      <Form.Root
+        className="space-y-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSubmit();
+        }}
+      >
+        <ScrollView className="h-[520px]" hideScrollbarY={false}>
+          <div className="space-y-6 pr-1">
+            <AlertMessage
+              type="info"
+              title="Kiểm tra lại trước khi lưu"
+              message="Các thay đổi áp dụng cho những đơn hàng tiếp theo. Hãy đảm bảo thông tin vẫn còn hiệu lực."
+            />
+            <div className="grid grid-cols-1 gap-3">
+              <Input
+                name="edit-address-name"
+                label="Họ và tên"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+              <Input
+                name="edit-address-phone"
+                label="Số điện thoại"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                inputMode="numeric"
+                required
+              />
+              <AddressSelector
+                value={{ provinceCode: cityCode, districtCode, wardCode }}
+                onChange={(val) => {
+                  setCityCode((val.provinceCode ?? "") as number | "");
+                  setDistrictCode((val.districtCode ?? "") as number | "");
+                  setWardCode((val.wardCode ?? "") as number | "");
+                }}
+                labels={{
+                  province: "Tỉnh/Thành phố",
+                  district: "Quận/Huyện",
+                  ward: "Phường/Xã",
+                }}
+              />
+              <Input
+                name="edit-address-detail"
+                label="Địa chỉ"
+                value={addressLine1}
+                onChange={(e) => setAddressLine1(e.target.value)}
+                placeholder="Nhập địa chỉ chi tiết"
+              />
+            </div>
+
+            {/* <div className="space-y-3 rounded-xl border border-neutral-3/60 bg-neutral-1 p-4 shadow-sm">
+              <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-neutral-9">Vị trí bản đồ (tuỳ chọn)</p>
+                  <p className="text-xs text-neutral-6">Nhấp vào bản đồ để điều chỉnh vị trí giao hàng.</p>
+                </div>
+                {mapPosition && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={() => setMapPosition(null)}
+                    className="self-start md:self-auto"
+                  >
+                    Xóa vị trí
+                  </Button>
+                )}
+              </div>
+              <FreeMap
+                center={mapPosition ?? DEFAULT_MAP_CENTER}
+                markerPosition={mapPosition}
+                onMarkerChange={setMapPosition}
+                popupContent="Địa điểm giao hàng"
+                className="h-[280px] rounded-lg"
+              />
+              <p className="text-xs text-neutral-6">
+                Tọa độ hiện tại: <span className="font-semibold text-neutral-9">{coordinateLabel}</span>
+              </p>
+            </div> */}
+            <Form.Submit asChild>
+              <button type="submit" className="hidden" aria-hidden />
+            </Form.Submit>
+          </div>
+        </ScrollView>
+      </Form.Root>
+    </Modal>
   );
 };
 

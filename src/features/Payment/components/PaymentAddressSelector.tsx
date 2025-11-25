@@ -16,7 +16,9 @@ import { addToast } from "@/app/store/slices/toast";
 import { useAppDispatch } from "@/app/store";
 import { useProfileAddresses } from "@/features/Profile/hooks/useAddress";
 import { ReduxStateType } from "@/app/store/types";
-import addressData from "@/features/Profile/components/address/common/addressData";
+import addressData, {
+  AddressProvince,
+} from "@/shared/common/data-address/addressData";
 
 interface PaymentAddressSelectorProps {
   selectedAddressId?: string;
@@ -57,11 +59,7 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
   const [addressLine2, setAddressLine2] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   
-  const provinces = addressData as Array<{
-    code: number;
-    name: string;
-    districts: Array<{ code: number; name: string; wards: Array<{ code: number; name: string }> }>;
-  }>;
+  const provinces = addressData as AddressProvince[];
   
   const districts = useMemo(() => {
     const province = provinces.find((p) => p.code === cityCode);

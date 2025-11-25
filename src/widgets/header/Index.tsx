@@ -12,7 +12,7 @@ import {
 import Button from "@/foundation/components/buttons/Button";
 import { useAuth } from "@/features/Auth/hooks/useAuth";
 import { useState, useRef, useEffect } from "react";
-import Image from "@/foundation/components/icons/Image";
+import Image, { ImageName } from "@/foundation/components/icons/Image";
 import IconButton from "@/foundation/components/buttons/IconButton";
 import { RootState } from "@/app/store";
 import { themeRootSelector } from "@/app/store/slices/theme/selectors";
@@ -71,6 +71,7 @@ const Header = () => {
       dispatch(getNotificationsStart({ query: { page: 1, limit: 10 } }));
     }
   }, [dispatch, user?._id]);
+
 
   const formatRelativeTime = (value?: string) => {
     if (!value) return "";
@@ -338,8 +339,8 @@ const Header = () => {
                     </p>
                     <p className="text-xs text-neutral-5">{user?.role || ""}</p>
                   </div>
-                  <div className="flex justify-center items-center w-8 h-8 bg-background-2 rounded-full">
-                    <User className="w-4 h-4 text-neutral-6" />
+                  <div className="flex justify-center items-center w-8 h-8 lg:w-12 lg:h-12 bg-background-2 rounded-full">
+                   <img src={user?.avatar} alt="avatar" className="w-8 h-8 lg:w-12 lg:h-12 rounded-full object-cover" />
                   </div>
                   <ChevronDown className="w-4 h-4 text-neutral-5" />
                 </button>

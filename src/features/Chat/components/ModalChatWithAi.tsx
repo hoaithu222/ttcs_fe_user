@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { X, Send, Image as ImageIcon, Smile, Minus } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
 import { useAppDispatch, useAppSelector } from "@/app/store";
@@ -11,6 +11,7 @@ import { selectUser } from "@/features/Auth/components/slice/auth.selector";
 import { getMessagesStart, markAsReadStart, updateMessageFromSocket } from "@/app/store/slices/chat/chat.slice";
 import { imagesApi } from "@/core/api/images";
 import { chatApi } from "@/core/api/chat";
+import { aiAssistantApi } from "@/core/api/ai";
 import Button from "@/foundation/components/buttons/Button";
 import TextArea from "@/foundation/components/input/TextArea";
 import MessageItem from "./MessageItem";
@@ -49,17 +50,32 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
   }>>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isAiResponding, setIsAiResponding] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto scroll to bottom
-  useEffect(() => {
-    if (messagesEndRef.current && open && !isMinimized) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+  // Helper function to scroll to bottom
+  const scrollToBottom = useCallback(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    } else if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [messages, open, isMinimized]);
+  }, []);
+
+  // Auto scroll to bottom when messages change or AI is responding
+  useEffect(() => {
+    if (open && !isMinimized) {
+      // Use setTimeout to ensure DOM is updated
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, open, isMinimized, isAiResponding, scrollToBottom]);
 
   // Focus input when modal opens
   useEffect(() => {
@@ -109,6 +125,7 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
       setAttachments([]);
       setMessage("");
       setIsMinimized(false);
+      setIsAiResponding(false);
     }
   }, [open]);
 
@@ -220,18 +237,18 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
     setIsSending(true);
 
     try {
-      // Send message via API
-      const response = await chatApi.sendMessage(currentConversation._id, {
+      // Step 1: Send user message via API
+      const userMessageResponse = await chatApi.sendMessage(currentConversation._id, {
         message: messageText || "",
         type: messageType,
         attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined,
       });
 
-      if (response.success && response.data) {
-        // Add message to Redux store
+      if (userMessageResponse.success && userMessageResponse.data) {
+        // Add user message to Redux store
         dispatch(updateMessageFromSocket({
           conversationId: currentConversation._id,
-          message: response.data,
+          message: userMessageResponse.data,
           isSender: true,
         }));
 
@@ -242,15 +259,104 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
           textareaRef.current.style.height = "auto";
         }
 
-        // Scroll to bottom
+        // Scroll to bottom immediately after user message
         setTimeout(() => {
-          if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-          }
-        }, 100);
+          scrollToBottom();
+        }, 50);
 
-        // Note: AI response will be handled by polling or webhook
-        // For now, we'll just show the user's message
+        // Step 2: Get AI response (only for text messages without attachments)
+        if (messageText && attachmentsToSend.length === 0) {
+          setIsAiResponding(true);
+          try {
+            // Build conversation history from current messages
+            const conversationHistory = messages
+              .slice(-10) // Last 10 messages
+              .map((msg) => {
+                // Check if message is from AI
+                const isAiMsg = currentConversation?.type === "ai" && 
+                              (msg.metadata?.isAiMessage === true || 
+                               msg.senderName === "Chatbot");
+                return {
+                  role: (isAiMsg ? "assistant" : "user") as "user" | "assistant",
+                  content: msg.message || "",
+                };
+              });
+
+            // Add current user message to history
+            conversationHistory.push({
+              role: "user",
+              content: messageText,
+            });
+
+            // Call AI endpoint
+            const aiResponse = await aiAssistantApi.generateChatResponse({
+              message: messageText,
+              conversationHistory,
+              language: "vi",
+            });
+
+            if (aiResponse.success && aiResponse.data) {
+              // Step 3: Send AI response as a message with AI flag and suggested products/shops
+              const aiMessageResponse = await chatApi.sendMessage(currentConversation._id, {
+                message: aiResponse.data.response,
+                type: "text",
+                metadata: {
+                  isAiMessage: true, // Mark as AI message
+                  // Store suggested products for display
+                  suggestedProducts: aiResponse.data.suggestedProducts?.map((product) => ({
+                    productId: product._id,
+                    productName: product.name,
+                    productPrice: product.finalPrice,
+                    productImage: product.images?.[0]?.url,
+                    shopId: product.shop?._id,
+                    shopName: product.shop?.name,
+                  })),
+                  // Store suggested shops for display
+                  suggestedShops: aiResponse.data.suggestedShops?.map((shop) => ({
+                    shopId: shop._id,
+                    shopName: shop.name,
+                    shopLogo: shop.logo,
+                    shopDescription: shop.description,
+                    rating: shop.rating,
+                    followCount: shop.followCount,
+                    productCount: shop.productCount,
+                    reviewCount: shop.reviewCount,
+                    isVerified: shop.isVerified,
+                  })),
+                  // Store suggested categories for display
+                  suggestedCategories: aiResponse.data.suggestedCategories?.map((category) => ({
+                    categoryId: category._id,
+                    categoryName: category.name,
+                    categoryImage: category.image,
+                    categoryDescription: category.description,
+                    productCount: category.productCount,
+                    slug: category.slug,
+                  })),
+                  responseType: aiResponse.data.responseType,
+                },
+              });
+
+              if (aiMessageResponse.success && aiMessageResponse.data) {
+                // Add AI message to Redux store
+                dispatch(updateMessageFromSocket({
+                  conversationId: currentConversation._id,
+                  message: aiMessageResponse.data,
+                  isSender: false,
+                }));
+
+                // Scroll to bottom immediately after AI response
+                setTimeout(() => {
+                  scrollToBottom();
+                }, 100);
+              }
+            }
+          } catch (aiError) {
+            console.error("Error getting AI response:", aiError);
+            // Don't show error to user, just continue without AI response
+          } finally {
+            setIsAiResponding(false);
+          }
+        }
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -313,17 +419,17 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
         </button>
       ) : (
         <div className="flex h-full w-full flex-col overflow-hidden rounded-xl bg-white shadow-2xl border border-neutral-3">
-          {/* Main Chat Area */}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Header - Sticky */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-3 bg-background-2 px-4 py-3">
+          {/* Header - Sticky */}
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-3 bg-background-2 px-4 py-3 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="relative h-10 w-10 overflow-hidden rounded-full flex-shrink-0">
                 <Image src={images.chatAi} alt="AI Assistant" rounded className="w-full h-full" />
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-sm text-start font-semibold text-neutral-10 truncate">{displayName}</span>
-                <span className="text-xs text-neutral-6">Chatbot đang sẵn sàng</span>
+                <span className="text-xs text-neutral-6">
+                  {isAiResponding ? "Đang phản hồi..." : "Chatbot đang sẵn sàng"}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -343,7 +449,7 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 bg-neutral-1">
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto min-h-0 px-4 py-3 bg-neutral-1">
             {!currentConversation ? (
               <div className="flex h-64 items-center justify-center">
                 <span className="text-sm text-neutral-6">Đang tạo cuộc trò chuyện AI...</span>
@@ -374,24 +480,57 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                     </div>
 
                     {/* Messages for this date */}
-                    {(dateMessages as ChatMessage[]).map((msg: ChatMessage) => (
-                      <MessageItem
-                        key={msg._id}
-                        message={msg}
-                        isOwn={msg.senderId === currentUserId}
-                        currentUserId={currentUserId}
-                        conversation={currentConversation}
-                      />
-                    ))}
+                    {(dateMessages as ChatMessage[]).map((msg: ChatMessage) => {
+                      // Normalize IDs to string for comparison (handle ObjectId vs string)
+                      const msgSenderId = String(msg.senderId || "").trim();
+                      const userSenderId = String(currentUserId || "").trim();
+                      const isSenderMe = msgSenderId === userSenderId && msgSenderId !== "";
+                      
+                      // Message is "own" (user's message) if:
+                      // 1. senderId matches currentUserId AND
+                      // 2. It's NOT explicitly marked as AI message (metadata.isAiMessage !== true)
+                      // IMPORTANT: AI messages should ALWAYS be isOwn = false (display on left)
+                      // This logic ensures user messages are on the right, AI messages on the left
+                      const isOwn = isSenderMe && msg.metadata?.isAiMessage !== true;
+                      
+                      return (
+                        <MessageItem
+                          key={msg._id}
+                          message={msg}
+                          isOwn={isOwn}
+                          currentUserId={currentUserId}
+                          conversation={currentConversation}
+                        />
+                      );
+                    })}
                   </div>
                 ))}
+                {/* Show loading indicator when AI is responding */}
+                {isAiResponding && (
+                  <div className="flex justify-start gap-3 mb-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-primary-5 to-primary-7 flex items-center justify-center shadow-sm">
+                        <Image src={images.chatAi} alt="AI Assistant" rounded className="w-full h-full" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-xs text-neutral-7 mb-1.5 font-medium">Chatbot</span>
+                      <div className="rounded-2xl px-4 py-2.5 bg-gradient-to-br from-background-2 to-background-1 text-neutral-10 rounded-bl-md border border-neutral-3 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <Spinner size="sm" />
+                          <span className="text-sm text-neutral-6">Đang soạn tin nhắn...</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
             )}
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-neutral-3 bg-background-2 p-3">
+          <div className="border-t border-neutral-3 bg-background-2 p-3 flex-shrink-0">
             <Form.Root onSubmit={(e) => e.preventDefault()}>
               {/* Image previews */}
               {attachments.length > 0 && (
@@ -495,16 +634,15 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                   disabled={(!message.trim() && attachments.length === 0) || !isAiConversation || status === "LOADING" || isUploading || isSending}
                   size="md"
                   rounded="full"
-                  icon={isSending ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
+                  icon={ <Send className="w-4 h-4 text-white" />}
                   className="flex-shrink-0"
                 >
-                  {isSending ? "Đang gửi..." : "Gửi"}
+                  <span className="text-sm text-neutral-6">Gửi</span>
                 </Button>
               </div>
             </Form.Root>
           </div>
         </div>
-      </div>
       )}
     </div>
   );

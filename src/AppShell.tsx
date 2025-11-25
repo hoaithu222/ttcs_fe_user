@@ -3,7 +3,7 @@ import { Outlet } from "react-router-dom";
 import { lazy } from "react";
 import ToastContainer from "./widgets/toast/ToastContainer";
 
-const FloatingChatBubble = lazy(() => import("./widgets/floating-chat/FloatingChatBuble"));
+const FloatingChatBubble = lazy(() => import("./widgets/floating-chat/FloatingChatBubble"));
 
 /**
  * Appshell là layout chính của toàn bộ ứng dụng

@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Form from "@radix-ui/react-form";
-import { Pencil, CheckCircle2, FolderTree, Edit } from "lucide-react";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import { Pencil, CheckCircle2, FolderTree, Edit, Sparkles, CircleStop, Cpu, MemoryStick } from "lucide-react";
 import Input from "@/foundation/components/input/Input";
-import TextArea from "@/foundation/components/input/TextArea";
 import Button from "@/foundation/components/buttons/Button";
 import ImageUploadMulti from "@/foundation/components/input/upload/ImageUploadMulti";
 import Section from "@/foundation/components/sections/Section";
@@ -18,6 +19,12 @@ import { imagesApi } from "@/core/api/images";
 import { addToast } from "@/app/store/slices/toast";
 import { selectShopInfo } from "@/features/Shop/slice/shop.selector";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
+import { aiAssistantApi } from "@/core/api/ai";
+import type {
+  GenerateProductDescriptionRequest,
+  GenerateProductMetaRequest,
+} from "@/core/api/ai/type";
+import AiFullFormGenerator from "@/foundation/components/ai/AiFullFormGenerator";
 
 export default function AddProduct() {
   const dispatch = useDispatch();
@@ -46,6 +53,90 @@ export default function AddProduct() {
   const [selectedPath, setSelectedPath] = useState("");
   const [loading, setLoading] = useState(false);
   const [productImages, setProductImages] = useState<{ url: string; publicId?: string }[]>([]);
+  const [aiSpecs, setAiSpecs] = useState({ ram: "", chip: "" });
+  const [aiState, setAiState] = useState({
+    isGenerating: false,
+    isStreaming: false,
+    isGeneratingMeta: false,
+    error: "",
+  });
+  const streamingTimerRef = useRef<number | null>(null);
+  const streamingPlainRef = useRef("");
+
+  const convertPlainToHtml = useCallback((plain: string) => {
+    if (!plain.trim()) return "";
+    return plain
+      .split(/\n{2,}/)
+      .map((paragraph) => `<p>${paragraph.trim().replace(/\n/g, "<br/>")}</p>`)
+      .join("");
+  }, []);
+
+  const clearStreamingTimer = useCallback(() => {
+    if (streamingTimerRef.current && typeof window !== "undefined") {
+      window.clearInterval(streamingTimerRef.current);
+    }
+    streamingTimerRef.current = null;
+  }, []);
+
+  const stopStreaming = useCallback(() => {
+    clearStreamingTimer();
+    setAiState((prev) => ({ ...prev, isStreaming: false }));
+  }, [clearStreamingTimer]);
+
+  const startStreamingDescription = useCallback(
+    (rawContent: string) => {
+      clearStreamingTimer();
+      const cleaned = rawContent.replace(/\r/g, "").trim();
+      if (!cleaned) {
+        setData((prev) => ({ ...prev, description: "" }));
+        setAiState((prev) => ({ ...prev, isStreaming: false }));
+        return;
+      }
+      if (typeof window === "undefined") {
+        setData((prev) => ({ ...prev, description: convertPlainToHtml(cleaned) }));
+        setAiState((prev) => ({ ...prev, isStreaming: false }));
+        return;
+      }
+      streamingPlainRef.current = "";
+      const chunkSize = 32;
+      let cursor = 0;
+
+      setAiState((prev) => ({ ...prev, isStreaming: true, error: "" }));
+      setData((prev) => ({ ...prev, description: "" }));
+
+      streamingTimerRef.current = window.setInterval(() => {
+        const nextCursor = Math.min(cursor + chunkSize, cleaned.length);
+        streamingPlainRef.current += cleaned.slice(cursor, nextCursor);
+        cursor = nextCursor;
+        setData((prev) => ({
+          ...prev,
+          description: convertPlainToHtml(streamingPlainRef.current),
+        }));
+        if (cursor >= cleaned.length) {
+          stopStreaming();
+        }
+      }, 45);
+    },
+    [clearStreamingTimer, convertPlainToHtml, stopStreaming]
+  );
+
+  const quillModules = useMemo(
+    () => ({
+      toolbar: [
+        [{ header: [1, 2, 3, false] }],
+        ["bold", "italic", "underline", "strike"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["link"],
+        ["clean"],
+      ],
+    }),
+    []
+  );
+
+  const quillFormats = useMemo(
+    () => ["header", "bold", "italic", "underline", "strike", "list", "bullet", "link"],
+    []
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -72,8 +163,19 @@ export default function AddProduct() {
     }
   }, [shopInfo, navigate]);
 
+  useEffect(
+    () => () => {
+      stopStreaming();
+    },
+    [stopStreaming]
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (aiState.isStreaming) {
+      stopStreaming();
+    }
 
     if (!shopInfo) {
       dispatch(addToast({ type: "error", message: "Bạn chưa có shop. Vui lòng tạo shop trước." }));
@@ -126,6 +228,8 @@ export default function AddProduct() {
       setSelectedPath("");
       setAttributes([]);
       setProductImages([]);
+      setAiSpecs({ ram: "", chip: "" });
+      setAiState((prev) => ({ ...prev, error: "", isStreaming: false }));
 
       navigate(NAVIGATION_CONFIG.listProduct.path);
     } catch (error) {
@@ -158,6 +262,118 @@ export default function AddProduct() {
     }
   };
 
+  const handleDescriptionChange = (value: string) => {
+    setData((prev) => ({
+      ...prev,
+      description: value,
+    }));
+  };
+
+  const handleGenerateContent = async () => {
+    if (!data.name.trim()) {
+      dispatch(addToast({ type: "error", message: "Vui lòng nhập tên sản phẩm trước khi dùng AI" }));
+      return;
+    }
+
+    const filteredSpecs = Object.entries(aiSpecs).reduce<Record<string, string>>((acc, [key, value]) => {
+      if (value.trim()) {
+        acc[key] = value.trim();
+      }
+      return acc;
+    }, {});
+
+    const payload: GenerateProductDescriptionRequest = {
+      productName: data.name.trim(),
+      specs: Object.keys(filteredSpecs).length ? filteredSpecs : undefined,
+      tone: "marketing",
+      language: "vi",
+    };
+
+    setAiState((prev) => ({ ...prev, isGenerating: true, error: "" }));
+
+    try {
+      const response = await aiAssistantApi.generateProductDescription(payload);
+      const content = response.data?.content;
+
+      if (!content) {
+        throw new Error("AI chưa trả về nội dung mô tả");
+      }
+
+      if (!data.metaKeywords && response.data?.meta?.keywords?.length) {
+        const keywordsStr = response.data.meta.keywords.join(", ");
+        if (keywordsStr) {
+          setData((prev) => ({
+            ...prev,
+            metaKeywords: keywordsStr,
+          }));
+        }
+      }
+
+      startStreamingDescription(content);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể tạo nội dung AI";
+      setAiState((prev) => ({ ...prev, error: message }));
+      dispatch(addToast({ type: "error", message }));
+    } finally {
+      setAiState((prev) => ({ ...prev, isGenerating: false }));
+    }
+  };
+
+  const handleGenerateMeta = async () => {
+    if (!data.name.trim()) {
+      dispatch(addToast({ type: "error", message: "Vui lòng nhập tên sản phẩm trước" }));
+      return;
+    }
+
+    const filteredSpecs = Object.entries(aiSpecs).reduce<Record<string, string>>((acc, [key, value]) => {
+      if (value.trim()) {
+        acc[key] = value.trim();
+      }
+      return acc;
+    }, {});
+
+    const payload: GenerateProductMetaRequest = {
+      productName: data.name.trim(),
+      specs: Object.keys(filteredSpecs).length ? filteredSpecs : undefined,
+      category: selectedPath || undefined,
+      language: "vi",
+    };
+
+    setAiState((prev) => ({ ...prev, isGeneratingMeta: true, error: "" }));
+
+    try {
+      const response = await aiAssistantApi.generateProductMeta(payload);
+      const meta = response.data;
+
+      if (meta) {
+        if (meta.keywords?.length && !data.metaKeywords) {
+          const keywordsStr = meta.keywords.join(", ");
+          if (keywordsStr) {
+            setData((prev) => ({
+              ...prev,
+              metaKeywords: keywordsStr,
+            }));
+          }
+        }
+
+        if (meta.warrantyInfo && !data.warrantyInfo) {
+          setData((prev) => ({
+            ...prev,
+            warrantyInfo: meta.warrantyInfo!,
+          }));
+        }
+
+        dispatch(addToast({ type: "success", message: "Đã tạo thông tin meta với AI" }));
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể tạo thông tin meta";
+      setAiState((prev) => ({ ...prev, error: message }));
+      dispatch(addToast({ type: "error", message }));
+    } finally {
+      setAiState((prev) => ({ ...prev, isGeneratingMeta: false }));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4 mb-6">
@@ -170,6 +386,36 @@ export default function AddProduct() {
       </div>
 
       <Form.Root onSubmit={handleSubmit} className="space-y-6">
+        {/* AI Full Form Generator - Generate all fields at once */}
+        {data.name && (
+          <div className="p-4 bg-gradient-to-r from-primary-10/30 to-primary-6/10 rounded-xl border border-primary-6/20">
+            <AiFullFormGenerator
+              onGenerate={(generatedData) => {
+                setData((prev) => ({
+                  ...prev,
+                  ...(generatedData.description && !prev.description && { description: generatedData.description }),
+                  ...(generatedData.metaKeywords && !prev.metaKeywords && { metaKeywords: generatedData.metaKeywords }),
+                  ...(generatedData.warrantyInfo && !prev.warrantyInfo && { warrantyInfo: generatedData.warrantyInfo }),
+                  ...(generatedData.dimensions && !prev.dimensions && { dimensions: generatedData.dimensions }),
+                  ...(generatedData.weight && !prev.weight && { weight: generatedData.weight }),
+                }));
+              }}
+              productName={data.name}
+              specs={aiSpecs}
+              category={selectedPath}
+              language="vi"
+              existingData={{
+                description: data.description,
+                metaKeywords: data.metaKeywords,
+                warrantyInfo: data.warrantyInfo,
+                dimensions: data.dimensions,
+                weight: data.weight,
+              }}
+              className="mb-4"
+            />
+          </div>
+        )}
+
         <Section>
           <SectionTitle>Thông tin cơ bản</SectionTitle>
           <div className="space-y-4">
@@ -218,15 +464,94 @@ export default function AddProduct() {
               </div>
             </div>
 
-            <TextArea
-              name="description"
-              label="Mô tả sản phẩm"
-              value={data.description}
-              onChange={handleChange}
-              placeholder="Nhập mô tả sản phẩm"
-              rows={4}
-              required
-            />
+            <div className="space-y-3 rounded-xl border border-border-1 bg-neutral-1/40 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-7">Mô tả sản phẩm & AI hỗ trợ</p>
+                  <p className="text-xs text-neutral-5">
+                    Nhập vài thông số (RAM, Chip) rồi để AI tạo mô tả dài, chuẩn SEO. Bạn vẫn có thể chỉnh
+                    sửa thủ công.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {aiState.isStreaming && (
+                    <Button
+                      type="button"
+                      color="gray"
+                      variant="outline"
+                      size="sm"
+                      icon={<CircleStop className="w-4 h-4" />}
+                      onClick={stopStreaming}
+                    >
+                      Dừng phát
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    color="blue"
+                    variant="solid"
+                    size="sm"
+                    icon={<Sparkles className="w-4 h-4" />}
+                    loading={aiState.isGenerating}
+                    disabled={aiState.isStreaming}
+                    onClick={handleGenerateContent}
+                  >
+                    Generate Content
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <Input
+                  name="ramSpec"
+                  label="RAM (tùy chọn)"
+                  placeholder="Ví dụ: 12GB"
+                  value={aiSpecs.ram}
+                  onChange={(event) =>
+                    setAiSpecs((prev) => ({
+                      ...prev,
+                      ram: event.target.value,
+                    }))
+                  }
+                  iconLeft={<MemoryStick className="w-4 h-4 text-neutral-5" />}
+                />
+                <Input
+                  name="chipSpec"
+                  label="Chip (tùy chọn)"
+                  placeholder="Ví dụ: Apple A17 Pro"
+                  value={aiSpecs.chip}
+                  onChange={(event) =>
+                    setAiSpecs((prev) => ({
+                      ...prev,
+                      chip: event.target.value,
+                    }))
+                  }
+                  iconLeft={<Cpu className="w-4 h-4 text-neutral-5" />}
+                />
+              </div>
+              {aiState.error && <p className="text-sm text-error">{aiState.error}</p>}
+              {aiState.isStreaming && (
+                <p className="flex items-center gap-2 text-xs font-medium text-warning">
+                  <Sparkles className="w-4 h-4" />
+                  AI đang tự động điền mô tả...
+                </p>
+              )}
+              <div
+                className={`rounded-lg border border-border-1 bg-white ${
+                  aiState.isStreaming ? "ring-2 ring-primary-6/30" : ""
+                }`}
+              >
+                <ReactQuill
+                  theme="snow"
+                  value={data.description}
+                  onChange={handleDescriptionChange}
+                  readOnly={aiState.isStreaming}
+                  modules={quillModules}
+                  formats={quillFormats}
+                  placeholder="Nhập mô tả sản phẩm hoặc để AI hỗ trợ..."
+                  className="min-h-[220px] bg-background-1"
+                />
+              </div>
+            </div>
           </div>
         </Section>
 
@@ -307,13 +632,35 @@ export default function AddProduct() {
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                name="warrantyInfo"
-                label="Thông tin bảo hành"
-                placeholder="Ví dụ: 12 tháng, đổi mới trong 7 ngày"
-                value={data.warrantyInfo}
-                onChange={handleChange}
-              />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-semibold text-neutral-7">
+                    Thông tin bảo hành
+                  </label>
+                  <Button
+                    type="button"
+                    color="blue"
+                    variant="ghost"
+                    size="sm"
+                    icon={<Sparkles className="w-3 h-3" />}
+                    loading={aiState.isGeneratingMeta}
+                    disabled={!data.name.trim() || aiState.isGeneratingMeta}
+                    onClick={() => {
+                      if (!data.warrantyInfo) {
+                        handleGenerateMeta();
+                      }
+                    }}
+                  >
+                    AI
+                  </Button>
+                </div>
+                <Input
+                  name="warrantyInfo"
+                  placeholder="Ví dụ: 12 tháng, đổi mới trong 7 ngày"
+                  value={data.warrantyInfo}
+                  onChange={handleChange}
+                />
+              </div>
               <Input
                 name="dimensions"
                 label="Kích thước (Dài x Rộng x Cao)"
@@ -322,14 +669,36 @@ export default function AddProduct() {
                 onChange={handleChange}
               />
             </div>
-            <Input
-              name="metaKeywords"
-              label="Từ khóa tìm kiếm"
-              placeholder="Nhập các từ khóa cách nhau bởi dấu phẩy"
-              value={data.metaKeywords}
-              onChange={handleChange}
-              description="Các từ khóa giúp khách hàng dễ dàng tìm thấy sản phẩm của bạn"
-            />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-semibold text-neutral-7">
+                    Từ khóa tìm kiếm
+                  </label>
+                  <Button
+                    type="button"
+                    color="blue"
+                    variant="ghost"
+                    size="sm"
+                    icon={<Sparkles className="w-3 h-3" />}
+                    loading={aiState.isGeneratingMeta}
+                    disabled={!data.name.trim() || aiState.isGeneratingMeta}
+                    onClick={() => {
+                      if (!data.metaKeywords) {
+                        handleGenerateMeta();
+                      }
+                    }}
+                  >
+                    AI
+                  </Button>
+                </div>
+                <Input
+                  name="metaKeywords"
+                  placeholder="Nhập các từ khóa cách nhau bởi dấu phẩy"
+                  value={data.metaKeywords}
+                  onChange={handleChange}
+                  description="Các từ khóa giúp khách hàng dễ dàng tìm thấy sản phẩm của bạn"
+                />
+              </div>
           </div>
         </Section>
 

@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Card } from "@/foundation/components/info/Card";
 import Input from "@/foundation/components/input/Input";
 import TextArea from "@/foundation/components/input/TextArea";
 import ImageIconUpload from "@/foundation/components/input/upload/ImageIconUpload";
 import ImageBannerUpdate from "@/foundation/components/input/upload/ImageBannerUpload";
 import AddressSelector, { AddressSelectorValue } from "@/shared/components/AddressSelector";
+import { formatAddressFromCodes } from "@/shared/common/data-address/address.utils";
 import * as Form from "@radix-ui/react-form";
 
 export interface Step2Data {
@@ -30,6 +32,11 @@ const Step2ShopDetails = ({
   onLogoUpload,
   onBannerUpload,
 }: Step2ShopDetailsProps) => {
+  const addressPreview = useMemo(
+    () => formatAddressFromCodes(data.address, "Chưa chọn địa điểm"),
+    [data.address]
+  );
+
   return (
     <Card className="space-y-4">
       <div className="space-y-1">
@@ -110,6 +117,7 @@ const Step2ShopDetails = ({
           {errors?.address && (
             <p className="mt-1 text-sm text-red-600">{errors.address}</p>
           )}
+          <p className="mt-1 text-sm text-neutral-6">Địa chỉ đã chọn: {addressPreview}</p>
         </div>
       </div>
     </Card>

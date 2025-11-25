@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Select from "@/foundation/components/input/Select";
-import type {
-  Province,
-  District,
-  Ward,
-} from "@/features/Profile/components/address/common/addressData";
-import addressData from "@/features/Profile/components/address/common/addressData";
+import addressData, {
+  AddressProvince,
+  AddressDistrict,
+  AddressWard,
+} from "@/shared/common/data-address/addressData";
 
 export interface AddressSelectorValue {
   provinceCode?: number | "";
@@ -58,13 +57,13 @@ const AddressSelector = ({
     setWardCode("");
   }, [districtCode]);
 
-  const provinces = addressData as Province[];
-  const districts = useMemo<District[]>(() => {
+  const provinces = addressData as AddressProvince[];
+  const districts = useMemo<AddressDistrict[]>(() => {
     const p = provinces.find((x) => x.code === provinceCode);
     return p?.districts || [];
   }, [provinceCode, provinces]);
 
-  const wards = useMemo<Ward[]>(() => {
+  const wards = useMemo<AddressWard[]>(() => {
     const d = districts.find((x) => x.code === districtCode);
     return d?.wards || [];
   }, [districts, districtCode]);

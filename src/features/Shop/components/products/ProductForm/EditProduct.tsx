@@ -20,6 +20,9 @@ import Loading from "@/foundation/components/loading/Loading";
 import { useNavigate, useParams } from "react-router-dom";
 import { selectShopInfo } from "@/features/Shop/slice/shop.selector";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
+import AiTextGenerator from "@/foundation/components/ai/AiTextGenerator";
+import AiMetaGenerator from "@/foundation/components/ai/AiMetaGenerator";
+import AiFullFormGenerator from "@/foundation/components/ai/AiFullFormGenerator";
 
 export default function EditProduct() {
   const { productId } = useParams<{ productId: string }>();
@@ -282,6 +285,41 @@ export default function EditProduct() {
       </div>
 
       <Form.Root onSubmit={handleSubmit} className="space-y-6">
+        {/* AI Full Form Generator - Generate all fields at once */}
+        {data.name && (
+          <div className="p-4 bg-gradient-to-r from-primary-10/30 to-primary-6/10 rounded-xl border border-primary-6/20">
+            <AiFullFormGenerator
+              onGenerate={(generatedData) => {
+                setData((prev) => ({
+                  ...prev,
+                  ...(generatedData.description && !prev.description && { description: generatedData.description }),
+                  ...(generatedData.metaKeywords && !prev.metaKeywords && { metaKeywords: generatedData.metaKeywords }),
+                  ...(generatedData.warrantyInfo && !prev.warrantyInfo && { warrantyInfo: generatedData.warrantyInfo }),
+                  ...(generatedData.dimensions && !prev.dimensions && { dimensions: generatedData.dimensions }),
+                  ...(generatedData.weight && !prev.weight && { weight: generatedData.weight }),
+                }));
+              }}
+              productName={data.name}
+              specs={data.product_attributes?.reduce((acc: Record<string, string>, attr: any) => {
+                if (attr.value) {
+                  acc[attr.name || "attribute"] = attr.value;
+                }
+                return acc;
+              }, {})}
+              category={selectedPath}
+              language="vi"
+              existingData={{
+                description: data.description,
+                metaKeywords: data.metaKeywords,
+                warrantyInfo: data.warrantyInfo,
+                dimensions: data.dimensions,
+                weight: data.weight,
+              }}
+              className="mb-4"
+            />
+          </div>
+        )}
+
         <Section>
           <SectionTitle>Thông tin cơ bản</SectionTitle>
           <div className="space-y-4">
@@ -330,15 +368,33 @@ export default function EditProduct() {
               </div>
             </div>
 
-            <TextArea
-              name="description"
-              label="Mô tả sản phẩm"
-              value={data.description}
-              onChange={handleChange}
-              placeholder="Nhập mô tả sản phẩm"
-              rows={4}
-              required
-            />
+            <div className="space-y-2">
+              <AiTextGenerator
+                onGenerate={(content) => {
+                  setData((prev) => ({ ...prev, description: content }));
+                }}
+                productName={data.name}
+                specs={data.product_attributes?.reduce((acc: Record<string, string>, attr: any) => {
+                  if (attr.value) {
+                    acc[attr.name || "attribute"] = attr.value;
+                  }
+                  return acc;
+                }, {})}
+                category={selectedPath}
+                language="vi"
+                tone="marketing"
+                label="Mô tả sản phẩm"
+                className="mb-2"
+              />
+              <TextArea
+                name="description"
+                value={data.description}
+                onChange={handleChange}
+                placeholder="Nhập mô tả sản phẩm hoặc nhấn nút AI để tạo tự động"
+                rows={6}
+                required
+              />
+            </div>
           </div>
         </Section>
 
@@ -454,14 +510,42 @@ export default function EditProduct() {
                 onChange={handleChange}
               />
             </div>
-            <Input
-              name="metaKeywords"
-              label="Từ khóa tìm kiếm"
-              placeholder="Nhập các từ khóa cách nhau bởi dấu phẩy"
-              value={data.metaKeywords}
-              onChange={handleChange}
-              description="Các từ khóa giúp khách hàng dễ dàng tìm thấy sản phẩm của bạn"
-            />
+            <div className="space-y-2">
+              <AiMetaGenerator
+                onGenerate={(meta) => {
+                  if (meta.keywords && meta.keywords.length > 0 && !data.metaKeywords) {
+                    setData((prev) => ({
+                      ...prev,
+                      metaKeywords: meta.keywords!.join(", "),
+                    }));
+                  }
+                  if (meta.warrantyInfo && !data.warrantyInfo) {
+                    setData((prev) => ({
+                      ...prev,
+                      warrantyInfo: meta.warrantyInfo!,
+                    }));
+                  }
+                }}
+                productName={data.name}
+                specs={data.product_attributes?.reduce((acc: Record<string, string>, attr: any) => {
+                  if (attr.value) {
+                    acc[attr.name || "attribute"] = attr.value;
+                  }
+                  return acc;
+                }, {})}
+                category={selectedPath}
+                language="vi"
+                className="mb-2"
+              />
+              <Input
+                name="metaKeywords"
+                label="Từ khóa tìm kiếm"
+                placeholder="Nhập các từ khóa cách nhau bởi dấu phẩy hoặc nhấn nút AI để tạo tự động"
+                value={data.metaKeywords}
+                onChange={handleChange}
+                description="Các từ khóa giúp khách hàng dễ dàng tìm thấy sản phẩm của bạn"
+              />
+            </div>
           </div>
         </Section>
 

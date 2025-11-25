@@ -9,6 +9,7 @@ import Button from "@/foundation/components/buttons/Button";
 import Loading from "@/foundation/components/loading/Loading";
 import Empty from "@/foundation/components/empty/Empty";
 import { ProductCard, DetailProduct, InfoShop, ContentProduct, ReviewProduct } from "./components";
+import CompareAiPanel from "@/features/Compare/components/CompareAiPanel";
 import {
   getProductDetailStart,
   getRelatedProductsStart,
@@ -316,6 +317,11 @@ const ProductDetailPage: React.FC = () => {
           {/* Product Content/Description Section */}
           <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
             <ContentProduct product={product} />
+          </div>
+
+          {/* AI Comparison Section */}
+          <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-250">
+            <CompareAiPanel primaryProduct={product} relatedProducts={relatedProducts || []} />
           </div>
 
           {/* Reviews Section */}

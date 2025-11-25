@@ -5,6 +5,10 @@ import { vi } from "date-fns/locale";
 import { Check, CheckCheck } from "lucide-react";
 import Image from "@/foundation/components/icons/Image";
 import ProductCard from "./ProductCard";
+import ProductCarousel from "./ProductCarousel";
+import ShopCard from "./ShopCard";
+import ShopCarousel from "./ShopCarousel";
+import CategoryCard from "./CategoryCard";
 import type { ChatMessage, ChatConversation } from "@/core/api/chat/type";
 import { images } from "@/assets/image";
 
@@ -30,10 +34,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
       )}
     >
       {!isOwn && (() => {
-        // Get avatar - use CSKH.png for CSKH conversation, otherwise use sender avatar from backend
+        // Get avatar - use CSKH.png for CSKH conversation, AI avatar for AI conversation, otherwise use sender avatar from backend
         const getSenderAvatar = () => {
           if (conversation?.type === "admin" && conversation?.metadata?.context === "CSKH") {
             return images.CSKH;
+          }
+          // Check if this is an AI message
+          const isAiMessage = conversation?.type === "ai" && 
+                             (message.metadata?.isAiMessage === true || 
+                              message.senderName === "Chatbot");
+          if (isAiMessage) {
+            return images.chatAi; // Use AI avatar
           }
           return message.senderAvatar;
         };
@@ -67,11 +78,41 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
           </span>
         )}
 
-        {/* Product Card - Render for messages with product metadata */}
-        {/* Show for user's messages (isOwn) or if message type is "product" */}
-        {message.metadata?.productId && 
-         message.metadata?.productName && 
-         (isOwn || message.type === "product") && (
+        {/* Product Carousel - Render for messages with suggested products */}
+        {/* Show for AI messages that have suggestedProducts in metadata */}
+        {message.metadata?.suggestedProducts && 
+         Array.isArray(message.metadata.suggestedProducts) &&
+         message.metadata.suggestedProducts.length > 0 && (
+          <div className="mb-2 w-full">
+            {message.metadata.suggestedProducts.length > 1 ? (
+              <ProductCarousel
+                products={message.metadata.suggestedProducts.map((product: any) => ({
+                  productId: product.productId,
+                  productName: product.productName,
+                  productImage: product.productImage,
+                  productPrice: product.productPrice,
+                  shopId: product.shopId,
+                  shopName: product.shopName,
+                }))}
+              />
+            ) : (
+              <ProductCard
+                productId={message.metadata.suggestedProducts[0]?.productId}
+                productName={message.metadata.suggestedProducts[0]?.productName}
+                productImage={message.metadata.suggestedProducts[0]?.productImage}
+                productPrice={message.metadata.suggestedProducts[0]?.productPrice}
+                shopId={message.metadata.suggestedProducts[0]?.shopId}
+                shopName={message.metadata.suggestedProducts[0]?.shopName}
+                showActions={true}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Single Product Card - Render for messages with single product metadata (backward compatibility) */}
+        {!message.metadata?.suggestedProducts &&
+         message.metadata?.productId && 
+         message.metadata?.productName && (
           <div className="mb-2 w-full">
             <ProductCard
               productId={message.metadata.productId}
@@ -79,6 +120,60 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
               productImage={message.metadata.productImage}
               productPrice={message.metadata.productPrice}
             />
+          </div>
+        )}
+
+        {/* Shop Carousel - Render for messages with suggested shops */}
+        {message.metadata?.suggestedShops && 
+         Array.isArray(message.metadata.suggestedShops) &&
+         message.metadata.suggestedShops.length > 0 && (
+          <div className="mb-2 w-full">
+            {message.metadata.suggestedShops.length > 1 ? (
+              <ShopCarousel
+                shops={message.metadata.suggestedShops.map((shop: any) => ({
+                  shopId: shop.shopId,
+                  shopName: shop.shopName,
+                  shopLogo: shop.shopLogo,
+                  shopDescription: shop.shopDescription,
+                  rating: shop.rating,
+                  followCount: shop.followCount,
+                  productCount: shop.productCount,
+                  reviewCount: shop.reviewCount,
+                  isVerified: shop.isVerified,
+                }))}
+              />
+            ) : (
+              <ShopCard
+                shopId={message.metadata.suggestedShops[0]?.shopId}
+                shopName={message.metadata.suggestedShops[0]?.shopName}
+                shopLogo={message.metadata.suggestedShops[0]?.shopLogo}
+                shopDescription={message.metadata.suggestedShops[0]?.shopDescription}
+                rating={message.metadata.suggestedShops[0]?.rating}
+                followCount={message.metadata.suggestedShops[0]?.followCount}
+                productCount={message.metadata.suggestedShops[0]?.productCount}
+                reviewCount={message.metadata.suggestedShops[0]?.reviewCount}
+                isVerified={message.metadata.suggestedShops[0]?.isVerified}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Category Cards - Render for messages with suggested categories */}
+        {message.metadata?.suggestedCategories && 
+         Array.isArray(message.metadata.suggestedCategories) &&
+         message.metadata.suggestedCategories.length > 0 && (
+          <div className="mb-2 w-full space-y-2">
+            {message.metadata.suggestedCategories.map((category: any, index: number) => (
+              <CategoryCard
+                key={category.categoryId || category._id || index}
+                categoryId={category.categoryId || category._id}
+                categoryName={category.categoryName || category.name}
+                categoryImage={category.categoryImage || category.image}
+                categoryDescription={category.categoryDescription || category.description}
+                productCount={category.productCount}
+                slug={category.slug}
+              />
+            ))}
           </div>
         )}
 

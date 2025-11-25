@@ -15,6 +15,7 @@ export { userAttributeTypesApi } from "./attribute-type";
 export { userAttributeValuesApi } from "./attribute-value";
 export { userProductAttributesApi } from "./product-attribute";
 export { imagesApi } from "./images";
+export { aiAssistantApi } from "./ai";
 
 // Re-export types (only unique ones to avoid conflicts)
 export type {
@@ -50,6 +51,11 @@ export type {
   ProductAttributeListQuery,
   ProductAttributeListResponse,
 } from "./product-attribute/type";
+export type {
+  GenerateProductDescriptionRequest,
+  GenerateProductDescriptionResponse,
+  AiProductDescriptionMeta,
+} from "./ai/type";
 
 // Re-export endpoints (only unique ones to avoid conflicts)
 export { USER_AUTH_ENDPOINTS, USER_OTP_ENDPOINTS, USER_SOCIAL_AUTH_ENDPOINTS } from "./auth/path";

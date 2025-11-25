@@ -652,7 +652,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
 
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 bg-neutral-1">
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3 bg-neutral-1">
             {status === "LOADING" && messages.length === 0 ? (
               <div className="flex h-64 items-center justify-center">
                 <Spinner size="lg" />

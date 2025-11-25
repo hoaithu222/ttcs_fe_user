@@ -3,13 +3,22 @@ import Sidebar from "./components/nav-bar/SideBar";
 import InfoAccountPanel from "./components/info-account/InfoAccountPanel";
 import AddressesPanel from "./components/address/AddressesPanel";
 import OrdersPanel from "./components/orders/OrdersPanel";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import WalletPage from "./components/wallet/WalletPage";
 import WishlistPage from "../Wishlist/WishlistPage";
 import FollowingShopsPage from "../FollowingShops/FollowingShopsPage";
+import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
+import { selectUser } from "../Auth/components/slice/auth.selector";
+import { useAppSelector } from "@/app/store";
+
 
 const ProfilePage = () => {
   const [searchParams] = useSearchParams();
+  // Check chua login thi redirect to login
+  const user = useAppSelector(selectUser);
+  if (!user) {
+    return <Navigate to={NAVIGATION_CONFIG.login.path} />;
+  }
   const tab = searchParams.get("tab") || "account";
   return (
     <Page>
@@ -18,7 +27,7 @@ const ProfilePage = () => {
           <div className="lg:col-span-3">
             <Sidebar />
           </div>
-          <div className="space-y-6 lg:col-span-9 mt-6 min-h-[calc(100vh-100px)] max-h-[calc(100vh-100px)]">
+          <div className="space-y-6 lg:col-span-9 mt-6 min-h-[calc(100vh-90px)] max-h-[calc(100vh-100px)]">
             {tab === "account" && <InfoAccountPanel />}
             {tab === "address" && <AddressesPanel />}
             {tab === "orders" && <OrdersPanel />}

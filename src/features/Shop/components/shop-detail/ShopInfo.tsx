@@ -11,6 +11,7 @@ import {
   Building2,
 } from "lucide-react";
 import { Shop } from "@/core/api/shops/type";
+import { formatAddressFromCodes } from "@/shared/common/data-address/address.utils";
 
 interface ShopInfoProps {
   shop: Shop & {
@@ -34,14 +35,10 @@ interface ShopInfoProps {
 }
 
 const ShopInfo: React.FC<ShopInfoProps> = ({ shop }) => {
-  const formatAddress = useMemo(() => {
+  const formattedAddress = useMemo(() => {
     if (!shop.address) return "Chưa cập nhật";
     if (typeof shop.address === "string") return shop.address;
-    if (typeof shop.address === "object" && shop.address.provinceCode) {
-      // For now, just show codes. In production, you'd map these to actual names
-      return `Mã tỉnh: ${shop.address.provinceCode}, Mã huyện: ${shop.address.districtCode}, Mã xã: ${shop.address.wardCode}`;
-    }
-    return "Chưa cập nhật";
+    return formatAddressFromCodes(shop.address, "Chưa cập nhật");
   }, [shop.address]);
 
 
@@ -113,7 +110,7 @@ const ShopInfo: React.FC<ShopInfoProps> = ({ shop }) => {
               </div>
               <div>
                 <p className="text-xs text-neutral-5">Địa chỉ</p>
-                <p className="text-sm font-medium text-neutral-9">{formatAddress}</p>
+                <p className="text-sm font-medium text-neutral-9">{formattedAddress}</p>
               </div>
             </div>
           </div>

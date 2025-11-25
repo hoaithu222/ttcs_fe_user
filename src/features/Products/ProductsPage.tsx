@@ -6,6 +6,7 @@ import Page from "@/foundation/components/layout/Page";
 import Section from "@/foundation/components/sections/Section";
 import Input from "@/foundation/components/input/Input";
 import ListProduct from "./components/ListProduct";
+import VisualSearchSection from "./components/VisualSearchSection";
 import type { ProductListQuery } from "@/core/api/products/type";
 
 const ProductsPage: React.FC = () => {
@@ -61,6 +62,8 @@ const ProductsPage: React.FC = () => {
             </div>
           </Form.Root>
         </Section>
+
+        <VisualSearchSection />
 
         {/* Products List */}
         <ListProduct initialFilters={filters} showFilters={true} />

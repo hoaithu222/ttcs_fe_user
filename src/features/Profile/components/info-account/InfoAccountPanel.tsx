@@ -1,16 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import * as Form from "@radix-ui/react-form";
 import { Card } from "@/foundation/components/info/Card";
 import Section from "@/foundation/components/sections/Section";
 import { useInfoAccount } from "../../hooks/useInfoAccount";
 import { API_BASE_URL } from "@/app/config/env.config";
 
+import AlertMessage from "@/foundation/components/info/AlertMessage";
+import Input from "@/foundation/components/input/Input";
+import Button from "@/foundation/components/buttons/Button";
+import { Chip } from "@/foundation/components/info/Chip";
 const InfoAccountPanel = () => {
-  const { profile, profileStatus, loadProfile, updateProfile } = useInfoAccount();
+  const { profile, loadProfile, updateProfile } = useInfoAccount();
   const [name, setName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
   const [avatar, setAvatar] = useState<string>("");
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  
 
   console.log("profile", profile);
 
@@ -18,13 +25,62 @@ const InfoAccountPanel = () => {
     loadProfile();
   }, []);
 
-  useEffect(() => {
-    if (profile) {
-      setName((profile as any)?.fullName || (profile as any)?.name || "");
-      setPhone((profile as any)?.phone || "");
-      setAvatar((profile as any)?.avatar || (profile as any)?.avatarUrl || "");
+  const profileData = (profile as any)?._doc ?? profile;
+  const statusMeta = (() => {
+    const status = profileData?.status;
+    if (status === "active") {
+      return {
+        id: "status-active",
+        label: "Trạng thái: Đã kích hoạt",
+        colorClass: "border border-success text-success bg-success/10",
+      };
     }
-  }, [profile]);
+    if (status === "inactive") {
+      return {
+        id: "status-inactive",
+        label: "Trạng thái: Chưa kích hoạt",
+        colorClass: "border border-warning text-warning bg-warning/10",
+      };
+    }
+    return status
+      ? {
+          id: "status-generic",
+          label: `Trạng thái: ${status}`,
+          colorClass: "border border-neutral-3 text-neutral-7 bg-neutral-2",
+        }
+      : null;
+  })();
+
+  const roleMeta = profileData?.role
+    ? {
+        id: "role",
+        label: `Vai trò: ${profileData.role === "admin" ? "Quản trị" : profileData.role}`,
+        colorClass: "border border-primary-6 text-primary-6 bg-primary-10",
+      }
+    : null;
+
+  const shopStatusMeta = profileData?.shopStatus
+    ? {
+        id: "shop-status",
+        label:
+          profileData.shopStatus === "not_registered"
+            ? "Cửa hàng: Chưa đăng ký"
+            : `Cửa hàng: ${profileData.shopStatus}`,
+        colorClass: "border border-neutral-4 text-neutral-7 bg-background-2",
+      }
+    : null;
+
+  const overviewChips = [statusMeta, roleMeta, shopStatusMeta].filter(
+    (chip): chip is { id: string; label: string; colorClass: string } => Boolean(chip)
+  );
+
+  useEffect(() => {
+    if (profileData) {
+      setName((profileData as any)?.fullName || (profileData as any)?.name || "");
+      setPhone((profileData as any)?.phone || "");
+      setAvatar((profileData as any)?.avatar || (profileData as any)?.avatarUrl || "");
+    }
+  }, [profileData]);
 
   const handleUploadAvatar = async (file: File) => {
     if (!file) return;
@@ -67,44 +123,58 @@ const InfoAccountPanel = () => {
 
   return (
     <Section title="Thông tin tài khoản">
-      <Card className="space-y-4">
-        <div className="flex flex-col-reverse gap-6 md:grid md:grid-cols-3">
-          <div className="space-y-4 md:col-span-2">
-            <div>
-              <div className="text-xs font-medium text-neutral-5">Họ và tên</div>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="px-3 py-2 mt-1 w-full rounded-lg border border-border-2 bg-background-1"
-                placeholder="Nhập họ và tên"
-              />
-            </div>
-            <div>
-              <div className="text-xs font-medium text-neutral-5">Email</div>
-              <div className="px-3 py-2 mt-1 rounded-lg bg-background-2">
-                {profile?.email || "--"}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs font-medium text-neutral-5">Số điện thoại</div>
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="px-3 py-2 mt-1 w-full rounded-lg border border-border-2 bg-background-1"
-                placeholder="Nhập số điện thoại"
-                inputMode="numeric"
-              />
-            </div>
-            <div>
-              <button
-                className="px-4 py-2 w-full text-white rounded-lg md:w-auto bg-primary-6 hover:bg-primary-7 disabled:opacity-60"
-                onClick={handleSave}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-              </button>
-            </div>
-          </div>
+      <Card className="space-y-6 py-7 mr-6 lg:mr-0  max-h-[calc(100vh-110px)] min-h-[calc(100vh-110px)] overflow-y-auto" >
+        <AlertMessage
+          type="info"
+          title="Cập nhật hồ sơ"
+          message="Vui lòng đảm bảo thông tin liên hệ luôn chính xác để hoàn tất xác thực tài khoản và nhận thông báo quan trọng."
+        />
+        <div className="flex flex-col-reverse gap-16 md:grid md:grid-cols-3">
+          <Form.Root
+            className="space-y-4 md:col-span-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSave();
+            }}
+          >
+            <Input
+              name="profile-fullname"
+              label="Họ và tên"
+              placeholder="Nhập họ và tên"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              sizeInput="lg"
+            />
+            <Input
+              name="profile-email"
+              label="Email"
+              value={profileData?.email || ""}
+              readOnly
+              disabled
+              sizeInput="lg"
+              description="Email được sử dụng cho đăng nhập và thông báo hệ thống."
+            />
+            <Input
+              name="profile-phone"
+              label="Số điện thoại"
+              placeholder="Nhập số điện thoại"
+              value={phone}
+              sizeInput="lg"
+              onChange={(e) => setPhone(e.target.value)}
+              inputMode="tel"
+            />
+            <Button
+              color="blue"
+              variant="primary"
+              size="md"
+              loading={isSubmitting}
+              fullWidth={false}
+              type="submit"
+            >
+              Lưu thay đổi
+            </Button>
+          </Form.Root>
           <div className="flex flex-col gap-4 items-center">
             <div className="relative">
               <div className="p-1 rounded-full bg-background-1">
@@ -121,9 +191,18 @@ const InfoAccountPanel = () => {
                 )}
               </div>
             </div>
-            <label className="px-4 py-2 text-white rounded-lg cursor-pointer bg-primary-6 hover:bg-primary-7">
-              Chọn ảnh
+            <div className="w-full">
+              <Button
+                color="blue"
+                variant="outlined"
+                fullWidth
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                {isUploading ? "Đang tải ảnh..." : "Chọn ảnh đại diện"}
+              </Button>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -133,12 +212,13 @@ const InfoAccountPanel = () => {
                 }}
                 disabled={isUploading}
               />
-            </label>
+            </div>
             <div className="text-xs text-center text-neutral-6">
               Dung lượng tối đa 1MB. Định dạng: JPEG, PNG
             </div>
           </div>
         </div>
+       
       </Card>
     </Section>
   );
