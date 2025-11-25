@@ -241,8 +241,6 @@ const ShopOrderCard = ({
   };
 
 
-  console.log("order", order);
-
   return (
     <div className="rounded-2xl border border-border-2 bg-background-1 p-5 shadow-sm transition hover:border-primary-4">
       <div className="flex flex-wrap items-center gap-4 border-b border-border-1 pb-4">

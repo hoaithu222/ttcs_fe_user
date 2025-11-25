@@ -10,6 +10,7 @@ import FollowingShopsPage from "../FollowingShops/FollowingShopsPage";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
 import { selectUser } from "../Auth/components/slice/auth.selector";
 import { useAppSelector } from "@/app/store";
+import OrderReview from "./components/orders/components/OrderReview";
 
 
 const ProfilePage = () => {
@@ -31,6 +32,7 @@ const ProfilePage = () => {
             {tab === "account" && <InfoAccountPanel />}
             {tab === "address" && <AddressesPanel />}
             {tab === "orders" && <OrdersPanel />}
+            {tab === "reviews" && <OrderReview />}
             {tab === "wishlist" && <WishlistPage />}
             {tab === "followingShops" && <FollowingShopsPage />}
             {tab === "wallet" && <WalletPage />}

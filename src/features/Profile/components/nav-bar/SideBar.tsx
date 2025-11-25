@@ -1,6 +1,6 @@
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
-import { ShoppingCart, LogOut, User, MapPin, Wallet, Heart, Store } from "lucide-react";
+import { ShoppingCart, LogOut, User, MapPin, Wallet, Heart, Store, Star } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import { useAuth } from "@/features/Auth/hooks/useAuth";
 
@@ -29,6 +29,12 @@ const Sidebar = () => {
       label: "Đơn hàng",
       icon: ShoppingCart,
       path: `${NAVIGATION_CONFIG.profile.path}?tab=orders`,
+    },
+    {
+      key: "reviews",
+      label: "Đánh giá",
+      icon: Star,
+      path: `${NAVIGATION_CONFIG.profile.path}?tab=reviews`,
     },
     {
       key: "wishlist",

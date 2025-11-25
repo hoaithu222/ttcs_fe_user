@@ -30,6 +30,7 @@ export interface CreateReviewRequest {
   title?: string;
   comment?: string;
   images?: string[];
+  shopId?: string;
 }
 
 export interface UpdateReviewRequest {
