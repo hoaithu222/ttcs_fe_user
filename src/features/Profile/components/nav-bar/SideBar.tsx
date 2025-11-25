@@ -31,12 +31,6 @@ const Sidebar = () => {
       path: `${NAVIGATION_CONFIG.profile.path}?tab=orders`,
     },
     {
-      key: "reviews",
-      label: "Đánh giá",
-      icon: Star,
-      path: `${NAVIGATION_CONFIG.profile.path}?tab=reviews`,
-    },
-    {
       key: "wishlist",
       label: "Sản phẩm đã thích",
       icon: Heart,

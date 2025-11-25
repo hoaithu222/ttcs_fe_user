@@ -27,6 +27,16 @@ class UserReviewsApiService extends VpsHttpClient {
     return response.data;
   }
 
+  // Get shop reviews
+  async getShopReviews(
+    shopId: string,
+    query?: ReviewListQuery
+  ): Promise<ApiSuccess<ReviewListResponse>> {
+    const endpoint = buildEndpoint(USER_REVIEWS_ENDPOINTS.SHOP_REVIEWS, { shopId });
+    const response = await this.get(endpoint, { params: query });
+    return response.data;
+  }
+
   // Create review for product
   async createReview(productId: string, data: CreateReviewRequest): Promise<ApiSuccess<Review>> {
     const endpoint = buildEndpoint(USER_REVIEWS_ENDPOINTS.CREATE_REVIEW, { productId });

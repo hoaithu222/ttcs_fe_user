@@ -11,12 +11,15 @@ import Loading from "@/foundation/components/loading/Loading";
 import AlertMessage from "@/foundation/components/info/AlertMessage";
 import TextArea from "@/foundation/components/input/TextArea";
 import RatingInput from "@/foundation/components/rating/RatingInput";
-
+import * as Form from "@radix-ui/react-form";
 import { addToast } from "@/app/store/slices/toast";
 import { userOrdersApi } from "@/core/api/orders";
 import { userReviewsApi } from "@/core/api/reviews";
 import type { Order } from "@/core/api/orders/type";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
+import { selectUser } from "@/features/Auth/components/slice/auth.selector";
+import { useAppSelector } from "@/app/store";
+import ScrollView from "@/foundation/components/scroll/ScrollView";
 
 type ReviewFormState = {
   rating: number;
@@ -30,6 +33,7 @@ type ReviewTarget = {
   quantity: number;
   price?: number;
   image?: string;
+  isReviewed?: boolean;
 };
 
 const OrderReview = () => {
@@ -44,14 +48,17 @@ const OrderReview = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [forms, setForms] = useState<Record<string, ReviewFormState>>({});
 
+  const user = useAppSelector(selectUser);
+
   const fetchOrderDetail = useCallback(async () => {
     if (!orderId) return;
     setLoading(true);
     setError(null);
     try {
       const response = await userOrdersApi.getOrder(orderId);
-      if (response.success && response.data?.order) {
-        setOrder(response.data.order);
+
+      if (response.success && response.data) {
+        setOrder(response.data as unknown as Order);
       } else {
         setError(response.message || "Không thể tải thông tin đơn hàng");
       }
@@ -88,6 +95,7 @@ const OrderReview = () => {
       const firstImage = Array.isArray(productImages) ? productImages[0] : undefined;
       const imageUrl =
         typeof firstImage === "string" ? firstImage : firstImage?.url;
+      const isReviewed = Boolean(item.isReviewed);
 
       return {
         lineId: item._id || `${productId}-${index}`,
@@ -96,6 +104,7 @@ const OrderReview = () => {
         quantity: item.quantity || 1,
         price: item.totalPrice ?? item.price,
         image: imageUrl,
+        isReviewed,
       };
     });
   }, [order]);
@@ -105,6 +114,9 @@ const OrderReview = () => {
     setForms((prev) => {
       const next = { ...prev };
       normalizedProducts.forEach((target) => {
+        if (target.isReviewed) {
+          return;
+        }
         if (!next[target.lineId]) {
           next[target.lineId] = { rating: 0, comment: "" };
         }
@@ -112,6 +124,12 @@ const OrderReview = () => {
       return next;
     });
   }, [normalizedProducts]);
+
+  const pendingProducts = useMemo(
+    () => normalizedProducts.filter((target) => !target.isReviewed),
+    [normalizedProducts]
+  );
+  const hasPendingReviews = pendingProducts.length > 0;
 
   const shopId =
     typeof order?.shopId === "string"
@@ -121,6 +139,21 @@ const OrderReview = () => {
     typeof order?.shopId === "object"
       ? (order?.shopId as any)?.name
       : undefined;
+  const shippingInfo = (order as any)?.shippingAddress || (order as any)?.addressId || {};
+  const receiverName =
+    shippingInfo.name ||
+    shippingInfo.fullName ||
+    (order as any)?.user?.name ||
+    "—";
+  const receiverPhone =
+    shippingInfo.phone ||
+    shippingInfo.mobile ||
+    (order as any)?.user?.phone ||
+    "—";
+  const receiverAddress =
+    [shippingInfo.address, shippingInfo.ward, shippingInfo.district, shippingInfo.city]
+      .filter(Boolean)
+      .join(", ") || "—";
 
   const handleRatingChange = (lineId: string, rating: number) => {
     setForms((prev) => ({
@@ -144,7 +177,25 @@ const OrderReview = () => {
 
   const handleSubmitReviews = async () => {
     if (!order || !orderId) return;
-    const invalidTargets = normalizedProducts.filter(
+    if (!shopId) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: "Không xác định được cửa hàng để đánh giá",
+        })
+      );
+      return;
+    }
+    if (!pendingProducts.length) {
+      dispatch(
+        addToast({
+          type: "info",
+          message: "Tất cả sản phẩm trong đơn đã được đánh giá",
+        })
+      );
+      return;
+    }
+    const invalidTargets = pendingProducts.filter(
       (target) => !forms[target.lineId]?.rating
     );
     if (invalidTargets.length) {
@@ -158,12 +209,14 @@ const OrderReview = () => {
     }
     setIsSubmitting(true);
     try {
-      for (const target of normalizedProducts) {
+      for (const target of pendingProducts) {
         const form = forms[target.lineId];
         await userReviewsApi.createReview(target.productId, {
           rating: form.rating,
           comment: form.comment?.trim() || undefined,
           shopId,
+          orderId,
+          orderItemId: target.lineId,
         });
       }
       dispatch(
@@ -191,6 +244,9 @@ const OrderReview = () => {
   const handleBackToOrders = () => {
     navigate("/profile?tab=orders");
   };
+
+
+  console.log(order);
 
   if (!orderId) {
     return (
@@ -239,6 +295,8 @@ const OrderReview = () => {
     return null;
   }
 
+
+
   const isDelivered = (order.orderStatus || order.status) === "delivered";
 
   if (!isDelivered) {
@@ -262,7 +320,9 @@ const OrderReview = () => {
   }
 
   return (
-    <Section className="space-y-6">
+    <Form.Root>
+     <ScrollView className="h-[calc(100vh-100px)]" hideScrollbarY={false}>
+     <Section className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button
           variant="ghost"
@@ -315,28 +375,15 @@ const OrderReview = () => {
             <UserIcon className="w-5 h-5 text-primary-6 mt-1" />
             <div>
               <p className="text-xs uppercase text-neutral-5">Người nhận</p>
-              <p className="font-semibold text-neutral-9">
-                {order.shippingAddress?.name || "—"}
-              </p>
-              <p className="text-sm text-neutral-6">
-                {order.shippingAddress?.phone || "—"}
-              </p>
+              <p className="font-semibold text-neutral-9">{user?.name || receiverName}</p>
+              <p className="text-sm text-neutral-6">{user?.phone || receiverPhone}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <MapPin className="w-5 h-5 text-primary-6 mt-1" />
             <div>
               <p className="text-xs uppercase text-neutral-5">Địa chỉ</p>
-              <p className="text-sm text-neutral-7">
-                {[
-                  order.shippingAddress?.address,
-                  order.shippingAddress?.ward,
-                  order.shippingAddress?.district,
-                  order.shippingAddress?.city,
-                ]
-                  .filter(Boolean)
-                  .join(", ") || "—"}
-              </p>
+              <p className="text-sm text-neutral-7">{receiverAddress}</p>
             </div>
           </div>
         </div>
@@ -347,6 +394,13 @@ const OrderReview = () => {
         title="Đánh giá sản phẩm bạn đã nhận"
         message="Chia sẻ trải nghiệm thực tế của bạn để cộng đồng mua sắm tốt hơn. Mỗi sản phẩm trong đơn sẽ cần ít nhất một đánh giá sao."
       />
+      {!hasPendingReviews && (
+        <AlertMessage
+          type="success"
+          title="Đơn hàng đã được đánh giá"
+          message="Bạn đã gửi đánh giá cho tất cả sản phẩm trong đơn này."
+        />
+      )}
 
       {normalizedProducts.length === 0 ? (
         <Empty
@@ -357,6 +411,7 @@ const OrderReview = () => {
         <div className="space-y-4">
           {normalizedProducts.map((product) => {
             const form = forms[product.lineId] || { rating: 0, comment: "" };
+            const isAlreadyReviewed = Boolean(product.isReviewed);
             return (
               <Card
                 key={product.lineId}
@@ -384,40 +439,55 @@ const OrderReview = () => {
                       </span>
                     </div>
                     {product.price !== undefined && (
-                      <p className="text-sm font-medium text-primary-6">
+                      <p className="text-sm text-left font-medium text-primary-6">
                         {formatPriceVND(product.price)}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-9 mb-1">
-                      Đánh giá của bạn
+                {isAlreadyReviewed ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                    <p className="text-sm font-semibold text-emerald-700">
+                      Bạn đã đánh giá sản phẩm này
                     </p>
-                    <RatingInput
-                      value={form.rating}
-                      onChange={(rating) => handleRatingChange(product.lineId, rating)}
-                      allowHalf
-                      showLabel
-                    />
+                    <p className="text-xs text-neutral-6 mt-1">
+                      Nếu cần cập nhật nội dung đánh giá, vui lòng liên hệ bộ phận hỗ trợ khách hàng.
+                    </p>
                   </div>
-                  {!form.rating && (
-                    <span className="text-xs text-error font-medium">
-                      Cần đánh giá sao
-                    </span>
-                  )}
-                </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-neutral-9 mb-1">
+                          Đánh giá của bạn
+                        </p>
+                        <RatingInput
+                          value={form.rating}
+                          onChange={(rating) => handleRatingChange(product.lineId, rating)}
+                          allowHalf
+                          showLabel
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      {!form.rating && (
+                        <span className="text-xs text-error font-medium">
+                          Cần đánh giá sao
+                        </span>
+                      )}
+                    </div>
 
-                <TextArea
-                  name={`comment-${product.lineId}`}
-                  label="Nhận xét chi tiết (không bắt buộc)"
-                  placeholder="Chia sẻ điểm bạn thích hoặc chưa hài lòng..."
-                  value={form.comment}
-                  onChange={(e) => handleCommentChange(product.lineId, e.target.value)}
-                  rows={4}
-                />
+                    <TextArea
+                      name={`comment-${product.lineId}`}
+                      label="Nhận xét chi tiết (không bắt buộc)"
+                      placeholder="Chia sẻ điểm bạn thích hoặc chưa hài lòng..."
+                      value={form.comment}
+                      onChange={(e) => handleCommentChange(product.lineId, e.target.value)}
+                      rows={4}
+                      disabled={isSubmitting}
+                    />
+                  </>
+                )}
               </Card>
             );
           })}
@@ -435,14 +505,16 @@ const OrderReview = () => {
         <Button
           color="blue"
           onClick={handleSubmitReviews}
-          disabled={isSubmitting || normalizedProducts.length === 0}
+          disabled={isSubmitting || !hasPendingReviews}
           loading={isSubmitting}
           icon={<Star className="w-4 h-4" />}
         >
           Gửi đánh giá
         </Button>
       </div>
-    </Section>
+      </Section>
+     </ScrollView>
+    </Form.Root>
   );
 };
 

@@ -2,6 +2,9 @@
 export interface Review {
   _id: string;
   productId: string;
+  shopId?: string;
+  orderId?: string;
+  orderItemId?: string;
   product?: {
     _id: string;
     name: string;
@@ -30,7 +33,9 @@ export interface CreateReviewRequest {
   title?: string;
   comment?: string;
   images?: string[];
-  shopId?: string;
+  shopId: string;
+  orderId: string;
+  orderItemId: string;
 }
 
 export interface UpdateReviewRequest {

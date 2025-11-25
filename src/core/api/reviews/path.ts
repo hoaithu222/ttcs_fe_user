@@ -2,6 +2,7 @@
 export const USER_REVIEWS_ENDPOINTS = {
   PRODUCT_REVIEWS: "/products/:productId/reviews",
   CREATE_REVIEW: "/products/:productId/reviews",
+  SHOP_REVIEWS: "/shops/:shopId/reviews",
   UPDATE_REVIEW: "/reviews/:reviewId",
   DELETE_REVIEW: "/reviews/:reviewId",
   USER_REVIEWS: "/reviews/user",
