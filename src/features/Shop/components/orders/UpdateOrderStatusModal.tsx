@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
+import React, { useEffect, useRef, useState } from "react";
 import * as Form from "@radix-ui/react-form";
-import Button from "@/foundation/components/buttons/Button";
 import Input from "@/foundation/components/input/Input";
 import TextArea from "@/foundation/components/input/TextArea";
-import { X } from "lucide-react";
+import Select from "@/foundation/components/input/Select";
+import Modal from "@/foundation/components/modal/Modal";
+import IconCircleWrapper from "@/foundation/components/icons/IconCircleWrapper";
+import AlertMessage from "@/foundation/components/info/AlertMessage";
+import { Truck } from "lucide-react";
 import { ShopOrder } from "@/core/api/shop-management/type";
 
 interface UpdateOrderStatusModalProps {
@@ -28,6 +30,8 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
 }) => {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [notes, setNotes] = useState("");
+  const [cancelReason, setCancelReason] = useState("out_of_stock");
+  const formRef = useRef<HTMLFormElement>(null);
 
   const getStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
@@ -43,12 +47,17 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
   const requiresTrackingNumber = newStatus === "shipped";
   const requiresNotes = newStatus === "cancelled" || newStatus === "processing";
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
+    const finalNotes =
+      newStatus === "cancelled"
+        ? [cancelReasons.find((reason) => reason.value === cancelReason)?.label, notes.trim()]
+            .filter(Boolean)
+            .join(" - ")
+        : notes.trim();
     onConfirm({
       orderStatus: newStatus,
       trackingNumber: trackingNumber.trim() || undefined,
-      notes: notes.trim() || undefined,
+      notes: finalNotes || undefined,
     });
     // Reset form
     setTrackingNumber("");
@@ -58,113 +67,139 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
   const handleClose = () => {
     setTrackingNumber("");
     setNotes("");
+    setCancelReason("out_of_stock");
     onClose();
   };
 
+  const triggerSubmit = () => {
+    formRef.current?.requestSubmit();
+  };
+
   return (
-    <Dialog.Root open={open} onOpenChange={handleClose}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background-1 p-6 shadow-xl border border-border-1">
-          <div className="flex justify-between items-center mb-4">
-            <Dialog.Title className="text-xl font-bold text-neutral-9">
-              Cập nhật trạng thái đơn hàng
-            </Dialog.Title>
-            <Dialog.Close asChild>
-              <button
-                className="text-neutral-6 hover:text-neutral-9 transition-colors"
-                onClick={handleClose}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </Dialog.Close>
+    <Modal
+      open={open}
+      size="lg"
+      onOpenChange={(openState) => {
+        if (!openState) handleClose();
+      }}
+      onCancel={handleClose}
+      onConfirm={triggerSubmit}
+      confirmText={loading ? "Đang cập nhật..." : "Xác nhận"}
+      closeText="Hủy"
+      disabled={loading}
+      className="space-y-6"
+      title={
+        <div className="flex items-center gap-3">
+          <IconCircleWrapper size="md" color="info">
+            <Truck className="h-5 w-5 text-info" />
+          </IconCircleWrapper>
+          <div>
+            <h2 className="text-lg font-semibold text-neutral-9">Cập nhật trạng thái đơn</h2>
+            <p className="text-sm text-neutral-6">Thông báo khách hàng ngay sau khi thay đổi</p>
           </div>
+        </div>
+      }
+    >
+      <Form.Root
+        ref={formRef}
+        className="space-y-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSubmit();
+        }}
+      >
+        <AlertMessage
+          type="info"
+          title="Kiểm tra trước khi xác nhận"
+          message="Trạng thái mới sẽ được áp dụng ngay và gửi thông báo cho người mua."
+        />
 
-          {order && (
-            <div className="mb-4 p-3 bg-neutral-2 rounded-lg">
-              <p className="text-sm text-neutral-6">Mã đơn hàng</p>
-              <p className="font-semibold text-neutral-9">#{order.orderNumber}</p>
-              <div className="mt-2 flex gap-2 text-sm">
-                <span className="text-neutral-6">Từ:</span>
-                <span className="font-medium text-neutral-9">{getStatusLabel(currentStatus)}</span>
-                <span className="text-neutral-6">→</span>
-                <span className="font-medium text-primary-6">{getStatusLabel(newStatus)}</span>
+        {order && (
+          <div className="rounded-xl border border-border-2 bg-background-2 p-4 text-sm text-neutral-6">
+            <div className="flex flex-wrap gap-3">
+              <div>
+                <p className="text-neutral-5">Mã đơn hàng</p>
+                <p className="text-base font-semibold text-neutral-9">#{order.orderNumber}</p>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-neutral-5">Từ</span>
+                <span className="font-semibold text-neutral-9">{getStatusLabel(currentStatus)}</span>
+                <span className="text-neutral-5">→</span>
+                <span className="font-semibold text-primary-6">{getStatusLabel(newStatus)}</span>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          <Form.Root onSubmit={handleSubmit} className="space-y-4">
-            {requiresTrackingNumber && (
-              <div>
-                <Input
-                  name="trackingNumber"
-                  label="Mã vận đơn (Bắt buộc)"
-                  placeholder="Nhập mã vận đơn"
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  required={requiresTrackingNumber}
-                  description="Mã vận đơn từ đơn vị vận chuyển"
-                />
-              </div>
-            )}
+        {requiresTrackingNumber && (
+          <Input
+            name="trackingNumber"
+            label="Mã vận đơn (bắt buộc)"
+            placeholder="Nhập mã vận đơn"
+            value={trackingNumber}
+            onChange={(e) => setTrackingNumber(e.target.value)}
+            required
+            description="Mã từ đối tác vận chuyển giúp khách hàng theo dõi đơn"
+          />
+        )}
 
-            {requiresNotes && (
-              <div>
-                <TextArea
-                  name="notes"
-                  label={newStatus === "cancelled" ? "Lý do hủy đơn (Bắt buộc)" : "Ghi chú"}
-                  placeholder={
-                    newStatus === "cancelled"
-                      ? "Nhập lý do hủy đơn hàng..."
-                      : "Nhập ghi chú cho đơn hàng..."
-                  }
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={4}
-                  required={newStatus === "cancelled"}
-                  description={
-                    newStatus === "cancelled"
-                      ? "Vui lòng giải thích lý do hủy đơn hàng"
-                      : "Thông tin này sẽ được gửi đến khách hàng"
-                  }
-                />
-              </div>
-            )}
+        {newStatus === "cancelled" && (
+          <Select
+            name="cancelReason"
+            label="Lý do hủy đơn"
+            options={cancelReasons}
+            value={cancelReason}
+            onChange={(value) => setCancelReason(value)}
+            required
+          />
+        )}
 
-            {!requiresTrackingNumber && !requiresNotes && (
-              <div className="p-3 bg-primary-10/30 rounded-lg border border-primary-6/20">
-                <p className="text-sm text-primary-7">
-                  Bạn có muốn thêm ghi chú cho đơn hàng này không?
-                </p>
-              </div>
-            )}
+        {requiresNotes ? (
+          <TextArea
+            name="notes"
+            label={newStatus === "cancelled" ? "Lý do hủy đơn (bắt buộc)" : "Ghi chú"}
+            placeholder={
+              newStatus === "cancelled"
+                ? "Nhập lý do hủy để thông báo cho khách hàng..."
+                : "Nhập ghi chú cho đơn hàng..."
+            }
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4}
+            required={newStatus === "cancelled"}
+            description="Thông tin này hiển thị trong lịch sử đơn hàng của khách"
+          />
+        ) : (
+          <TextArea
+            name="optionalNotes"
+            label="Ghi chú (tùy chọn)"
+            placeholder="Bạn có thể cung cấp thêm thông điệp tới khách hàng..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+          />
+        )}
 
-            {!requiresTrackingNumber && !requiresNotes && (
-              <div>
-                <TextArea
-                  name="optionalNotes"
-                  label="Ghi chú (Tùy chọn)"
-                  placeholder="Nhập ghi chú cho đơn hàng..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                />
-              </div>
-            )}
+        {!requiresTrackingNumber && !requiresNotes && (
+          <div className="rounded-xl border border-primary-6/30 bg-primary-10/20 px-4 py-3 text-sm text-primary-7">
+            Ghi chú giúp khách hàng hiểu rõ hơn về trạng thái đơn hàng.
+          </div>
+        )}
 
-            <div className="flex gap-3 justify-end pt-4">
-              <Button type="button" color="gray" variant="outline" onClick={handleClose}>
-                Hủy
-              </Button>
-              <Button type="submit" color="blue" variant="solid" loading={loading}>
-                Xác nhận
-              </Button>
-            </div>
-          </Form.Root>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        <Form.Submit asChild>
+          <button type="submit" className="hidden" aria-hidden />
+        </Form.Submit>
+      </Form.Root>
+    </Modal>
   );
 };
 
 export default UpdateOrderStatusModal;
+
+const cancelReasons = [
+  { value: "out_of_stock", label: "Hết hàng" },
+  { value: "customer_request", label: "Khách yêu cầu hủy" },
+  { value: "fraud_suspect", label: "Nghi ngờ gian lận" },
+  { value: "pricing_error", label: "Sai giá niêm yết" },
+  { value: "others", label: "Lý do khác" },
+];

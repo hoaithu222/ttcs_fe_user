@@ -18,6 +18,7 @@ import {
   InputSize,
   TEXT_SIZE,
 } from "./inputs.consts";
+import { CalendarIcon } from "lucide-react";
 
 interface DatePickerProps {
   /** Giá trị ngày ban đầu, có thể null */
@@ -347,6 +348,21 @@ const DatePicker: React.FC<DatePickerProps> = ({
     };
   }, [open]);
 
+  const inputClasses = clsx(
+    BASE_POSITION_CLASS,
+    BASE_INPUT_CLASS,
+    fontClass,
+    sizeClass,
+    "w-full rounded-xl border px-4 py-2.5 text-sm font-medium transition-all",
+    disabled
+      ? "cursor-not-allowed bg-neutral-2 text-neutral-5"
+      : "bg-background-2 text-neutral-9 hover:border-primary-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-4",
+    error || inputError || errorBorder
+      ? "border-error shadow-[0_0_0_1px_rgba(255,66,78,0.25)]"
+      : "border-border-2 shadow-[0_1px_2px_rgba(0,0,0,0.08)]",
+    className
+  );
+
   // Render input text nếu allowTextInput = true
   return (
     <div>
@@ -359,38 +375,28 @@ const DatePicker: React.FC<DatePickerProps> = ({
           placeholder={textInputPlaceholder || placeholder}
           disabled={disabled}
           data-testid={testId ? `${testId}-input` : undefined}
-          className={clsx(
-            BASE_POSITION_CLASS,
-            BASE_INPUT_CLASS,
-            // Trạng thái error / disabled / normal
-            error || inputError || errorBorder
-              ? ERROR_INPUT_CLASS
-              : disabled
-                ? DISABLED_INPUT_CLASS
-                : BASE_INPUT_CLASS_ACTION,
-            fontClass,
-            "w-full bg-neutral-0 px-3 py-2",
-            sizeClass,
-            className
-          )}
+          className={inputClasses}
         />
         <Popover.Root open={open} onOpenChange={setOpen}>
           <Popover.Trigger asChild>
-            <span className="absolute -translate-y-1/2 right-3 top-1/2 text-neutral-6">
-              <Icon
-                testId={testId ? `${testId}-calendar-button` : undefined}
-                disabled={disabled}
-                onClick={() => setOpen(!open)}
-                name="CalendarOutlined"
-                color={color}
-                size="sm"
-              />
-            </span>
+            <button
+              type="button"
+              className={clsx(
+                "absolute right-3 top-1/2 -translate-y-1/2 rounded-full border p-1.5 transition-all",
+                disabled
+                  ? "border-border-2 text-neutral-5"
+                  : "border-border-2 text-primary-6 hover:border-primary-4 hover:text-primary-4"
+              )}
+              onClick={() => !disabled && setOpen(!open)}
+              aria-label="Chọn ngày"
+            >
+              <CalendarIcon className="h-4 w-4" />
+            </button>
           </Popover.Trigger>
 
           <Popover.Portal>
             <Popover.Content
-              className="p-4 rounded shadow-lg bg-background-popup"
+              className="mt-2 rounded-2xl border border-border-2 bg-background-1 p-4 shadow-xl backdrop-blur-md"
               side="bottom"
               align="start"
               style={{ zIndex }}
@@ -404,16 +410,20 @@ const DatePicker: React.FC<DatePickerProps> = ({
                 onSelect={handleSelectDate}
                 disabled={getDisabledDays}
                 classNames={{
-                  today: "bg-background-4",
-                  selected: "bg-primary-6 text-base-white outline-none border-none",
-                  chevron: `${defaultClassNames.chevron} fill-current text-neutral-10`,
-                  button_previous: `${defaultClassNames.button_previous} text-neutral-10 hover:opacity-80 focus:outline-none`,
-                  button_next: `${defaultClassNames.button_next} text-neutral-10 hover:opacity-80 focus:outline-none`,
-                  day: `${defaultClassNames.day} text-body-13 rounded-full hover:ring-1 hover:ring-neutral-5`,
-                  day_button: `${defaultClassNames.day_button} `,
-                  month_caption: `${defaultClassNames.month_caption} text-body-13 text-neutral-10`,
-                  weekday: `${defaultClassNames.weekday} text-body-13 text-neutral-10`,
-                  month: `${defaultClassNames.month} text-body-13 text-neutral-10`,
+                  ...defaultClassNames,
+                  chevron: "text-primary-6 transition hover:text-primary-4",
+                  button_previous:
+                    "rounded-full p-2 text-neutral-7 transition hover:bg-primary-1 hover:text-primary-6 focus:outline-none",
+                  button_next:
+                    "rounded-full p-2 text-neutral-7 transition hover:bg-primary-1 hover:text-primary-6 focus:outline-none",
+                  month_caption: "text-base font-semibold text-neutral-9",
+                  weekday: "text-xs font-semibold uppercase tracking-wide text-neutral-6",
+                  day: "rounded-full text-sm text-neutral-9 transition hover:bg-primary-1",
+                  day_button:
+                    "rounded-full px-2 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-4",
+                  selected:
+                    "bg-primary-6 text-neutral-0 shadow-[0_4px_10px_rgba(49,117,193,0.35)] focus-visible:ring-2 focus-visible:ring-primary-4",
+                  today: "border-2 border-primary-3 text-primary-6",
                 }}
               />
             </Popover.Content>

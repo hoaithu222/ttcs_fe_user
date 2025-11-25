@@ -121,6 +121,36 @@ class ShopManagementApiService extends VpsHttpClient {
     const response = await this.get(SHOP_MANAGEMENT_ENDPOINTS.ANALYTICS, { params: query });
     return response.data;
   }
+
+  // Batch print orders
+  async batchPrintOrders(orderIds: string[], type: "packing" | "invoice" = "packing"): Promise<ApiSuccess<any>> {
+    const response = await this.post("/shops/my-shop/orders/batch-print", { orderIds }, { params: { type } });
+    return response.data;
+  }
+
+  // Add internal note
+  async addInternalNote(orderId: string, note: string): Promise<ApiSuccess<any>> {
+    const response = await this.post(`/shops/my-shop/orders/${orderId}/notes`, { note });
+    return response.data;
+  }
+
+  // Get internal notes
+  async getInternalNotes(orderId: string): Promise<ApiSuccess<any[]>> {
+    const response = await this.get(`/shops/my-shop/orders/${orderId}/notes`);
+    return response.data;
+  }
+
+  // Delete internal note
+  async deleteInternalNote(noteId: string): Promise<ApiSuccess<void>> {
+    const response = await this.delete(`/shops/my-shop/orders/notes/${noteId}`);
+    return response.data;
+  }
+
+  // Get order timeline
+  async getOrderTimeline(orderId: string): Promise<ApiSuccess<any[]>> {
+    const response = await this.get(`/shops/my-shop/orders/${orderId}/timeline`);
+    return response.data;
+  }
 }
 
 // Export singleton instance

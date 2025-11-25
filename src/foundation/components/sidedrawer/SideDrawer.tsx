@@ -9,6 +9,8 @@ import { useTranslation } from "react-i18next";
 
 import Button from "../buttons/Button";
 import Icon from "../icons/Icon";
+import { InfoIcon, X } from "lucide-react";
+import IconCircleWrapper from "../icons/IconCircleWrapper";
 
 export type DrawerSide = "left" | "right" | "bottom";
 export type DrawerSize = "xs" | "sm" | "md" | "lg" | "xl" | "full";
@@ -234,18 +236,21 @@ const SideDrawer: React.FC<SideDrawerProps> = ({
           {(title || showCloseIcon) && (
             <div className={clsx("mb-4 flex items-center justify-between", titleClassName)}>
               {title && (
-                <Dialog.Title className="flex-1 min-w-0 truncate text-title-20-bold text-neutral-9">
+                <Dialog.Title className="flex-1 min-w-0 truncate text-2xl font-semibold text-neutral-9">
+                  
+                  <IconCircleWrapper
+                    color="info"
+                    className="text-neutral-9 mr-2"
+                  >
+                    <InfoIcon className="text-neutral-9" />
+                
+                  </IconCircleWrapper>
                   {title}
                 </Dialog.Title>
               )}
               {showCloseIcon && (
                 <Dialog.Close asChild>
-                  <Icon
-                    name="CloseOutlined"
-                    className="cursor-pointer text-neutral-9"
-                    onClick={onCancel}
-                    data-testid={`${testId}-close`}
-                  />
+                 <X className="cursor-pointer text-neutral-9" onClick={onCancel} data-testid={`${testId}-close`} />
                 </Dialog.Close>
               )}
             </div>

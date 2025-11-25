@@ -12,6 +12,7 @@ import type { WishlistItem } from "@/core/api/wishlist/type";
 import { Product } from "@/core/api/products/type";
 import ConfirmModal from "@/foundation/components/modal/ModalConfirm";
 import { ReduxStateType } from "@/app/store/types";
+import AlertMessage from "@/foundation/components/info/AlertMessage";
 
 const WishlistPage: React.FC = () => {
   const navigate = useNavigate();
@@ -110,13 +111,15 @@ const WishlistPage: React.FC = () => {
 
   return (
     <Page>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto ">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-9 mb-2">Sản phẩm đã thích</h1>
+            
+            <h2 className="text-2xl font-bold text-neutral-9 mb-2">Sản phẩm đã thích</h2>
             <p className="text-neutral-6">{wishlist.length} sản phẩm trong danh sách yêu thích</p>
           </div>
+
           {wishlist.length > 0 && (
             <Button
               color="red"
@@ -130,15 +133,19 @@ const WishlistPage: React.FC = () => {
             </Button>
           )}
         </div>
-
+        <AlertMessage 
+  type="info"
+  title="Quản lý mua sắm"
+  message="Tại đây bạn có thể theo dõi giá sản phẩm. Khi đã sẵn sàng mua, hãy nhấn nút giỏ hàng trên sản phẩm để tiến hành thanh toán."
+  onDetail={() => navigate("/cart")}
+/>
         {/* Wishlist Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 mt-4 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {wishlist.map((item: WishlistItem) => {
             const product = wishlistItemToProduct(item);
             return (
               <div key={item.productId} className="relative">
                 <ProductCard product={product} />
-               
               </div>
             );
           })}

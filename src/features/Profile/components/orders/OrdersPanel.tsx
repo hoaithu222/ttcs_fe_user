@@ -1,22 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card } from "@/foundation/components/info/Card";
-import Section from "@/foundation/components/sections/Section";
-import { useProfileOrders } from "../../hooks/useOrder";
-import Button from "@/foundation/components/buttons/Button";
-import { userOrdersApi } from "@/core/api/orders";
-import Loading from "@/foundation/components/loading/Loading";
-import Empty from "@/foundation/components/empty/Empty";
-import { formatPriceVND } from "@/shared/utils/formatPriceVND";
-import { ReduxStateType } from "@/app/store/types";
-import ConfirmModal from "@/foundation/components/modal/ModalConfirm";
-import Modal from "@/foundation/components/modal/Modal";
-import { usePayment } from "@/features/Payment/hooks";
 import { useDispatch } from "react-redux";
+import { CreditCard, Wallet, Building2, Truck } from "lucide-react";
+
 import { addToast } from "@/app/store/slices/toast";
-import { CreditCard, Wallet, Building2, Truck, Package, Store } from "lucide-react";
+import { ReduxStateType } from "@/app/store/types";
+import { userOrdersApi } from "@/core/api/orders";
+import type { Order, OrderTracking } from "@/core/api/orders/type";
 import type { PaymentMethod } from "@/core/api/payments/type";
 import { userWalletApi } from "@/core/api/wallet";
+import Button from "@/foundation/components/buttons/Button";
+import Empty from "@/foundation/components/empty/Empty";
+import { Card } from "@/foundation/components/info/Card";
+import ConfirmModal from "@/foundation/components/modal/ModalConfirm";
+import Modal from "@/foundation/components/modal/Modal";
+import Section from "@/foundation/components/sections/Section";
+import { formatPriceVND } from "@/shared/utils/formatPriceVND";
+import { usePayment } from "@/features/Payment/hooks";
+
+import { useProfileOrders } from "../../hooks/useOrder";
+import OrderCard from "./components/OrderCard";
+import OrderDrawer from "./components/OrderDrawer";
+import OrdersFilters, { OrdersTabKey } from "./components/OrdersFilters";
+import OrdersSkeleton from "./components/OrdersSkeleton";
 
 const OrdersPanel = () => {
   const navigate = useNavigate();
@@ -24,9 +30,7 @@ const OrdersPanel = () => {
   const { orders, status, loadOrders } = useProfileOrders();
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    "all" | "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "awaiting_payment"
-  >("all");
+  const [activeTab, setActiveTab] = useState<OrdersTabKey>("all");
   
   // Payment method selection modal
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -43,11 +47,26 @@ const OrdersPanel = () => {
     createCheckout,
   } = usePayment();
 
+  const [filters, setFilters] = useState<{
+    searchCode: string;
+    dateFrom: Date | null;
+    dateTo: Date | null;
+  }>({
+    searchCode: "",
+    dateFrom: null,
+    dateTo: null,
+  });
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [trackingHistory, setTrackingHistory] = useState<OrderTracking[]>([]);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
+  const [isTrackingLoading, setIsTrackingLoading] = useState(false);
+  const trackingCacheRef = useRef<Record<string, OrderTracking[]>>({});
+
   useEffect(() => {
     loadOrders(1, 10);
   }, [loadOrders]);
-
-  console.log("checkoutData", orders);
 
   // Load payment methods when modal opens
   useEffect(() => {
@@ -70,7 +89,7 @@ const OrdersPanel = () => {
   };
 
   // Handle payment button click
-  const handlePaymentClick = useCallback((order: any) => {
+  const handlePaymentClick = useCallback((order: Order) => {
     setSelectedOrderForPayment({
       orderId: order._id,
       totalAmount: order.totalAmount || 0,
@@ -189,16 +208,9 @@ const OrdersPanel = () => {
     []
   );
 
-  const renderBadge = (text: string, className: string) => (
-    <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${className}`}
-    >
-      {text}
-    </span>
-  );
-
   const tabs = useMemo(
-    () => [
+    () =>
+      [
       { key: "all", label: "Tất cả" },
       { key: "awaiting_payment", label: "Chờ thanh toán" },
       { key: "pending", label: "Chờ xác nhận" },
@@ -206,20 +218,69 @@ const OrdersPanel = () => {
       { key: "shipped", label: "Đang vận chuyển" },
       { key: "delivered", label: "Đã giao" },
       { key: "cancelled", label: "Đã hủy" },
-    ],
+      ] as Array<{ key: OrdersTabKey; label: string }>,
     []
   );
 
+  const handleFiltersChange = useCallback(
+    (partial: Partial<typeof filters>) => {
+      setFilters((prev) => {
+        const next = { ...prev, ...partial };
+        if (next.dateFrom && next.dateTo && next.dateFrom > next.dateTo) {
+          dispatch(
+            addToast({
+              type: "warning",
+              message: "Ngày bắt đầu không được lớn hơn ngày kết thúc",
+            })
+          );
+          return { ...next, dateTo: next.dateFrom };
+        }
+        return next;
+      });
+    },
+    [dispatch]
+  );
+
+  const resetFilters = useCallback(() => {
+    setFilters({ searchCode: "", dateFrom: null, dateTo: null });
+  }, []);
+
   const filteredOrders = useMemo(() => {
     if (!orders || !orders.length) return [];
-    if (activeTab === "all") return orders;
-    if (activeTab === "awaiting_payment") {
-      return orders.filter(
-        (order: any) => !(order.isPay || order.paymentStatus === "completed")
-      );
-    }
-    return orders.filter((order: any) => (order.orderStatus || order.status) === activeTab);
-  }, [orders, activeTab]);
+    const normalizedSearch = filters.searchCode.trim().toLowerCase();
+    const fromTime = filters.dateFrom
+      ? new Date(filters.dateFrom).setHours(0, 0, 0, 0)
+      : null;
+    const toTime = filters.dateTo ? new Date(filters.dateTo).setHours(23, 59, 59, 999) : null;
+
+    return orders.filter((order: Order) => {
+      const statusKey = (order.orderStatus || order.status || "pending") as typeof activeTab;
+
+      if (activeTab === "awaiting_payment") {
+        const awaiting = !(order.isPay || order.paymentStatus === "completed");
+        if (!awaiting) return false;
+      } else if (activeTab !== "all" && statusKey !== activeTab) {
+        return false;
+      }
+
+      if (normalizedSearch) {
+        const sources = [order?.orderNumber, order._id]
+          .filter(Boolean)
+          .map((value) => value?.toString().toLowerCase());
+        const hasMatch = sources.some((value) => value?.includes(normalizedSearch));
+        if (!hasMatch) return false;
+      }
+
+      if (fromTime || toTime) {
+        const createdTimestamp = order.createdAt ? new Date(order.createdAt).getTime() : null;
+        if (!createdTimestamp) return false;
+        if (fromTime && createdTimestamp < fromTime) return false;
+        if (toTime && createdTimestamp > toTime) return false;
+      }
+
+      return true;
+    });
+  }, [orders, activeTab, filters]);
 
   const countsByTab = useMemo(() => {
     const counts: Record<string, number> = {
@@ -244,213 +305,169 @@ const OrdersPanel = () => {
   const isLoading = status === ReduxStateType.LOADING;
   const hasOrders = filteredOrders && filteredOrders.length > 0;
 
+  const fetchTrackingData = useCallback(
+    async (order: Order) => {
+      setTrackingError(null);
+      if (trackingCacheRef.current[order._id]) {
+        setTrackingHistory(trackingCacheRef.current[order._id]);
+        return;
+      }
+      setIsTrackingLoading(true);
+      try {
+        const response = await userOrdersApi.trackOrder(order._id);
+        const history = response.data?.trackingHistory || [];
+        trackingCacheRef.current[order._id] = history;
+        setTrackingHistory(history);
+      } catch (error) {
+        console.error("Failed to load tracking history:", error);
+        setTrackingError("Không thể tải thông tin vận chuyển. Vui lòng thử lại sau.");
+        dispatch(
+          addToast({
+            type: "error",
+            message: "Không thể tải thông tin vận chuyển",
+          })
+        );
+      } finally {
+        setIsTrackingLoading(false);
+      }
+    },
+    [dispatch]
+  );
+
+  const handleOpenDrawer = useCallback(
+    (order: Order) => {
+      setSelectedOrder(order);
+      setIsDrawerOpen(true);
+      const cachedHistory = trackingCacheRef.current[order._id];
+      if (cachedHistory) {
+        setTrackingHistory(cachedHistory);
+      } else {
+        setTrackingHistory([]);
+        fetchTrackingData(order);
+      }
+    },
+    [fetchTrackingData]
+  );
+
+  const handleCloseDrawer = useCallback(() => {
+    setIsDrawerOpen(false);
+    setSelectedOrder(null);
+    setTrackingHistory([]);
+    setTrackingError(null);
+  }, []);
+
+  const handleTrackOrder = useCallback(
+    (order: Order) => {
+      handleOpenDrawer(order);
+    },
+    [handleOpenDrawer]
+  );
+
+  const handleReorder = useCallback(
+    async (orderId: string) => {
+      try {
+        setReorderingId(orderId);
+        await userOrdersApi.reorder(orderId);
+        dispatch(
+          addToast({
+            type: "success",
+            message: "Đã thêm sản phẩm vào giỏ của bạn",
+          })
+        );
+      } catch (error) {
+        console.error("Failed to reorder:", error);
+        dispatch(
+          addToast({
+            type: "error",
+            message: "Không thể mua lại đơn hàng. Vui lòng thử lại.",
+          })
+        );
+      } finally {
+        setReorderingId(null);
+      }
+    },
+    [dispatch]
+  );
+
+  const handleRateOrder = useCallback(
+    (order: Order) => {
+      if ((order.orderStatus || order.status) !== "delivered") {
+        dispatch(
+          addToast({
+            type: "warning",
+            message: "Bạn chỉ có thể đánh giá sau khi đơn đã được giao.",
+          })
+        );
+        return;
+      }
+      navigate(`/profile?tab=reviews&orderId=${order._id}`);
+    },
+    [dispatch, navigate]
+  );
+
+  const handleContactSupport = useCallback(() => {
+    if (!selectedOrder) {
+      dispatch(
+        addToast({
+          type: "info",
+          message: "Liên hệ hotline 1900-636-000 để được hỗ trợ.",
+        })
+      );
+      return;
+    }
+    dispatch(
+      addToast({
+        type: "info",
+        message: `Vui lòng liên hệ hỗ trợ để tra cứu đơn ${selectedOrder?.orderNumber || selectedOrder?._id}.`,
+      })
+    );
+  }, [dispatch, selectedOrder]);
+
   return (
     <Section title="Đơn hàng của tôi" className="max-h-[calc(100vh-100px)] overflow-y-auto">
       <Card className="space-y-4 bg-background-1 hidden-scrollbar *:max-h-[calc(100vh-100px)] overflow-y-auto">
-        {!isLoading && (
-          <div className="flex flex-row flex-wrap gap-2 border-b border-border-2 pb-3">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.key;
-              const count = countsByTab[tab.key] || 0;
-              const hasCount = count > 0;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                    isActive
-                      ? "bg-primary-6 text-white shadow-md"
-                      : "bg-neutral-2 text-neutral-7 hover:bg-neutral-3"
-                  }`}
-                >
-                  {tab.label}
-                  {hasCount && <span className="ml-1 text-xs opacity-80">({count})</span>}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <OrdersFilters
+          tabs={tabs}
+          activeTab={activeTab}
+          countsByTab={countsByTab}
+          onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onResetFilters={resetFilters}
+        />
 
         {isLoading ? (
-          <div className="py-6">
-            <Loading layout="centered" message="Đang tải đơn hàng..." />
-          </div>
+          <OrdersSkeleton />
         ) : hasOrders ? (
           <div className="space-y-3 pt-1">
-            {filteredOrders.map((order: any) => {
-            const shippingStatus =
-              (order.orderStatus || order.status || "pending") as keyof typeof shippingStatusMap;
-            const paymentStatus = (
-              order.paymentStatus || (order.isPay ? "completed" : "pending")
-            ) as keyof typeof paymentStatusMap;
-            const shippingInfo =
-              shippingStatusMap[shippingStatus] || shippingStatusMap.pending;
-            const paymentInfo =
-              paymentStatusMap[paymentStatus] || paymentStatusMap.pending;
-            const awaitingPayment =
-              paymentStatus === "pending" || paymentStatus === "processing";
+            {filteredOrders.map((order: Order) => {
+              const shippingStatus =
+                (order.orderStatus || order.status || "pending") as keyof typeof shippingStatusMap;
+              const paymentStatus = (
+                order.paymentStatus || (order.isPay ? "completed" : "pending")
+              ) as keyof typeof paymentStatusMap;
+              const shippingInfo = shippingStatusMap[shippingStatus] || shippingStatusMap.pending;
+              const paymentInfo = paymentStatusMap[paymentStatus] || paymentStatusMap.pending;
+              const awaitingPayment =
+                paymentStatus === "pending" || paymentStatus === "processing";
 
-            // Get shop info
-            const shopInfo = typeof order.shopId === "object" ? order.shopId : null;
-            const shopName = shopInfo?.name || "Cửa hàng";
-            const shopLogo = shopInfo?.logo || "";
-
-            // Get order items with product info
-            const orderItems = Array.isArray(order.orderItems) ? order.orderItems : [];
-            
-            return (
-              <div key={order._id} className="border rounded-xl bg-background-2 border-border-2 overflow-hidden">
-                {/* Shop Header */}
-                <div className="px-4 py-3 bg-background-1 border-b border-border-2 flex items-center gap-3">
-                  {shopLogo ? (
-                    <img
-                      src={shopLogo}
-                      alt={shopName}
-                      className="w-8 h-8 rounded-full object-cover border border-border-1 flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-primary-10 flex items-center justify-center flex-shrink-0">
-                      <Store className="w-4 h-4 text-primary-6" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-neutral-9 truncate">{shopName}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {renderBadge(shippingInfo.label, shippingInfo.className)}
-                    {renderBadge(paymentInfo.label, paymentInfo.className)}
-                  </div>
-                </div>
-
-                {/* Order Content */}
-                <div className="p-4 space-y-4">
-                  {/* Order Items */}
-                  {orderItems.length > 0 ? (
-                    <div className="space-y-3">
-                      {orderItems.map((item: any) => {
-                        const productInfo = typeof item.productId === "object" ? item.productId : null;
-                        const productName = productInfo?.name || "Sản phẩm";
-                        const productImages = productInfo?.images || [];
-                        // Handle images: can be array of IDs (string) or populated objects with url
-                        let productImage = "";
-                        if (Array.isArray(productImages) && productImages.length > 0) {
-                          const firstImage = productImages[0];
-                          if (typeof firstImage === "string") {
-                            // If it's just an ID, we can't use it directly
-                            productImage = "";
-                          } else if (typeof firstImage === "object" && firstImage?.url) {
-                            // If it's populated with url
-                            productImage = firstImage.url;
-                          }
-                        }
-
-                        return (
-                          <div key={item._id || Math.random()} className="flex gap-3 p-3 bg-background-1 rounded-lg border border-border-1">
-                            {productImage ? (
-                              <img
-                                src={productImage}
-                                alt={productName}
-                                className="w-16 h-16 rounded object-cover border border-border-1 flex-shrink-0"
-                              />
-                            ) : (
-                              <div className="flex justify-center items-center w-16 h-16 rounded bg-neutral-2 border border-border-1 flex-shrink-0">
-                                <Package className="w-6 h-6 text-neutral-4" />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-neutral-9 line-clamp-2 mb-1">
-                                {productName}
-                              </p>
-                              <div className="flex items-center justify-between text-xs text-neutral-6">
-                                <span>Số lượng: {item.quantity || 1}</span>
-                                <span className="font-semibold text-neutral-9">
-                                  {formatPriceVND(item.totalPrice || item.price * (item.quantity || 1))}
-                                </span>
-                              </div>
-                              {item.price && (
-                                <p className="text-xs text-neutral-5 mt-1">
-                                  {formatPriceVND(item.price)} / sản phẩm
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-neutral-6 text-center py-4">
-                      Không có thông tin sản phẩm
-                    </div>
-                  )}
-
-                  {/* Order Summary */}
-                  <div className="pt-3 border-t border-border-1 space-y-2">
-                    <div className="flex items-center justify-between text-xs text-neutral-6">
-                      <span>Mã đơn:</span>
-                      <span className="font-medium text-neutral-9">
-                        {order.code || `#${order._id.slice(-6)}`}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-neutral-6">
-                      <span>Ngày đặt:</span>
-                      <span className="text-neutral-9">
-                        {order.createdAt
-                          ? new Date(order.createdAt).toLocaleString("vi-VN")
-                          : "--"}
-                      </span>
-                    </div>
-                    {order.discountAmount && order.discountAmount > 0 && (
-                      <div className="flex items-center justify-between text-xs text-neutral-6">
-                        <span>Giảm giá:</span>
-                        <span className="text-success">-{formatPriceVND(order.discountAmount)}</span>
-                      </div>
-                    )}
-                    {order.shippingFee !== undefined && order.shippingFee > 0 && (
-                      <div className="flex items-center justify-between text-xs text-neutral-6">
-                        <span>Phí vận chuyển:</span>
-                        <span className="text-neutral-9">{formatPriceVND(order.shippingFee)}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between pt-2 border-t border-border-1">
-                      <span className="text-sm font-medium text-neutral-7">Tổng tiền:</span>
-                      <span className="text-lg font-bold text-primary-6">
-                        {formatPriceVND(order.totalAmount || 0)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Payment Warning */}
-                  {awaitingPayment && (
-                    <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
-                      Đơn hàng đang chờ thanh toán. Bạn có thể thanh toán ngay để shop xử lý nhanh hơn.
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-2 justify-end pt-2">
-                    {awaitingPayment && (
-                      <Button
-                        color="blue"
-                        size="sm"
-                        onClick={() => handlePaymentClick(order)}
-                      >
-                        Thanh toán ngay
-                      </Button>
-                    )}
-                    {(shippingStatus === "pending" || shippingStatus === "processing") && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleCancel(order._id)}
-                        disabled={cancelingId === order._id}
-                      >
-                        {cancelingId === order._id ? "Đang hủy..." : "Hủy đơn hàng"}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
+              return (
+                <OrderCard
+                  key={order._id}
+                  order={order}
+                  shippingInfo={shippingInfo}
+                  paymentInfo={paymentInfo}
+                  awaitingPayment={awaitingPayment}
+                  cancelingId={cancelingId}
+                  reorderingId={reorderingId}
+                  onPay={handlePaymentClick}
+                  onCancel={handleCancel}
+                  onSelect={handleTrackOrder}
+                  onTrack={handleTrackOrder}
+                  onReorder={handleReorder}
+                  onRate={handleRateOrder}
+                />
+              );
             })}
           </div>
         ) : (
@@ -480,6 +497,16 @@ const OrdersPanel = () => {
         onConfirm={confirmCancelOrder}
         onCancel={closeCancelModal}
         disabled={!!cancelingId}
+      />
+
+      <OrderDrawer
+        open={isDrawerOpen}
+        order={selectedOrder}
+        onClose={handleCloseDrawer}
+        trackingHistory={trackingHistory}
+        trackingError={trackingError}
+        isLoading={isTrackingLoading}
+        onContactSupport={handleContactSupport}
       />
 
       {/* Payment Method Selection Modal */}
