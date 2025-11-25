@@ -106,21 +106,26 @@ const ShopOrderCard = ({
     [orderItems]
   );
 
-  const shippingSource =
-    (order as any).shippingAddress || (order as any).address || (order as any).addressId || {};
+  // Get shipping address - backend returns it as shippingAddress
+  const shippingAddress = (order as any).shippingAddress;
   const customerName =
-    shippingSource.name || shippingSource.fullName || order.user?.name || "—";
+    shippingAddress?.name || 
+    shippingAddress?.fullName || 
+    order.user?.name || 
+    "—";
   const phone =
-    shippingSource.phone || (order as any).user?.phone || "—";
+    shippingAddress?.phone || 
+    (order as any).user?.phone || 
+    "—";
   const addressParts = [
-    shippingSource.address,
-    shippingSource.ward,
-    shippingSource.district,
-    shippingSource.city,
+    shippingAddress?.address,
+    shippingAddress?.ward,
+    shippingAddress?.district,
+    shippingAddress?.city,
   ].filter(Boolean);
   const formattedAddress = addressParts.length > 0 ? addressParts.join(", ") : "—";
 
-  const historyRaw = (order as any).orderHistoryDetails || (order as any).orderHistory || [];
+  const historyRaw = (order as any).timeline || (order as any).orderHistoryDetails || (order as any).orderHistory || [];
   const timelineEntries = Array.isArray(historyRaw)
     ? historyRaw
         .map((entry: any) =>
@@ -143,16 +148,25 @@ const ShopOrderCard = ({
     return { label: "Khách mới", className: "bg-neutral-2 text-neutral-6" };
   }, [order]);
 
-  const [internalNotes, setInternalNotes] = useState<Array<{ _id?: string; note: string; createdAt?: string }>>([]);
+  // Initialize internal notes from order object if available
+  const initialNotes = (order as any).internalNotes || [];
+  const [internalNotes, setInternalNotes] = useState<Array<{ _id?: string; note: string; createdAt?: string }>>(initialNotes);
   const [noteInput, setNoteInput] = useState("");
   const [showTimeline, setShowTimeline] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [loadingNotes, setLoadingNotes] = useState(false);
 
-  // Load internal notes from API
+  // Update internal notes when order changes
   useEffect(() => {
-    if (showNotes && internalNotes.length === 0) {
+    if ((order as any).internalNotes) {
+      setInternalNotes((order as any).internalNotes);
+    }
+  }, [order]);
+
+  // Load internal notes from API if needed
+  useEffect(() => {
+    if (showNotes && internalNotes.length === 0 && !loadingNotes) {
       loadInternalNotes();
     }
   }, [showNotes, order._id]);
@@ -225,6 +239,9 @@ const ShopOrderCard = ({
     };
     return map[value] || value;
   };
+
+
+  console.log("order", order);
 
   return (
     <div className="rounded-2xl border border-border-2 bg-background-1 p-5 shadow-sm transition hover:border-primary-4">
