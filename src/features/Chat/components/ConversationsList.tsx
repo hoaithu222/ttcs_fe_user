@@ -25,7 +25,7 @@ type SortOption = "time" | "name";
 
 const ConversationsList: React.FC = () => {
   const dispatch = useAppDispatch();
-  const conversations = useAppSelector(selectConversations);
+  const conv = useAppSelector(selectConversations);
   const currentConversation = useAppSelector(selectCurrentConversation);
   const status = useAppSelector(selectChatStatus);
   const user = useAppSelector(selectUser);
@@ -36,6 +36,8 @@ const ConversationsList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("time");
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  // loc khong lay type "type": "ai" 
+  const conversations = conv.filter((conv: ChatConversation) => conv.type !== "ai");
 
   useEffect(() => {
     dispatch(getConversationsStart({ query: { page: 1, limit: 50 } }));
