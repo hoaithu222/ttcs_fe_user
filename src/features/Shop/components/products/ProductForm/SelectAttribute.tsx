@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
-import { Tag, CheckCircle2 } from "lucide-react";
+import { Tag, CheckCircle2, Plus, X } from "lucide-react";
 import Select from "@/foundation/components/input/Select";
 import Input from "@/foundation/components/input/Input";
+import Button from "@/foundation/components/buttons/Button";
+import { slugify } from "@/shared/utils/slugify";
+import { addToast } from "@/app/store/slices/toast";
+import { useDispatch } from "react-redux";
 
 interface AttributeValue {
   id: string;
@@ -23,6 +27,7 @@ interface SelectAttributeProps {
   setData: React.Dispatch<React.SetStateAction<any>>;
   initialValue?: string;
   initialValues?: string[];
+  onAttributeUpdate?: (attributeId: string, newValues: AttributeValue[]) => void;
 }
 
 export default function SelectAttribute({
@@ -30,19 +35,31 @@ export default function SelectAttribute({
   setData,
   initialValue,
   initialValues,
+  onAttributeUpdate,
 }: SelectAttributeProps) {
+  const dispatch = useDispatch();
   const [selectedValue, setSelectedValue] = useState<string>(initialValue || "");
   const [selectedValues, setSelectedValues] = useState<string[]>(initialValues || []);
   const [textValue, setTextValue] = useState<string>(initialValue || "");
   const [numberValue, setNumberValue] = useState<number>(
     initialValue ? Number(initialValue) : 0
   );
+  const [showAddValue, setShowAddValue] = useState(false);
+  const [newValueLabel, setNewValueLabel] = useState("");
+  const [newValueColor, setNewValueColor] = useState("");
+  const [localValues, setLocalValues] = useState<AttributeValue[]>(attribute.values || []);
 
   const inputType = attribute.inputType || "select";
   const isMultiSelect = inputType === "multiselect";
   const isText = inputType === "text";
   const isNumber = inputType === "number";
   const isBoolean = inputType === "boolean";
+  const isSelect = inputType === "select" || inputType === "multiselect";
+
+  // Update local values when attribute changes
+  useEffect(() => {
+    setLocalValues(attribute.values || []);
+  }, [attribute.values]);
 
   useEffect(() => {
     if (initialValue !== undefined) {
@@ -92,16 +109,59 @@ export default function SelectAttribute({
     updateProductAttributes(value);
   };
 
+  const handleAddNewValue = () => {
+    if (!newValueLabel.trim()) {
+      dispatch(addToast({ type: "error", message: "Vui lòng nhập tên giá trị" }));
+      return;
+    }
+
+    const value = slugify(newValueLabel.trim(), "_");
+    if (localValues.some((v) => v.value === value || v.id === value)) {
+      dispatch(addToast({ type: "error", message: "Giá trị này đã tồn tại" }));
+      return;
+    }
+
+    const newValue: AttributeValue = {
+      id: `temp-${Date.now()}`,
+      value,
+      label: newValueLabel.trim(),
+      colorCode: newValueColor.trim() || undefined,
+    };
+
+    const updatedValues = [...localValues, newValue];
+    setLocalValues(updatedValues);
+
+    // Update parent attribute if callback provided
+    if (onAttributeUpdate) {
+      onAttributeUpdate(attribute.id, updatedValues);
+    }
+
+    // Auto-select the new value
+    if (isMultiSelect) {
+      const newSelected = [...selectedValues, value];
+      setSelectedValues(newSelected);
+      updateProductAttributes(newSelected);
+    } else {
+      setSelectedValue(value);
+      updateProductAttributes(value);
+    }
+
+    setNewValueLabel("");
+    setNewValueColor("");
+    setShowAddValue(false);
+    dispatch(addToast({ type: "success", message: "Đã thêm giá trị mới" }));
+  };
+
   const updateProductAttributes = (value: string | string[]) => {
     setData((prev: any) => {
       const currentAttributes = prev.product_attributes || prev.attributes || [];
       const attributeValueId = isMultiSelect
         ? (value as string[]).map((v) => {
-            const attrValue = attribute.values.find((val) => val.value === v || val.id === v);
+            const attrValue = localValues.find((val) => val.value === v || val.id === v);
             return attrValue?.id || v;
           })
         : (() => {
-            const attrValue = attribute.values.find(
+            const attrValue = localValues.find(
               (val) => val.value === value || val.id === value
             );
             return attrValue?.id || value;
@@ -115,7 +175,7 @@ export default function SelectAttribute({
       // Add new attribute entries
       if (isMultiSelect && Array.isArray(value)) {
         const newAttributes = value.map((v) => {
-          const attrValue = attribute.values.find((val) => val.value === v || val.id === v);
+          const attrValue = localValues.find((val) => val.value === v || val.id === v);
           return {
             attribute_type_id: attribute.id,
             attributeTypeId: attribute.id,
@@ -219,13 +279,78 @@ export default function SelectAttribute({
 
   if (isMultiSelect) {
     return (
-      <div className="space-y-2">
-        <label className="block text-sm font-semibold text-neutral-7">
-          {attribute.name}
-          {attribute.isRequired && <span className="text-error"> *</span>}
-        </label>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-semibold text-neutral-7">
+            {attribute.name}
+            {attribute.isRequired && <span className="text-error"> *</span>}
+          </label>
+          <Button
+            type="button"
+            color="blue"
+            variant="ghost"
+            size="sm"
+            icon={<Plus className="w-4 h-4" />}
+            onClick={() => setShowAddValue(!showAddValue)}
+          >
+            Thêm giá trị
+          </Button>
+        </div>
+
+        {showAddValue && (
+          <div className="p-3 bg-neutral-2 rounded-lg border border-border-1 space-y-2">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Plus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-5" />
+                <input
+                  type="text"
+                  placeholder="Nhập tên giá trị mới"
+                  value={newValueLabel}
+                  onChange={(e) => setNewValueLabel(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddNewValue();
+                    }
+                  }}
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-border-1 bg-white text-sm text-neutral-7 placeholder:text-neutral-4 focus:outline-none focus:ring-2 focus:ring-primary-6 focus:border-primary-6"
+                />
+              </div>
+              <input
+                type="color"
+                value={newValueColor}
+                onChange={(e) => setNewValueColor(e.target.value)}
+                className="w-20 h-10 rounded-lg border border-border-1 cursor-pointer"
+                title="Chọn màu (tùy chọn)"
+              />
+              <Button
+                type="button"
+                color="blue"
+                variant="outline"
+                size="sm"
+                icon={<Plus className="w-4 h-4" />}
+                onClick={handleAddNewValue}
+              >
+                Thêm
+              </Button>
+              <Button
+                type="button"
+                color="gray"
+                variant="ghost"
+                size="sm"
+                icon={<X className="w-4 h-4" />}
+                onClick={() => {
+                  setShowAddValue(false);
+                  setNewValueLabel("");
+                  setNewValueColor("");
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
-          {attribute.values.map((value) => {
+          {localValues.map((value) => {
             const isSelected = selectedValues.includes(value.value) || selectedValues.includes(value.id);
             return (
               <button
@@ -259,20 +384,90 @@ export default function SelectAttribute({
 
   // Default: Select dropdown
   return (
-    <Select
-      name={`attribute_${attribute.id}`}
-      label={attribute.name}
-      options={attribute.values.map((val) => ({
-        value: val.value || val.id,
-        label: val.label || val.value,
-      }))}
-      value={selectedValue}
-      onChange={handleSelectChange}
-      placeholder={`Chọn ${attribute.name.toLowerCase()}`}
-      required={attribute.isRequired}
-      clearable
-      iconLeft={<Tag className="w-5 h-5 text-primary-6" />}
-    />
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="block text-sm font-semibold text-neutral-7">
+          {attribute.name}
+          {attribute.isRequired && <span className="text-error"> *</span>}
+        </label>
+        <Button
+          type="button"
+          color="blue"
+          variant="ghost"
+          size="sm"
+          icon={<Plus className="w-4 h-4" />}
+          onClick={() => setShowAddValue(!showAddValue)}
+        >
+          Thêm giá trị
+        </Button>
+      </div>
+
+      {showAddValue && (
+        <div className="p-3 bg-neutral-2 rounded-lg border border-border-1 space-y-2 mb-2">
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <Plus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-5" />
+              <input
+                type="text"
+                placeholder="Nhập tên giá trị mới"
+                value={newValueLabel}
+                onChange={(e) => setNewValueLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddNewValue();
+                  }
+                }}
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-border-1 bg-white text-sm text-neutral-7 placeholder:text-neutral-4 focus:outline-none focus:ring-2 focus:ring-primary-6 focus:border-primary-6"
+              />
+            </div>
+            <input
+              type="color"
+              value={newValueColor}
+              onChange={(e) => setNewValueColor(e.target.value)}
+              className="w-20 h-10 rounded-lg border border-border-1 cursor-pointer"
+              title="Chọn màu (tùy chọn)"
+            />
+            <Button
+              type="button"
+              color="blue"
+              variant="outline"
+              size="sm"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={handleAddNewValue}
+            >
+              Thêm
+            </Button>
+            <Button
+              type="button"
+              color="gray"
+              variant="ghost"
+              size="sm"
+              icon={<X className="w-4 h-4" />}
+              onClick={() => {
+                setShowAddValue(false);
+                setNewValueLabel("");
+                setNewValueColor("");
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      <Select
+        name={`attribute_${attribute.id}`}
+        options={localValues.map((val) => ({
+          value: val.value || val.id,
+          label: val.label || val.value,
+        }))}
+        value={selectedValue}
+        onChange={handleSelectChange}
+        placeholder={`Chọn ${attribute.name.toLowerCase()}`}
+        required={attribute.isRequired}
+        clearable
+        iconLeft={<Tag className="w-5 h-5 text-primary-6" />}
+      />
+    </div>
   );
 }
 

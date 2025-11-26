@@ -10,6 +10,7 @@ import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import CategorySelectionModal from "./CategorySelectionModal";
 import SelectAttribute from "./SelectAttribute";
+import AddAttributeTypeModal from "./AddAttributeTypeModal";
 import { ProductVariantsManager } from "@/features/Shop/components/products/ProductVariants";
 import type { ProductVariant } from "@/features/Shop/components/products/ProductVariants";
 import { useSelector, useDispatch } from "react-redux";
@@ -49,6 +50,7 @@ export default function AddProduct() {
     variants: [] as ProductVariant[],
   });
   const [openCategory, setOpenCategory] = useState(false);
+  const [openAddAttributeType, setOpenAddAttributeType] = useState(false);
   const [attributes, setAttributes] = useState<any[]>([]);
   const [selectedPath, setSelectedPath] = useState("");
   const [loading, setLoading] = useState(false);
@@ -556,12 +558,26 @@ export default function AddProduct() {
         </Section>
 
         <Section>
-          <SectionTitle>Thông tin chi tiết</SectionTitle>
+          <div className="flex items-center justify-between mb-4">
+            <SectionTitle>Thông tin chi tiết</SectionTitle>
+            {data.categoryId && (
+              <Button
+                type="button"
+                color="blue"
+                variant="outline"
+                size="sm"
+                icon={<Pencil className="w-4 h-4" />}
+                onClick={() => setOpenAddAttributeType(true)}
+              >
+                Thêm loại thuộc tính
+              </Button>
+            )}
+          </div>
           {attributes?.length > 0 ? (
             <div className="space-y-6">
               <div className="p-4 bg-primary-10/30 rounded-lg border border-primary-6/20">
                 <p className="text-sm font-medium text-primary-7">
-                  💡 Điền thông tin thuộc tính để tăng mức độ hiển thị và tìm kiếm cho sản phẩm
+                  💡 Điền thông tin thuộc tính để tăng mức độ hiển thị và tìm kiếm cho sản phẩm. Bạn có thể thêm loại thuộc tính mới hoặc thêm giá trị cho các thuộc tính hiện có.
                 </p>
               </div>
               <div className="space-y-4">
@@ -584,15 +600,45 @@ export default function AddProduct() {
                         isRequired: attribute.isRequired || false,
                       }}
                       setData={setData}
+                      onAttributeUpdate={(attributeId, newValues) => {
+                        setAttributes((prev) =>
+                          prev.map((attr) =>
+                            (attr.id || attr._id) === attributeId
+                              ? { ...attr, values: newValues }
+                              : attr
+                          )
+                        );
+                      }}
                     />
                   ))}
               </div>
             </div>
           ) : (
             <div className="p-4 bg-neutral-2 rounded-lg border border-border-1">
-              <p className="text-sm text-neutral-6">
-                ℹ️ Có thể điều chỉnh thuộc tính sau khi chọn ngành hàng
-              </p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-neutral-6 mb-2">
+                    ℹ️ Chọn ngành hàng để hiển thị các thuộc tính có sẵn, hoặc tạo thuộc tính mới cho sản phẩm của bạn.
+                  </p>
+                  {!data.categoryId && (
+                    <p className="text-xs text-neutral-5">
+                      💡 Vui lòng chọn ngành hàng trước để xem các thuộc tính có sẵn
+                    </p>
+                  )}
+                </div>
+                {data.categoryId && (
+                  <Button
+                    type="button"
+                    color="blue"
+                    variant="outline"
+                    size="sm"
+                    icon={<Pencil className="w-4 h-4" />}
+                    onClick={() => setOpenAddAttributeType(true)}
+                  >
+                    Thêm thuộc tính
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </Section>
@@ -777,6 +823,31 @@ export default function AddProduct() {
         setData={setData}
         setAttribute={setAttributes}
         onPathChange={setSelectedPath}
+      />
+
+      <AddAttributeTypeModal
+        open={openAddAttributeType}
+        onClose={() => setOpenAddAttributeType(false)}
+        categoryId={data.categoryId}
+        onSuccess={(newAttributeType) => {
+          // Add the new attribute type to the attributes list
+          setAttributes((prev) => [
+            ...prev,
+            {
+              id: newAttributeType.id,
+              _id: newAttributeType.id,
+              name: newAttributeType.name,
+              values: newAttributeType.values.map((v) => ({
+                id: `temp-${Date.now()}-${Math.random()}`,
+                value: v.value,
+                label: v.label,
+                colorCode: v.colorCode,
+              })),
+              inputType: newAttributeType.inputType,
+              isRequired: false,
+            },
+          ]);
+        }}
       />
     </div>
   );

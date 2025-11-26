@@ -113,13 +113,21 @@ const Header = () => {
   // Fetch shop status when user is logged in (chỉ fetch nếu chưa có data hoặc status là INIT)
   useEffect(() => {
     if (user?._id) {
-      // Chỉ fetch nếu chưa có data hoặc status là INIT (chưa fetch lần nào)
-      // Nếu đã có data rồi thì không cần fetch lại (tránh fetch không cần thiết)
-      if (shopStatusByUserStatus === ReduxStateType.INIT || !shopStatusByUser) {
+      // Chỉ fetch nếu:
+      // 1. Status là INIT (chưa fetch lần nào)
+      // 2. Hoặc chưa có data VÀ không phải đang loading/error (tránh vòng lặp khi có lỗi)
+      const shouldFetch =
+        shopStatusByUserStatus === ReduxStateType.INIT ||
+        (!shopStatusByUser &&
+          shopStatusByUserStatus !== ReduxStateType.LOADING &&
+          shopStatusByUserStatus !== ReduxStateType.ERROR);
+
+      if (shouldFetch) {
         dispatch(fetchShopStatusByUserStart({ userId: user._id }));
       }
     }
-  }, [user?._id, dispatch, shopStatusByUserStatus, shopStatusByUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?._id, dispatch, shopStatusByUserStatus]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
