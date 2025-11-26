@@ -18,12 +18,12 @@ import {
   selectShopInfoError,
   selectUpdateShopStatus,
   selectUpdateShopError,
-  selectShopCurrentStatus,
+  selectShopStatusByUser,
 } from "@/features/Shop/slice/shop.selector";
 import { ReduxStateType } from "@/app/store/types";
 import { ShopInfo } from "@/core/api/shop-management/type";
-import { ShopStatus } from "@/features/Shop/slice/shop.type";
 import { Store, Save, Lock } from "lucide-react";
+import { formatAddressFromCodes, AddressCodes } from "@/shared/common/data-address/address.utils";
 
 const InfoShop: React.FC = () => {
   const dispatch = useDispatch();
@@ -32,10 +32,12 @@ const InfoShop: React.FC = () => {
   const shopInfoError = useSelector(selectShopInfoError);
   const updateStatus = useSelector(selectUpdateShopStatus);
   const updateError = useSelector(selectUpdateShopError);
-  const currentStatus = useSelector(selectShopCurrentStatus);
+  const shopStatusByUser = useSelector(selectShopStatusByUser);
 
   // Chỉ cho phép edit khi shop status là ACTIVE hoặc APPROVED
-  const canEdit = currentStatus === ShopStatus.ACTIVE || currentStatus === ShopStatus.APPROVED;
+  // Sử dụng shopStatusByUser để có thông tin chính xác nhất
+  const shopStatus = shopStatusByUser?.shopStatus;
+  const canEdit = shopStatus === "active" || shopStatus === "approved";
 
   const [formData, setFormData] = useState<Partial<ShopInfo>>({
     name: "",
@@ -48,12 +50,21 @@ const InfoShop: React.FC = () => {
     website: "",
   });
 
+  // State để lưu address codes nếu address là object
+  const [addressCodes, setAddressCodes] = useState<AddressCodes | null>(null);
+  const [formattedAddress, setFormattedAddress] = useState<string>("");
+
   const [logoFile, setLogoFile] = useState<{ url: string; publicId?: string } | null>(null);
   const [coverFile, setCoverFile] = useState<{ url: string; publicId?: string } | null>(null);
 
+  // Fetch shop info khi component mount (chỉ fetch một lần nếu chưa có data)
   useEffect(() => {
-    dispatch(getShopInfoStart());
-  }, [dispatch]);
+    // Chỉ fetch shop info nếu chưa có data hoặc status là INIT
+    // Tránh fetch lại không cần thiết
+    if (shopInfoStatus === ReduxStateType.INIT || !shopInfo) {
+      dispatch(getShopInfoStart());
+    }
+  }, [dispatch, shopInfoStatus, shopInfo]);
 
   useEffect(() => {
     if (shopInfo) {
@@ -61,17 +72,47 @@ const InfoShop: React.FC = () => {
       const banner = shopInfo.banner || shopInfo.coverImage || "";
       const phone = shopInfo.contactPhone || shopInfo.phone || "";
       const email = shopInfo.contactEmail || shopInfo.email || "";
+      
+      // Xử lý address: có thể là string hoặc object với codes
+      let addressString = "";
+      let codes: AddressCodes | null = null;
+      
+      const addressData = shopInfo.address || (shopInfo as any).address;
+      if (addressData) {
+        if (typeof addressData === "string") {
+          // Nếu là string, dùng trực tiếp
+          addressString = addressData;
+        } else if (typeof addressData === "object" && addressData.provinceCode) {
+          // Nếu là object với codes, map ra tên địa chỉ
+          codes = {
+            provinceCode: addressData.provinceCode,
+            districtCode: addressData.districtCode,
+            wardCode: addressData.wardCode,
+          };
+          addressString = formatAddressFromCodes(codes, "");
+        }
+      }
+      
+      // Lưu codes để hiển thị
+      setAddressCodes(codes);
 
       setFormData({
         name: shopInfo.name || "",
         description: shopInfo.description || "",
         logo: shopInfo.logo || "",
         coverImage: banner, // Use banner from API, store as coverImage in form
-        address: shopInfo.address || "",
+        address: addressString,
         phone: phone,
         email: email,
         website: shopInfo.website || "",
       });
+
+      // Cập nhật formatted address để hiển thị
+      if (codes) {
+        setFormattedAddress(formatAddressFromCodes(codes, "Chưa cập nhật địa chỉ"));
+      } else {
+        setFormattedAddress(addressString || "Chưa cập nhật địa chỉ");
+      }
 
       if (shopInfo.logo) {
         setLogoFile({ url: shopInfo.logo });
@@ -209,15 +250,17 @@ const InfoShop: React.FC = () => {
             {canEdit ? "Quản lý thông tin cơ bản của cửa hàng" : "Xem thông tin cửa hàng (chỉ xem)"}
           </p>
         </div>
-        {!canEdit && (
+        {!canEdit && shopStatus && (
           <div className="flex gap-2 items-center px-4 py-2 bg-warning/10 border border-warning rounded-lg">
             <Lock className="w-4 h-4 text-warning" />
             <span className="text-sm text-warning font-medium">
-              {currentStatus === ShopStatus.PENDING_REVIEW
+              {shopStatus === "pending_review"
                 ? "Đang chờ duyệt"
-                : currentStatus === ShopStatus.REJECTED
+                : shopStatus === "rejected"
                   ? "Đã bị từ chối"
-                  : "Chưa được kích hoạt"}
+                  : shopStatus === "not_registered"
+                    ? "Chưa đăng ký cửa hàng"
+                    : "Chưa được kích hoạt"}
             </span>
           </div>
         )}
@@ -298,15 +341,32 @@ const InfoShop: React.FC = () => {
               disabled={!canEdit}
             />
 
-            <Input
-              name="address"
-              label="Địa chỉ"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="Nhập địa chỉ"
-              className="md:col-span-2"
-              disabled={!canEdit}
-            />
+            {/* Hiển thị địa chỉ đã được format từ codes */}
+            {addressCodes && formattedAddress ? (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-neutral-7 mb-2">
+                  Địa chỉ
+                </label>
+                <div className="px-4 py-3 bg-background-2 border border-border-1 rounded-lg">
+                  <p className="text-sm text-neutral-9">{formattedAddress}</p>
+                  {addressCodes && (
+                    <p className="text-xs text-neutral-5 mt-1">
+                      Mã: Tỉnh/TP {addressCodes.provinceCode}, Quận/Huyện {addressCodes.districtCode}, Phường/Xã {addressCodes.wardCode}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <Input
+                name="address"
+                label="Địa chỉ"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Nhập địa chỉ"
+                className="md:col-span-2"
+                disabled={!canEdit}
+              />
+            )}
 
             <Input
               name="website"
@@ -413,11 +473,13 @@ const InfoShop: React.FC = () => {
               <div>
                 <p className="font-semibold text-neutral-9 mb-1">Chế độ chỉ xem</p>
                 <p className="text-sm text-neutral-6">
-                  {currentStatus === ShopStatus.PENDING_REVIEW
+                  {shopStatus === "pending_review"
                     ? "Cửa hàng của bạn đang chờ được xét duyệt. Sau khi được duyệt, bạn sẽ có thể chỉnh sửa thông tin cửa hàng."
-                    : currentStatus === ShopStatus.REJECTED
+                    : shopStatus === "rejected"
                       ? "Đơn đăng ký cửa hàng của bạn đã bị từ chối. Vui lòng liên hệ quản trị viên để biết thêm chi tiết."
-                      : "Cửa hàng chưa được kích hoạt. Vui lòng hoàn tất đăng ký để có thể chỉnh sửa thông tin."}
+                      : shopStatus === "not_registered"
+                        ? "Bạn chưa đăng ký cửa hàng. Vui lòng hoàn tất đăng ký để có thể chỉnh sửa thông tin."
+                        : "Cửa hàng chưa được kích hoạt. Vui lòng hoàn tất đăng ký để có thể chỉnh sửa thông tin."}
                 </p>
               </div>
             </div>

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import Section from "@/foundation/components/sections/Section";
-import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import Loading from "@/foundation/components/loading/Loading";
 import Empty from "@/foundation/components/empty/Empty";
 import { shopManagementApi } from "@/core/api/shop-management";
@@ -8,7 +7,12 @@ import { Star, User } from "lucide-react";
 
 interface Review {
   _id: string;
-  userId: {
+  userId: string | {
+    _id: string;
+    name: string;
+    avatar?: string;
+  };
+  user?: {
     _id: string;
     name: string;
     avatar?: string;
@@ -46,7 +50,36 @@ const ShopReview: React.FC = () => {
           limit: 10,
         });
         if (response.data) {
-          setReviewsData(response.data as ReviewsData);
+          const data = response.data as ReviewsData;
+          
+          // Tính toán lại từ reviews nếu backend trả về sai
+          const reviews = data.reviews || [];
+          let calculatedAverageRating = data.averageRating;
+          let calculatedTotalReviews = data.totalReviews;
+          let calculatedRatingDistribution = data.ratingDistribution;
+          
+          // Nếu có reviews nhưng averageRating hoặc totalReviews = 0, tính toán lại
+          if (reviews.length > 0 && (calculatedAverageRating === 0 || calculatedTotalReviews === 0)) {
+            const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+            calculatedAverageRating = totalRating / reviews.length;
+            calculatedTotalReviews = reviews.length;
+            
+            // Tính rating distribution
+            calculatedRatingDistribution = {};
+            reviews.forEach((review) => {
+              const rating = review.rating || 0;
+              if (rating >= 1 && rating <= 5) {
+                calculatedRatingDistribution[rating] = (calculatedRatingDistribution[rating] || 0) + 1;
+              }
+            });
+          }
+          
+          setReviewsData({
+            ...data,
+            averageRating: calculatedAverageRating,
+            totalReviews: calculatedTotalReviews,
+            ratingDistribution: calculatedRatingDistribution,
+          });
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không thể tải đánh giá");
@@ -74,7 +107,7 @@ const ShopReview: React.FC = () => {
   }
 
   if (error) {
-    return <Empty variant="error" title="Lỗi tải dữ liệu" description={error} />;
+    return <Empty variant="default" title="Lỗi tải dữ liệu" description={error} />;
   }
 
   if (!reviewsData) {
@@ -132,40 +165,49 @@ const ShopReview: React.FC = () => {
             {reviewsData.reviews.length === 0 ? (
               <Empty variant="data" title="Chưa có đánh giá" description="Chưa có đánh giá nào" />
             ) : (
-              reviewsData.reviews.map((review) => (
-                <div
-                  key={review._id}
-                  className="p-4 bg-background-1 rounded-lg border border-border-1"
-                >
-                  <div className="flex gap-4 items-start">
-                    <div className="flex justify-center items-center w-10 h-10 rounded-full bg-primary-6 text-white">
-                      {review.userId?.avatar ? (
-                        <img
-                          src={review.userId.avatar}
-                          alt={review.userId.name}
-                          className="w-full h-full rounded-full object-cover"
-                        />
-                      ) : (
-                        <User className="w-5 h-5" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex gap-2 items-center mb-2">
-                        <span className="font-semibold text-neutral-9">
-                          {review.userId?.name || "Khách hàng"}
-                        </span>
-                        <div className="flex gap-1">{renderStars(review.rating)}</div>
-                        <span className="text-xs text-neutral-6 ml-auto">
-                          {new Date(review.createdAt).toLocaleDateString("vi-VN")}
-                        </span>
+              reviewsData.reviews.map((review) => {
+                // Xử lý userId: có thể là string hoặc object
+                const userInfo = typeof review.userId === "object" 
+                  ? review.userId 
+                  : review.user || null;
+                const userName = userInfo?.name || "Khách hàng";
+                const userAvatar = userInfo?.avatar;
+                
+                return (
+                  <div
+                    key={review._id}
+                    className="p-4 bg-background-1 rounded-lg border border-border-1"
+                  >
+                    <div className="flex gap-4 items-start">
+                      <div className="flex justify-center items-center w-10 h-10 rounded-full bg-primary-6 text-white">
+                        {userAvatar ? (
+                          <img
+                            src={userAvatar}
+                            alt={userName}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-5 h-5" />
+                        )}
                       </div>
-                      {review.comment && (
-                        <p className="text-sm text-neutral-7">{review.comment}</p>
-                      )}
+                      <div className="flex-1">
+                        <div className="flex gap-2 items-center mb-2">
+                          <span className="font-semibold text-neutral-9">
+                            {userName}
+                          </span>
+                          <div className="flex gap-1">{renderStars(review.rating)}</div>
+                          <span className="text-xs text-neutral-6 ml-auto">
+                            {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                          </span>
+                        </div>
+                        {review.comment && (
+                          <p className="text-sm text-neutral-7">{review.comment}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

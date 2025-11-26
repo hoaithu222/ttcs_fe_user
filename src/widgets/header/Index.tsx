@@ -12,7 +12,7 @@ import {
 import Button from "@/foundation/components/buttons/Button";
 import { useAuth } from "@/features/Auth/hooks/useAuth";
 import { useState, useRef, useEffect } from "react";
-import Image, { ImageName } from "@/foundation/components/icons/Image";
+import Image from "@/foundation/components/icons/Image";
 import IconButton from "@/foundation/components/buttons/IconButton";
 import { RootState } from "@/app/store";
 import { themeRootSelector } from "@/app/store/slices/theme/selectors";
@@ -22,9 +22,8 @@ import Search from "./components/Search";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
 import { useAppSelector, useAppDispatch } from "@/app/store";
 import {
-  selectShopUiScreens,
-  selectShopFetchStatus,
   selectShopStatusByUserStatus,
+  selectShopStatusByUser,
 } from "@/features/Shop/slice/shop.selector";
 import { fetchShopStatusByUserStart } from "@/features/Shop/slice/shop.slice";
 import { ReduxStateType } from "@/app/store/types";
@@ -51,9 +50,8 @@ const Header = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigate();
   const { theme } = useAppSelector((state: RootState) => themeRootSelector(state));
-  const shopUi = useAppSelector(selectShopUiScreens);
-  const shopFetchStatus = useAppSelector(selectShopFetchStatus);
   const shopStatusByUserStatus = useAppSelector(selectShopStatusByUserStatus);
+  const shopStatusByUser = useAppSelector(selectShopStatusByUser);
   
   // Get notifications from Redux slice
   const notifications = useAppSelector(selectNotifications);
@@ -84,25 +82,44 @@ const Header = () => {
   };
 
   const getShopMenuLabel = () => {
-    if (
-      shopFetchStatus === ReduxStateType.LOADING ||
-      shopStatusByUserStatus === ReduxStateType.LOADING
-    )
+    // Kiểm tra trạng thái loading
+    if (shopStatusByUserStatus === ReduxStateType.LOADING) {
       return "Đang tải cửa hàng...";
-    if (shopUi?.showActiveDashboard) return "Vào cửa hàng của tôi";
-    if (shopUi?.showSetup) return "Tiếp tục thiết lập cửa hàng";
-    if (shopUi?.showPendingReview) return "Hồ sơ đang chờ duyệt";
-    if (shopUi?.showSuspended) return "Cửa hàng bị hạn chế";
+    }
+
+    // Kiểm tra shopStatus từ shopStatusByUser
+    const shopStatus = shopStatusByUser?.shopStatus;
+
+    if (shopStatus === "active") {
+      return "Vào cửa hàng của tôi";
+    }
+    
+    if (shopStatus === "pending_review" || shopStatus === "approved") {
+      return "Hồ sơ đang chờ duyệt";
+    }
+    
+    if (shopStatus === "blocked" || shopStatus === "suspended") {
+      return "Cửa hàng bị hạn chế";
+    }
+    
+    if (shopStatus === "rejected") {
+      return "Tiếp tục thiết lập cửa hàng";
+    }
+
+    // Mặc định: chưa đăng ký hoặc không có shop
     return "Đăng kí bán hàng";
   };
 
-  // Fetch shop status when user is logged in (only once or when user changes)
+  // Fetch shop status when user is logged in (chỉ fetch nếu chưa có data hoặc status là INIT)
   useEffect(() => {
-    if (user?._id && shopStatusByUserStatus === ReduxStateType.INIT) {
-      // Only fetch if status is INIT (not fetched yet) and user exists
-      dispatch(fetchShopStatusByUserStart({ userId: user._id }));
+    if (user?._id) {
+      // Chỉ fetch nếu chưa có data hoặc status là INIT (chưa fetch lần nào)
+      // Nếu đã có data rồi thì không cần fetch lại (tránh fetch không cần thiết)
+      if (shopStatusByUserStatus === ReduxStateType.INIT || !shopStatusByUser) {
+        dispatch(fetchShopStatusByUserStart({ userId: user._id }));
+      }
     }
-  }, [user?._id, dispatch]);
+  }, [user?._id, dispatch, shopStatusByUserStatus, shopStatusByUser]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -165,7 +182,7 @@ const Header = () => {
     }
     
     // Check if conversations have been loaded (not empty array or has been fetched)
-    const conversationsLoaded = conversations.length > 0 || shopFetchStatus !== ReduxStateType.LOADING;
+    const conversationsLoaded = conversations.length > 0 || shopStatusByUserStatus !== ReduxStateType.LOADING;
     
     if (!conversationsLoaded || hasCheckedCSKH) return;
     
@@ -189,7 +206,7 @@ const Header = () => {
     } else {
       setHasCheckedCSKH(true);
     }
-  }, [dispatch, user?._id, conversations, shopFetchStatus, hasCheckedCSKH]);
+  }, [dispatch, user?._id, conversations, shopStatusByUserStatus, hasCheckedCSKH]);
 
   const handleLogout = () => {
     onLogout();
@@ -340,7 +357,7 @@ const Header = () => {
                     <p className="text-xs text-neutral-5">{user?.role || ""}</p>
                   </div>
                   <div className="flex justify-center items-center w-8 h-8 lg:w-12 lg:h-12 bg-background-2 rounded-full">
-                   <img src={user?.avatar} alt="avatar" className="w-8 h-8 lg:w-12 lg:h-12 rounded-full object-cover" />
+                   <img src={user?.avatar || "https://ui-avatars.com/api/?name=" + user?.name} alt="avatar" className="w-8 h-8 lg:w-12 lg:h-12 rounded-full object-cover" />
                   </div>
                   <ChevronDown className="w-4 h-4 text-neutral-5" />
                 </button>

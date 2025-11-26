@@ -14,6 +14,8 @@ import {
 import { fetchOwnShopStart, fetchShopStatusByUserStart, resetShopState } from "./slice/shop.slice";
 import { ReduxStateType } from "@/app/store/types";
 import { useNavigate } from "react-router-dom";
+import { socketClients, SOCKET_EVENTS } from "@/core/socket";
+import { tokenStorage } from "@/core/base";
 
 const ShopEntryPage = () => {
   const dispatch = useAppDispatch();
@@ -25,11 +27,11 @@ const ShopEntryPage = () => {
   const shopStatusByUser = useAppSelector(selectShopStatusByUser);
   const shopStatusByUserStatus = useAppSelector(selectShopStatusByUserStatus);
 
+  // Luôn fetch shop status mới nhất khi vào màn hình quản lý
   useEffect(() => {
     if (user?._id) {
-      // Reset shop state trước khi fetch để tránh hiển thị data cũ của user trước
-      dispatch(resetShopState());
-      // Fetch shop status (chính xác hơn)
+      // Luôn fetch shop status mới nhất khi vào màn quản lý (không dùng cache)
+      // Fetch shop status (chính xác hơn) - luôn fetch mới để có thông tin mới nhất
       dispatch(fetchShopStatusByUserStart({ userId: user._id }));
       // Also fetch shop list as fallback
       dispatch(fetchOwnShopStart({ userId: user._id, page: 1, limit: 1 }));
@@ -37,6 +39,35 @@ const ShopEntryPage = () => {
       // Nếu không có user, reset shop state
       dispatch(resetShopState());
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, user?._id]); // Chỉ chạy khi user._id thay đổi, không reset state mỗi lần mount
+
+  // Listen to socket notifications for shop status updates
+  useEffect(() => {
+    const hasTokens = tokenStorage.hasTokens();
+    if (!hasTokens || !user?._id) {
+      return;
+    }
+
+    const socket = socketClients.notifications.connect();
+
+    const handleShopNotification = (payload: Record<string, any>) => {
+      // Check if notification is about shop status
+      if (payload?.type?.startsWith("shop:")) {
+        console.log("[ShopEntryPage] Received shop notification:", payload);
+        
+        // Refetch shop status to get the latest information
+        dispatch(fetchShopStatusByUserStart({ userId: user._id }));
+        // Also refetch shop data as fallback
+        dispatch(fetchOwnShopStart({ userId: user._id, page: 1, limit: 1 }));
+      }
+    };
+
+    socket.on(SOCKET_EVENTS.NOTIFICATION_SEND, handleShopNotification);
+
+    return () => {
+      socket.off(SOCKET_EVENTS.NOTIFICATION_SEND, handleShopNotification);
+    };
   }, [dispatch, user?._id]);
 
   // Smart redirect based on status

@@ -6,7 +6,7 @@ import Page from "@/foundation/components/layout/Page";
 import Button from "@/foundation/components/buttons/Button";
 import Loading from "@/foundation/components/loading/Loading";
 import ConfirmModal from "@/foundation/components/modal/ModalConfirm";
-import { CartList, CartSummary, CartShopSummary } from "./components";
+import { CartList, CartSummary } from "./components";
 import {
   getCartStart,
   removeFromCartStart,
@@ -19,7 +19,6 @@ import {
   selectCartStatus,
   selectIsCartLoading,
   selectIsCartEmpty,
-  selectCartItemsByShop,
 } from "./slice/Cart.selector";
 import { ReduxStateType } from "@/app/store/types";
 import type { CartItem as CartItemType } from "@/core/api/cart/type";
@@ -33,6 +32,7 @@ const CartPage: React.FC = () => {
   const appDispatch = useAppDispatch();
   const [isClearCartModalOpen, setIsClearCartModalOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const cart = useSelector(selectCart);
   const cartItems = useSelector(selectCartItems);
@@ -40,12 +40,27 @@ const CartPage: React.FC = () => {
   const isLoading = useSelector(selectIsCartLoading);
   const isEmpty = useSelector(selectIsCartEmpty);
 
-  // Auto-select all items when cart loads
+  // Auto-select all items when cart loads for the first time
   useEffect(() => {
-    if (cartItems.length > 0 && selectedItems.size === 0) {
+    if (cartItems.length > 0 && !hasInitialized && selectedItems.size === 0) {
       setSelectedItems(new Set(cartItems.map((item) => item._id)));
+      setHasInitialized(true);
     }
-  }, [cartItems, selectedItems.size]);
+  }, [cartItems, hasInitialized, selectedItems.size]);
+
+  // Clean up selectedItems when items are removed from cart
+  useEffect(() => {
+    const cartItemIds = new Set(cartItems.map((item) => item._id));
+    setSelectedItems((prev) => {
+      const newSet = new Set<string>();
+      prev.forEach((id) => {
+        if (cartItemIds.has(id)) {
+          newSet.add(id);
+        }
+      });
+      return newSet;
+    });
+  }, [cartItems]);
 
   useEffect(() => {
     dispatch(getCartStart());
@@ -152,10 +167,10 @@ const CartPage: React.FC = () => {
   };
 
   const selectedItemsCount = selectedItems.size;
-  const allItemsSelected = useMemo(
-    () => cartItems.length > 0 && selectedItems.size === cartItems.length,
-    [cartItems.length, selectedItems.size]
-  );
+  const allItemsSelected = useMemo(() => {
+    if (cartItems.length === 0) return false;
+    return cartItems.every((item) => selectedItems.has(item._id));
+  }, [cartItems, selectedItems]);
 
   const handleRemoveShop = (shopId: string) => {
     const shopItems = cartItems.filter((item) => {

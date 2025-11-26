@@ -40,6 +40,8 @@ const ShopDetailPage: React.FC = () => {
       return;
     }
 
+    // Nếu là shop của user và đã có data trong slice, có thể sử dụng làm initial data
+    // Nhưng vẫn fetch để có thông tin chi tiết và mới nhất
     const fetchShopDetail = async () => {
       try {
         setLoading(true);

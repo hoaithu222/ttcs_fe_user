@@ -50,7 +50,15 @@ const CartShopGroup: React.FC<CartShopGroupProps> = ({
 
   // Check if all items in this shop are selected
   const allItemsSelected = useMemo(() => {
-    return items.length > 0 && items.every((item) => selectedItems.has(item._id));
+    if (items.length === 0) return false;
+    return items.every((item) => selectedItems.has(item._id));
+  }, [items, selectedItems]);
+
+  // Check if some items are selected (for indeterminate state)
+  const someItemsSelected = useMemo(() => {
+    if (items.length === 0) return false;
+    const selectedCount = items.filter((item) => selectedItems.has(item._id)).length;
+    return selectedCount > 0 && selectedCount < items.length;
   }, [items, selectedItems]);
 
   const handleShopSelect = (checked: boolean | "indeterminate") => {
@@ -67,7 +75,7 @@ const CartShopGroup: React.FC<CartShopGroupProps> = ({
       <div className="flex items-center gap-3 px-4 py-3 bg-background-1 border-b border-border-1">
         {onItemSelect && (
           <Checkbox
-            checked={allItemsSelected}
+            checked={allItemsSelected ? true : someItemsSelected ? "indeterminate" : false}
             onCheckedChange={handleShopSelect}
             size="base"
             className="flex-shrink-0"

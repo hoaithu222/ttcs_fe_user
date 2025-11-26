@@ -18,8 +18,7 @@ const ContentProduct: React.FC<ContentProductProps> = ({ product }) => {
         <div className="mb-8">
           <SectionTitle className="mb-4">Mô tả sản phẩm</SectionTitle>
           <div className="prose prose-sm lg:prose-base max-w-none">
-            <div className="text-neutral-7 whitespace-pre-line leading-relaxed">
-              {product.description}
+            <div dangerouslySetInnerHTML={{ __html: product.description }} className="text-neutral-7 whitespace-pre-line leading-relaxed">
             </div>
           </div>
         </div>

@@ -54,6 +54,18 @@ export const selectShopStatusByUserStatus = (state: any) =>
 export const selectShopStatusByUserError = (state: any) =>
   selectShopState(state).shopStatusByUser.error;
 
+// Selector để lấy shop info từ shopStatusByUser (tiện lợi hơn)
+export const selectShopInfoFromStatus = createSelector(
+  [selectShopStatusByUser],
+  (shopStatusByUser) => shopStatusByUser?.shop || null
+);
+
+// Selector để lấy shop status string
+export const selectShopStatusString = createSelector(
+  [selectShopStatusByUser],
+  (shopStatusByUser) => shopStatusByUser?.shopStatus || null
+);
+
 export const selectShopUiScreens = createSelector(
   [selectShopCurrentStatus],
   (status: ShopStatus) => ({

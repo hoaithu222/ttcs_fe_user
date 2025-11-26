@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import type { CartItem } from "@/core/api/cart/type";
 import { ShoppingBag, Truck, Tag, Store } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import { Cart, CartItem } from "@/core/api/cart/type";

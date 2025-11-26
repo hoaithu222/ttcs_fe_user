@@ -84,18 +84,12 @@ export const useAuth = () => {
     }
   }, [isAuthenticated, user, navigate]);
 
-  // Redirect sau khi logout - Nếu đang ở protected route thì về home
+  // Redirect sau khi logout thành công - luôn về home
   useEffect(() => {
     if (logoutStatus === ReduxStateType.SUCCESS) {
-      console.log("Logout successful");
-      const currentPath = window.location.pathname;
-      const protectedRoutes = ["/cart", "/orders", "/wishlist", "/profile"];
-
-      // Nếu đang ở protected route thì redirect về home
-      if (protectedRoutes.some((route) => currentPath.startsWith(route))) {
-        navigate(ROUTE.home.path);
-      }
-      // Ngược lại giữ ở trang hiện tại
+      console.log("Logout successful, redirecting to home");
+      // Luôn redirect về home sau khi logout thành công
+      navigate(ROUTE.home.path, { replace: true });
     }
   }, [logoutStatus, navigate]);
 
