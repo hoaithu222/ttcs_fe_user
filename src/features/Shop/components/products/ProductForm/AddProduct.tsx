@@ -26,6 +26,50 @@ import type {
   GenerateProductMetaRequest,
 } from "@/core/api/ai/type";
 import AiFullFormGenerator from "@/foundation/components/ai/AiFullFormGenerator";
+import { userAttributeTypesApi } from "@/core/api/attribute-type";
+
+type VariantAttribute = {
+  id: string;
+  name: string;
+  code?: string;
+  inputType?: string;
+  values: Array<{ id: string; value: string; label?: string; colorCode?: string }>;
+};
+
+const normalizeVariantAttribute = (attribute: any): VariantAttribute | null => {
+  if (!attribute) return null;
+
+  const rawValues = Array.isArray(attribute.values) ? attribute.values : [];
+  const values = rawValues
+    .map((val: any) => {
+      const valueId = val?.id || val?._id || val?.value || `val-${attribute._id || attribute.id}-${Date.now()}`;
+      const valueValue = val?.value || val?.label || val?.name || valueId;
+      return {
+        id: valueId,
+        value: valueValue,
+        label: val?.label || val?.value || val?.name || valueValue,
+        colorCode: val?.colorCode,
+      };
+    })
+    .filter((item: { value?: string }) => !!item.value);
+
+  if (values.length === 0) return null;
+
+  return {
+    id: attribute.id || attribute._id || attribute.attributeTypeId || `attr-${Date.now()}`,
+    name: attribute.name || attribute.code || "Thuộc tính",
+    code: attribute.code,
+    inputType: attribute.inputType,
+    values,
+  };
+};
+
+const mapVariantAttributes = (attributeList: any[] | undefined | null): VariantAttribute[] => {
+  if (!Array.isArray(attributeList)) return [];
+  return attributeList
+    .map((attr) => normalizeVariantAttribute(attr))
+    .filter((attr): attr is VariantAttribute => !!attr);
+};
 
 export default function AddProduct() {
   const dispatch = useDispatch();
@@ -52,6 +96,7 @@ export default function AddProduct() {
   const [openCategory, setOpenCategory] = useState(false);
   const [openAddAttributeType, setOpenAddAttributeType] = useState(false);
   const [attributes, setAttributes] = useState<any[]>([]);
+  const [variantAttributes, setVariantAttributes] = useState<VariantAttribute[]>([]);
   const [selectedPath, setSelectedPath] = useState("");
   const [loading, setLoading] = useState(false);
   const [productImages, setProductImages] = useState<{ url: string; publicId?: string }[]>([]);
@@ -158,6 +203,36 @@ export default function AddProduct() {
   const handleClose = () => {
     setOpenCategory(false);
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchVariantAttributes = async () => {
+      if (!data.categoryId) {
+        if (isMounted) {
+          setVariantAttributes([]);
+        }
+        return;
+      }
+
+      try {
+        const response = await userAttributeTypesApi.getAttributeTypesByCategory(data.categoryId);
+        if (!isMounted) return;
+        const normalized = mapVariantAttributes(response.data);
+        setVariantAttributes(normalized);
+      } catch (error) {
+        if (isMounted) {
+          setVariantAttributes([]);
+        }
+      }
+    };
+
+    fetchVariantAttributes();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [data.categoryId]);
 
   useEffect(() => {
     if (!shopInfo) {
@@ -557,91 +632,7 @@ export default function AddProduct() {
           </div>
         </Section>
 
-        <Section>
-          <div className="flex items-center justify-between mb-4">
-            <SectionTitle>Thông tin chi tiết</SectionTitle>
-            {data.categoryId && (
-              <Button
-                type="button"
-                color="blue"
-                variant="outline"
-                size="sm"
-                icon={<Pencil className="w-4 h-4" />}
-                onClick={() => setOpenAddAttributeType(true)}
-              >
-                Thêm loại thuộc tính
-              </Button>
-            )}
-          </div>
-          {attributes?.length > 0 ? (
-            <div className="space-y-6">
-              <div className="p-4 bg-primary-10/30 rounded-lg border border-primary-6/20">
-                <p className="text-sm font-medium text-primary-7">
-                  💡 Điền thông tin thuộc tính để tăng mức độ hiển thị và tìm kiếm cho sản phẩm. Bạn có thể thêm loại thuộc tính mới hoặc thêm giá trị cho các thuộc tính hiện có.
-                </p>
-              </div>
-              <div className="space-y-4">
-                {attributes
-                  .filter(
-                    (attr) =>
-                      attr.name !== "Màu sắc" &&
-                      attr.name !== "Kích thước" &&
-                      attr.name !== "Giới tính" &&
-                      attr.name !== "Size"
-                  )
-                  .map((attribute, index) => (
-                    <SelectAttribute
-                      key={`${attribute.id || attribute._id || index}`}
-                      attribute={{
-                        id: attribute.id || attribute._id || `attr-${index}`,
-                        name: attribute.name,
-                        values: attribute.values || [],
-                        inputType: attribute.inputType || "select",
-                        isRequired: attribute.isRequired || false,
-                      }}
-                      setData={setData}
-                      onAttributeUpdate={(attributeId, newValues) => {
-                        setAttributes((prev) =>
-                          prev.map((attr) =>
-                            (attr.id || attr._id) === attributeId
-                              ? { ...attr, values: newValues }
-                              : attr
-                          )
-                        );
-                      }}
-                    />
-                  ))}
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 bg-neutral-2 rounded-lg border border-border-1">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-neutral-6 mb-2">
-                    ℹ️ Chọn ngành hàng để hiển thị các thuộc tính có sẵn, hoặc tạo thuộc tính mới cho sản phẩm của bạn.
-                  </p>
-                  {!data.categoryId && (
-                    <p className="text-xs text-neutral-5">
-                      💡 Vui lòng chọn ngành hàng trước để xem các thuộc tính có sẵn
-                    </p>
-                  )}
-                </div>
-                {data.categoryId && (
-                  <Button
-                    type="button"
-                    color="blue"
-                    variant="outline"
-                    size="sm"
-                    icon={<Pencil className="w-4 h-4" />}
-                    onClick={() => setOpenAddAttributeType(true)}
-                  >
-                    Thêm thuộc tính
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </Section>
+        
 
         <Section>
           <SectionTitle>Thông tin bán hàng</SectionTitle>
@@ -748,39 +739,95 @@ export default function AddProduct() {
           </div>
         </Section>
 
+        <Section>
+          <div className="flex items-center justify-between mb-4">
+            <SectionTitle>Thông tin chi tiết</SectionTitle>
+          </div>
+          {attributes?.length > 0 ? (
+            <div className="space-y-6">
+              <div className="p-4 bg-primary-10/30 rounded-lg border border-primary-6/20">
+                <p className="text-sm font-medium text-primary-7">
+                  💡 Điền thông tin thuộc tính để tăng mức độ hiển thị và tìm kiếm cho sản phẩm. Bạn có thể thêm loại thuộc tính mới hoặc thêm giá trị cho các thuộc tính hiện có.
+                </p>
+              </div>
+              <div className="space-y-4">
+                {attributes
+                  .filter(
+                    (attr) =>
+                      attr.name !== "Màu sắc" &&
+                      attr.name !== "Kích thước" &&
+                      attr.name !== "Giới tính" &&
+                      attr.name !== "Size"
+                  )
+                  .map((attribute, index) => (
+                    <SelectAttribute
+                      key={`${attribute.id || attribute._id || index}`}
+                      attribute={{
+                        id: attribute.id || attribute._id || `attr-${index}`,
+                        name: attribute.name,
+                        values: attribute.values || [],
+                        inputType: attribute.inputType || "select",
+                        isRequired: attribute.isRequired || false,
+                      }}
+                      setData={setData}
+                      onAttributeUpdate={(attributeId, newValues) => {
+                        setAttributes((prev) =>
+                          prev.map((attr) =>
+                            (attr.id || attr._id) === attributeId
+                              ? { ...attr, values: newValues }
+                              : attr
+                          )
+                        );
+                      }}
+                    />
+                  ))}
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 bg-neutral-2 rounded-lg border border-border-1">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-neutral-6 mb-2">
+                    ℹ️ Chọn ngành hàng để hiển thị các thuộc tính có sẵn, hoặc tạo thuộc tính mới cho sản phẩm của bạn.
+                  </p>
+                  {!data.categoryId && (
+                    <p className="text-xs text-neutral-5">
+                      💡 Vui lòng chọn ngành hàng trước để xem các thuộc tính có sẵn
+                    </p>
+                  )}
+                </div>
+                {data.categoryId && (
+                  <Button
+                    type="button"
+                    color="blue"
+                    variant="outline"
+                    size="sm"
+                    icon={<Pencil className="w-4 h-4" />}
+                    onClick={() => setOpenAddAttributeType(true)}
+                  >
+                    Thêm thuộc tính
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </Section>
+
         {/* Product Variants Section */}
         <Section>
           <SectionTitle>Biến thể sản phẩm</SectionTitle>
           <div className="space-y-4">
-            {(() => {
-              const variantAttributes = attributes
-                ? attributes.filter(
-                    (attr: any) =>
-                      attr.name === "Màu sắc" ||
-                      attr.name === "Kích thước" ||
-                      attr.name === "Size" ||
-                      attr.name === "Giới tính"
-                  )
-                : [];
-
-              return (
-                <ProductVariantsManager
-                  variantAttributes={variantAttributes.map((attr: any) => ({
-                    id: attr.id || attr._id,
-                    name: attr.name,
-                    values: attr.values || [],
-                  }))}
-                  variants={data.variants}
-                  onChange={(variants) => {
-                    setData((prev) => ({ ...prev, variants }));
-                  }}
-                  basePrice={data.price}
-                  baseStock={data.stock}
-                  onImageUpload={handleImageUpload}
-                  categoryId={data.categoryId}
-                />
-              );
-            })()}
+            <ProductVariantsManager
+              variantAttributes={variantAttributes}
+              variants={data.variants}
+              onChange={(variants) => {
+                setData((prev) => ({ ...prev, variants }));
+              }}
+              basePrice={data.price}
+              baseStock={data.stock}
+              onImageUpload={handleImageUpload}
+              categoryId={data.categoryId}
+            />
           </div>
         </Section>
 
@@ -830,6 +877,13 @@ export default function AddProduct() {
         onClose={() => setOpenAddAttributeType(false)}
         categoryId={data.categoryId}
         onSuccess={(newAttributeType) => {
+          const normalizedValues = newAttributeType.values.map((v) => ({
+            id: `temp-${Date.now()}-${Math.random()}`,
+            value: v.value,
+            label: v.label,
+            colorCode: v.colorCode,
+          }));
+
           // Add the new attribute type to the attributes list
           setAttributes((prev) => [
             ...prev,
@@ -837,16 +891,20 @@ export default function AddProduct() {
               id: newAttributeType.id,
               _id: newAttributeType.id,
               name: newAttributeType.name,
-              values: newAttributeType.values.map((v) => ({
-                id: `temp-${Date.now()}-${Math.random()}`,
-                value: v.value,
-                label: v.label,
-                colorCode: v.colorCode,
-              })),
+              values: normalizedValues,
               inputType: newAttributeType.inputType,
               isRequired: false,
             },
           ]);
+
+          const normalizedAttr = normalizeVariantAttribute({
+            ...newAttributeType,
+            _id: newAttributeType.id,
+            values: normalizedValues,
+          });
+          if (normalizedAttr) {
+            setVariantAttributes((prev) => [...prev, normalizedAttr]);
+          }
         }}
       />
     </div>

@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Trash2, DollarSign, Package, Lightbulb } from "lucide-react";
+import { Trash2, DollarSign, Package, Lightbulb } from "lucide-react";
 import Button from "@/foundation/components/buttons/Button";
 import Input from "@/foundation/components/input/Input";
 import ImageUpload from "@/foundation/components/input/upload/ImageUpload";
 import Select from "@/foundation/components/input/Select";
 import Checkbox from "@/foundation/components/input/Checkbox";
-import Tooltip from "@/foundation/components/tooltip/Tooltip";
-import { userCategoriesApi } from "@/core/api/categories";
+import { userAttributeTypesApi } from "@/core/api/attribute-type";
 import { toastUtils } from "@/shared/utils/toast.utils";
 
 const SKU_PREFIX = "SSKU";
@@ -93,7 +92,6 @@ export default function ProductVariantsManager({
   onImageUpload,
   categoryId,
 }: ProductVariantsManagerProps) {
-  console.log("propVariantAttributes", propVariantAttributes);
   const [localVariants, setLocalVariants] = useState<ProductVariant[]>(variants);
   const [fetchedVariantAttributes, setFetchedVariantAttributes] = useState<
     Array<{
@@ -178,27 +176,23 @@ export default function ProductVariantsManager({
 
       setLoadingAttributes(true);
       try {
-        const categoryResponse = await userCategoriesApi.getCategory(categoryId);
-        if (categoryResponse.success && categoryResponse.data) {
-          const category = categoryResponse.data as any;
-          const categoryAttributes = category.attributes || [];
-
-          // Use all selectable attributes returned from category
-          const variantAttrs = categoryAttributes
-            .filter((attr: any) => Array.isArray(attr.values) && attr.values.length > 0)
-            .map((attr: any) => ({
-              id: attr.id || attr._id || `attr-${attr.name}`,
-              name: attr.name,
-              values: (attr.values || []).map((val: any) => ({
-                id: val.id || val._id || `val-${val.value}`,
-                value: val.value || val.id,
-                label: val.label || val.value,
-                colorCode: val.colorCode,
-              })),
-            }));
-
-          setFetchedVariantAttributes(variantAttrs);
-        }
+        const response = await userAttributeTypesApi.getAttributeTypesByCategory(categoryId);
+        const attributes = Array.isArray(response.data) ? response.data : [];
+        const variantAttrs = attributes
+          .filter((attr: any) => Array.isArray(attr.values) && attr.values.length > 0)
+          .map((attr: any) => ({
+            id: attr.id || attr._id || `attr-${attr.name}`,
+            name: attr.name,
+            code: attr.code,
+            helperText: attr.helperText,
+            values: (attr.values || []).map((val: any) => ({
+              id: val.id || val._id || `val-${val.value}`,
+              value: val.value || val.id,
+              label: val.label || val.value,
+              colorCode: val.colorCode,
+            })),
+          }));
+        setFetchedVariantAttributes(variantAttrs);
       } catch (error) {
         console.error("Error fetching category variant attributes:", error);
         setFetchedVariantAttributes([]);
@@ -298,17 +292,6 @@ export default function ProductVariantsManager({
     onChange(updated);
   };
 
-  const handleAddVariant = () => {
-    const newVariant: ProductVariant = {
-      attributes: {},
-      price: basePrice,
-      stock: baseStock,
-    };
-    const updated = ensureAutoSku([...localVariants, newVariant]);
-    setLocalVariants(updated);
-    onChange(updated);
-  };
-
   // Get display name for variant
   const getVariantDisplayName = (variant: ProductVariant): string => {
     const attrValues = Object.entries(variant.attributes)
@@ -371,18 +354,6 @@ export default function ProductVariantsManager({
               Tạo tự động
             </Button>
           )}
-          <Tooltip content='Sử dụng mã slug chuẩn như "color", "storage" giống seed (dòng 72-83)' side="bottom">
-            <Button
-              type="button"
-              icon={<Plus className="w-4 h-4" />}
-              color="blue"
-              variant="solid"
-              size="sm"
-              onClick={handleAddVariant}
-            >
-              Thêm thủ công
-            </Button>
-          </Tooltip>
         </div>
       </div>
 
@@ -543,75 +514,32 @@ export default function ProductVariantsManager({
                     </div>
 
                     {/* Add Attribute Form */}
-                    <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-end">
-                      {variantAttributes.length > 0 && (
-                        <Select
-                          name={`variant_attr_select_${index}`}
-                          placeholder="Chọn thuộc tính từ danh sách"
-                          options={variantAttributes
-                            .filter((attr) => !variant.attributes[getAttributeKey(attr)])
-                            .map((attr) => ({
-                              value: getAttributeKey(attr),
-                              label: attr.name,
-                            }))}
-                          onChange={(attrKey) => {
-                            if (attrKey) {
-                              const attr = findAttributeByKey(attrKey);
-                              if (attr && attr.values.length > 0) {
-                                // Auto-select first value
-                                handleAttributeChange(
-                                  index,
-                                  attrKey,
-                                  attr.values[0].value || attr.values[0].id
-                                );
-                              } else {
-                                handleAttributeChange(index, attrKey, "");
-                              }
+                    {variantAttributes.length > 0 && (
+                      <Select
+                        name={`variant_attr_select_${index}`}
+                        placeholder="Chọn thuộc tính từ danh sách"
+                        options={variantAttributes
+                          .filter((attr) => !variant.attributes[getAttributeKey(attr)])
+                          .map((attr) => ({
+                            value: getAttributeKey(attr),
+                            label: attr.name,
+                          }))}
+                        onChange={(attrKey) => {
+                          if (attrKey) {
+                            const attr = findAttributeByKey(attrKey);
+                            if (attr && attr.values.length > 0) {
+                              handleAttributeChange(
+                                index,
+                                attrKey,
+                                attr.values[0].value || attr.values[0].id
+                              );
                             }
-                          }}
-                          clearable
-                          className="flex-1"
-                        />
-                      )}
-                      <div className={`flex gap-2 ${variantAttributes.length > 0 ? "flex-1" : "w-full"}`}>
-                        <Input
-                          name={`variant_attr_custom_name_${index}`}
-                          placeholder="Hoặc nhập tên thuộc tính tùy chỉnh"
-                          className="flex-1 text-sm"
-                          description='Ưu tiên slug không dấu như "color", "storage_capacity"'
-                          onKeyPress={(e: any) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              const attrName = e.target.value.trim();
-                              if (attrName && !variant.attributes[attrName]) {
-                                handleAttributeChange(index, attrName, "");
-                                e.target.value = "";
-                              }
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          color="blue"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const input = document.querySelector(
-                              `input[name="variant_attr_custom_name_${index}"]`
-                            ) as HTMLInputElement;
-                            if (input) {
-                              const attrName = input.value.trim();
-                              if (attrName && !variant.attributes[attrName]) {
-                                handleAttributeChange(index, attrName, "");
-                                input.value = "";
-                              }
-                            }
-                          }}
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
+                          }
+                        }}
+                        clearable
+                        className="w-full md:w-1/2"
+                      />
+                    )}
 
                     {/* Attribute Value Input */}
                     {Object.keys(variant.attributes).length > 0 && (

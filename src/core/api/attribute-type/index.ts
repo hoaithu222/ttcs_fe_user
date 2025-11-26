@@ -28,6 +28,14 @@ class UserAttributeTypesApiService extends VpsHttpClient {
     const response = await this.get(endpoint);
     return response.data;
   }
+
+  async getAttributeTypesByCategory(
+    categoryId: string
+  ): Promise<ApiSuccess<AttributeType[]>> {
+    const endpoint = buildEndpoint(USER_ATTRIBUTE_TYPES_ENDPOINTS.BY_CATEGORY, { categoryId });
+    const response = await this.get(endpoint);
+    return response.data;
+  }
 }
 
 // Export singleton instance

@@ -1,12 +1,22 @@
 // Attribute Type types for users
+export interface AttributeTypeValue {
+  id: string;
+  value: string;
+  label?: string;
+  colorCode?: string;
+  sortOrder?: number;
+}
+
 export interface AttributeType {
   _id: string;
   name: string;
   code: string;
   inputType: "text" | "number" | "select" | "multiselect" | "boolean" | "date" | "color";
   description?: string;
+  helperText?: string;
   isRequired: boolean;
   isActive: boolean;
+  isVariantAttribute?: boolean;
   validationRules?: {
     min?: number;
     max?: number;
@@ -17,6 +27,7 @@ export interface AttributeType {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+  values?: AttributeTypeValue[];
 }
 
 // Request types

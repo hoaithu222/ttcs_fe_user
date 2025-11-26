@@ -2,6 +2,7 @@
 export const USER_ATTRIBUTE_TYPES_ENDPOINTS = {
   LIST: "/attribute-types",
   DETAIL: "/attribute-types/:id",
+  BY_CATEGORY: "/attribute-types/category/:categoryId",
 } as const;
 
 // Generic endpoint builder
