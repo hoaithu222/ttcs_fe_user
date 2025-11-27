@@ -11,6 +11,7 @@ import {
   setForgotPasswordNewPassword,
   setForgotPasswordConfirmPassword,
   resetForgotPassword,
+  resetLogoutStatus,
 } from "@/features/Auth/components/slice/auth.slice";
 import { LoginRequest } from "@/core/api/auth/type";
 import { useNavigate } from "react-router-dom";
@@ -88,10 +89,10 @@ export const useAuth = () => {
   useEffect(() => {
     if (logoutStatus === ReduxStateType.SUCCESS) {
       console.log("Logout successful, redirecting to home");
-      // Luôn redirect về home sau khi logout thành công
       navigate(ROUTE.home.path, { replace: true });
+      dispatch(resetLogoutStatus());
     }
-  }, [logoutStatus, navigate]);
+  }, [logoutStatus, navigate, dispatch]);
 
   // Kiểm tra token khi component mount
   useEffect(() => {

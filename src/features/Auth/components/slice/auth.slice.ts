@@ -132,6 +132,9 @@ export const { slice, reducer } = createResettableSlice({
       state.user = null;
       state.logout.logoutStatus = ReduxStateType.ERROR;
     },
+    resetLogoutStatus: (state) => {
+      state.logout.logoutStatus = ReduxStateType.INIT;
+    },
     refreshTokenSuccess: (state, action) => {
       // Cập nhật token mới trong user state nếu cần
       if (state.user && action.payload) {
@@ -175,6 +178,7 @@ export const {
   logoutUser,
   logoutSuccess,
   logoutFailed,
+  resetLogoutStatus,
   refreshTokenSuccess,
   refreshTokenFailed,
 } = slice.actions;

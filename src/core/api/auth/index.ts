@@ -64,11 +64,11 @@ class UserAuthApiService extends VpsHttpClient {
 
   // Logout user
   async logout(): Promise<ApiSuccess<void>> {
-    // Get refresh token from localStorage
-    const refreshToken = localStorage.getItem("refreshToken");
-    const response = await this.post(USER_AUTH_ENDPOINTS.LOGOUT, {
-      token: refreshToken,
-    });
+    // Prefer using the current access token for logout to match backend expectations
+    const accessToken = localStorage.getItem("accessToken");
+    const payload = accessToken ? { token: accessToken } : undefined;
+
+    const response = await this.post(USER_AUTH_ENDPOINTS.LOGOUT, payload);
     return response.data;
   }
 

@@ -127,6 +127,7 @@ function* handleLogout(): Generator<any, void, any> {
 
     // Xóa Redux persist data
     localStorage.removeItem("persist:root");
+    localStorage.removeItem("persist:auth");
     console.log("Redux persist data removed");
 
     // Reset shop state và profile state khi logout
@@ -143,6 +144,7 @@ function* handleLogout(): Generator<any, void, any> {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("persist:root");
+    localStorage.removeItem("persist:auth");
 
     // Reset shop state và profile state khi logout
     yield put(resetShopState());
