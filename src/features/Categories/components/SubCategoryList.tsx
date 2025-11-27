@@ -52,7 +52,7 @@ const SubCategoryList: React.FC<SubCategoryListProps> = ({
           return (
             <div
               key={subCategory._id}
-              onClick={() => navigate(`/categories/${subCategory._id}`)}
+              onClick={() => navigate(`/sub-categories/${subCategory._id}`)}
               className={clsx(
                 "flex flex-col gap-2 items-center p-4 rounded-lg",
                 "cursor-pointer bg-background-3 hover:bg-background-2",

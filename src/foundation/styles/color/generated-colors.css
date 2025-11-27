@@ -94,21 +94,14 @@
   --color-btn-danger-bg: #FF424E;
   --color-btn-danger-hover: #D62935;
   --color-btn-danger-text: #FFFFFF;
-  --color-chat-bg: #F7F8FA;
-  --color-chat-bg-sidebar: #FFFFFF;
-  --color-chat-divider: #E5E5E5;
-  --color-chat-bubble-sent-bg: #0F3460;
-  --color-chat-bubble-sent-text: #FFFFFF;
-  --color-chat-bubble-received-bg: #F1F1F1;
-  --color-chat-bubble-received-text: #171717;
-  --color-chat-time-text: #737373;
-  --color-chat-status-icon-read: #00AB56;
-  --color-chat-status-icon-sent: #A3A3A3;
-  --color-chat-reply-bg: #E9F0FF;
-  --color-chat-reply-border: #0F3460;
-  --color-chat-reply-text: #404040;
-  --color-chat-input-wrapper-bg: #FFFFFF;
-  --color-chat-input-attach-icon: #737373;
+  --color-analytics-card-start: #FFFFFF;
+  --color-analytics-card-end: #F1F5FF;
+  --color-analytics-card-border: rgba(15, 52, 96, 0.08);
+  --color-analytics-text-primary: #0F172A;
+  --color-analytics-text-muted: rgba(15, 23, 42, 0.65);
+  --color-analytics-grid: rgba(71, 85, 105, 0.18);
+  --color-analytics-tooltip-bg: #FFFFFF;
+  --color-analytics-tooltip-border: rgba(15, 52, 96, 0.15);
 }
 
 .dark {
@@ -204,4 +197,12 @@
   --color-btn-danger-bg: #FF6B6B;
   --color-btn-danger-hover: #FF8787;
   --color-btn-danger-text: #0F0F10;
+  --color-analytics-card-start: #09112B;
+  --color-analytics-card-end: #050918;
+  --color-analytics-card-border: rgba(255, 255, 255, 0.12);
+  --color-analytics-text-primary: #F8FAFC;
+  --color-analytics-text-muted: rgba(226, 232, 240, 0.65);
+  --color-analytics-grid: rgba(148, 163, 184, 0.25);
+  --color-analytics-tooltip-bg: rgba(7, 13, 31, 0.95);
+  --color-analytics-tooltip-border: rgba(59, 130, 246, 0.35);
 }

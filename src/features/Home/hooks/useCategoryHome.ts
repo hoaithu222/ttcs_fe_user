@@ -5,6 +5,7 @@ import {
   selectHomeCategories,
   selectHomeCategoriesStatus,
   selectHomeCategoriesError,
+  selectHomeCategoriesPagination,
 } from "../slice";
 
 export const useCategoryHome = (page = 1, limit = 10) => {
@@ -12,6 +13,7 @@ export const useCategoryHome = (page = 1, limit = 10) => {
   const categories = useAppSelector(selectHomeCategories);
   const status = useAppSelector(selectHomeCategoriesStatus);
   const error = useAppSelector(selectHomeCategoriesError);
+  const pagination = useAppSelector(selectHomeCategoriesPagination);
 
   useEffect(() => {
     dispatch(fetchHomeCategoriesStart({ page, limit }));
@@ -19,6 +21,7 @@ export const useCategoryHome = (page = 1, limit = 10) => {
 
   return {
     categories,
+    pagination,
     isLoading: status === "LOADING",
     error,
   };

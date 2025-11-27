@@ -5,6 +5,7 @@ const HomePage = lazy(() => import("@/features/Home/HomePage"));
 const ProductsPage = lazy(() => import("@/features/Products/ProductsPage"));
 const ProductDetailPage = lazy(() => import("@/features/Products/ProductDetailPage"));
 const CategoriesPage = lazy(() => import("@/features/Categories/CategoriesPage"));
+const SubCategoryPage = lazy(() => import("@/features/SubCategories/SubCategoryPage"));
 const CartPage = lazy(() => import("@/features/Cart/CartPage"));
 const OrdersPage = lazy(() => import("@/features/Orders/OrdersPage"));
 const CheckoutPage = lazy(() => import("@/features/Payment/pages/CheckoutPage"));
@@ -86,6 +87,12 @@ export const ROUTE = {
   categoryDetail: {
     path: "/categories/:id",
     element: <CategoriesPage />,
+    layout: "main",
+    options: defaultOptions,
+  },
+  subCategoryDetail: {
+    path: "/sub-categories/:id",
+    element: <SubCategoryPage />,
     layout: "main",
     options: defaultOptions,
   },
