@@ -133,7 +133,7 @@ const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
                 >
                   {isFollowing ? "Đã theo dõi" : "Theo dõi"}
                 </Button>
-                <Button
+                {/* <Button
                   color="gray"
                   variant="outline"
                   size="sm"
@@ -141,7 +141,7 @@ const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
                   icon={<MessageCircle className="w-4 h-4" />}
                 >
                   Chat
-                </Button>
+                </Button> */}
               </>
             )}
             <Button color="blue" variant="outline" size="sm" onClick={handleShopClick}>

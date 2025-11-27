@@ -10,8 +10,11 @@ import Button from "@/foundation/components/buttons/Button";
 import Loading from "@/foundation/components/loading/Loading";
 import Modal from "@/foundation/components/modal/Modal";
 import Input from "@/foundation/components/input/Input";
-import Select from "@/foundation/components/input/Select";
 import Checkbox from "@/foundation/components/input/Checkbox";
+import ScrollView from "@/foundation/components/scroll/ScrollView";
+import IconCircleWrapper from "@/foundation/components/icons/IconCircleWrapper";
+import AlertMessage from "@/foundation/components/info/AlertMessage";
+import AddressSelector from "@/shared/components/AddressSelector";
 import { addToast } from "@/app/store/slices/toast";
 import { useAppDispatch } from "@/app/store";
 import { useProfileAddresses } from "@/features/Profile/hooks/useAddress";
@@ -211,6 +214,11 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
     // Open add address modal instead of navigating
     setIsAddModalOpen(true);
   }, []);
+
+  const handleCloseAddAddressModal = useCallback(() => {
+    if (isSubmitting) return;
+    setIsAddModalOpen(false);
+  }, [isSubmitting]);
   
   const handleSubmitAddAddress = useCallback(async () => {
     if (!name || !phone || !cityCode || !districtCode || !wardCode) {
@@ -231,25 +239,22 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
       const address: CreateAddressRequest = {
         name,
         phone,
-        address: [addressLine2, addressLine1].filter(Boolean).join(" "),
+        address: [addressLine2, addressLine1].filter(Boolean).join(" ").trim(),
         city,
         district,
         ward,
         isDefault,
       };
-      
+
       createAddress(address);
-      setIsAddModalOpen(false);
-      
-      // Reload addresses to get the new one
       loadAddresses();
-      
       dispatch(
         addToast({
           type: "success",
           message: "Đã thêm địa chỉ mới thành công",
         })
       );
+      setIsAddModalOpen(false);
     } catch (error: any) {
       dispatch(
         addToast({
@@ -260,7 +265,22 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [name, phone, cityCode, districtCode, wardCode, addressLine1, addressLine2, isDefault, provinces, districts, wards, createAddress, dispatch, loadAddresses]);
+  }, [
+    name,
+    phone,
+    cityCode,
+    districtCode,
+    wardCode,
+    addressLine1,
+    addressLine2,
+    isDefault,
+    provinces,
+    districts,
+    wards,
+    createAddress,
+    dispatch,
+    loadAddresses,
+  ]);
 
   const handleEditAddress = useCallback((_address: Address) => {
     // Navigate to profile address tab
@@ -358,110 +378,107 @@ const PaymentAddressSelector: React.FC<PaymentAddressSelectorProps> = ({
       {/* Modal for adding new address */}
       <Modal
         open={isAddModalOpen}
-        onOpenChange={setIsAddModalOpen}
-        title="Thêm địa chỉ mới"
-        size="2xl"
-        hideFooter
-      >
-        <Form.Root onSubmit={(e) => e.preventDefault()}>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-            <Input
-              name="name"
-              label="Họ và tên"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Nhập họ và tên"
-              sizeInput="full"
-              required
-            />
-            <Input
-              name="phone"
-              label="Số điện thoại"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Nhập số điện thoại"
-              type="tel"
-              sizeInput="full"
-              required
-            />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <Select
-                name="city"
-                label="Tỉnh/Thành phố"
-                value={cityCode ? String(cityCode) : ""}
-                onChange={(value) => setCityCode(value ? Number(value) : "")}
-                placeholder="Chọn Tỉnh/Thành phố"
-                options={provinces.map((p) => ({
-                  value: String(p.code),
-                  label: p.name,
-                }))}
-                sizeSelect="full"
-                required
-              />
-              <Select
-                name="district"
-                label="Quận/Huyện"
-                value={districtCode ? String(districtCode) : ""}
-                onChange={(value) => setDistrictCode(value ? Number(value) : "")}
-                placeholder="Chọn Quận/Huyện"
-                options={districts.map((d) => ({
-                  value: String(d.code),
-                  label: d.name,
-                }))}
-                sizeSelect="full"
-                disabled={!cityCode}
-                required
-              />
-              <Select
-                name="ward"
-                label="Phường/Xã"
-                value={wardCode ? String(wardCode) : ""}
-                onChange={(value) => setWardCode(value ? Number(value) : "")}
-                placeholder="Chọn Phường/Xã"
-                options={wards.map((w) => ({
-                  value: String(w.code),
-                  label: w.name,
-                }))}
-                sizeSelect="full"
-                disabled={!districtCode}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input
-                name="addressLine1"
-                label="Địa chỉ cụ thể"
-                value={addressLine1}
-                onChange={(e) => setAddressLine1(e.target.value)}
-                placeholder="Xóm, đường..."
-                sizeInput="full"
-              />
-              <Input
-                name="addressLine2"
-                label="Số nhà"
-                value={addressLine2}
-                onChange={(e) => setAddressLine2(e.target.value)}
-                placeholder="Số nhà"
-                sizeInput="full"
-              />
-            </div>
-            <Checkbox
-              checked={isDefault}
-              onCheckedChange={(checked) => setIsDefault(checked === true)}
-              label="Đặt làm địa chỉ mặc định"
-              testId="is-default-address"
-            />
-            </div>
-            <div className="flex gap-2 justify-end pt-4 border-t border-border-1">
-              <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
-                Hủy
-              </Button>
-              <Button onClick={handleSubmitAddAddress} disabled={isSubmitting}>
-                {isSubmitting ? "Đang lưu..." : "Thêm địa chỉ"}
-              </Button>
+        size="3xl"
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCloseAddAddressModal();
+          } else {
+            setIsAddModalOpen(true);
+          }
+        }}
+        onCancel={handleCloseAddAddressModal}
+        onConfirm={handleSubmitAddAddress}
+        closeText="Hủy"
+        confirmText={isSubmitting ? "Đang lưu..." : "Thêm địa chỉ"}
+        disabled={isSubmitting}
+        title={
+          <div className="flex gap-3 items-center">
+            <IconCircleWrapper size="md" color="info">
+              <MapPin className="text-info" />
+            </IconCircleWrapper>
+            <div>
+              <h2 className="text-xl font-bold text-neutral-9">Thêm địa chỉ mới</h2>
+              <p className="text-sm text-neutral-6 mt-0.5">Quản lý nơi nhận hàng của bạn</p>
             </div>
           </div>
+        }
+        headerPadding="pb-6"
+        className="flex flex-col gap-6"
+      >
+        <Form.Root
+          className="space-y-6"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSubmitAddAddress();
+          }}
+        >
+          <ScrollView className="h-[520px]" hideScrollbarY={false}>
+            <div className="space-y-6 pr-1">
+              <AlertMessage
+                type="info"
+                title="Hướng dẫn"
+                message="Thông tin nhận hàng cần chính xác để hỗ trợ xác minh và giao nhận nhanh chóng."
+              />
+              <div className="grid grid-cols-1 gap-3">
+                <Input
+                  name="address-fullname"
+                  label="Họ và tên"
+                  placeholder="Nhập họ và tên"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+                <Input
+                  name="address-phone"
+                  label="Số điện thoại"
+                  placeholder="Nhập số điện thoại"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  inputMode="numeric"
+                  required
+                />
+                <AddressSelector
+                  value={{ provinceCode: cityCode, districtCode, wardCode }}
+                  onChange={(val) => {
+                    setCityCode((val.provinceCode ?? "") as number | "");
+                    setDistrictCode((val.districtCode ?? "") as number | "");
+                    setWardCode((val.wardCode ?? "") as number | "");
+                  }}
+                  labels={{
+                    province: "Tỉnh/Thành phố",
+                    district: "Quận/Huyện",
+                    ward: "Phường/Xã",
+                  }}
+                />
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <Input
+                    name="address-line-1"
+                    label="Địa chỉ cụ thể"
+                    placeholder="Xóm, đường..."
+                    value={addressLine1}
+                    onChange={(e) => setAddressLine1(e.target.value)}
+                  />
+                  <Input
+                    name="address-line-2"
+                    label="Số nhà"
+                    placeholder="Số nhà"
+                    value={addressLine2}
+                    onChange={(e) => setAddressLine2(e.target.value)}
+                  />
+                </div>
+                <Checkbox
+                  label="Đặt làm địa chỉ mặc định"
+                  checked={isDefault}
+                  onCheckedChange={(checked) => setIsDefault(Boolean(checked))}
+                  wrapperClassName="justify-start"
+                  testId="is-default-address"
+                />
+              </div>
+              <Form.Submit asChild>
+                <button type="submit" className="hidden" aria-hidden />
+              </Form.Submit>
+            </div>
+          </ScrollView>
         </Form.Root>
       </Modal>
 
