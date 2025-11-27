@@ -260,7 +260,7 @@ const ModalChatSupport: React.FC<ModalChatSupportProps> = ({ open, onOpenChange 
     return otherParticipant?.avatar;
   }, [currentConversation, otherParticipant?.avatar]);
 
-  const displayName = otherParticipant?.name || "CSKH";
+  const displayName = "CSKH";
   const isOtherUserTyping = otherParticipant && typingUsers.includes(otherParticipant.userId);
 
   // Emit typing indicator

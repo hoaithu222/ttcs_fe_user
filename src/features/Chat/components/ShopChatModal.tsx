@@ -26,6 +26,8 @@ import { images } from "@/assets/image";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import Popover from "@/foundation/components/popover/Popever";
 
+const EMPTY_MESSAGES: ChatMessage[] = [];
+
 interface ShopChatModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -52,11 +54,14 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
   const dispatch = useAppDispatch();
   const currentConversation = useAppSelector(selectCurrentConversation);
   const conversations = useAppSelector(selectConversations);
-  const messages = useAppSelector((state) =>
-    currentConversation
-      ? selectChatMessages(currentConversation._id)(state)
-      : []
-  );
+  const messageSelector = useMemo(() => {
+    if (!currentConversation?._id) {
+      return () => EMPTY_MESSAGES;
+    }
+    return selectChatMessages(currentConversation._id);
+  }, [currentConversation?._id]);
+
+  const messages = useAppSelector(messageSelector);
   const status = useAppSelector(selectChatStatus);
   const user = useAppSelector(selectUser);
   const currentUserId = user?._id;
@@ -78,8 +83,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasCreatedConversationRef = useRef(false);
   const hasSentProductMessageRef = useRef(false);
-  const conversationIdForProductRef = useRef<string | null>(null);
-  const isNewlyCreatedConversationRef = useRef(false);
+  const pendingProductMetadataRef = useRef<ProductMetadata | null>(null);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -118,12 +122,6 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       
       if (!hasCreatedConversationRef.current) {
         hasCreatedConversationRef.current = true;
-        // Mark that this is NOT a newly created conversation
-        isNewlyCreatedConversationRef.current = false;
-        // Mark to send product message if productId exists and not already sent
-        if (productId) {
-          conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
-        }
       }
       
       return;
@@ -136,12 +134,6 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
     if (isCurrentShopConversation && currentConversation?._id) {
       if (!hasCreatedConversationRef.current) {
         hasCreatedConversationRef.current = true;
-        // Mark that this is NOT a newly created conversation
-        isNewlyCreatedConversationRef.current = false;
-        // Mark to send product message if productId exists and not already sent
-        if (productId) {
-          conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
-        }
       }
       
       return;
@@ -167,12 +159,6 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       );
 
       hasCreatedConversationRef.current = true;
-      // Mark that this IS a newly created conversation - don't auto-send product message
-      isNewlyCreatedConversationRef.current = true;
-      // Mark that we're creating a conversation with product for this shop
-      if (productId) {
-        conversationIdForProductRef.current = `pending_${shopId}_${productId}`;
-      }
     }
   }, [isOpen, shopId, shopName, productId, productName, productImage, productPrice, currentConversation, conversations, dispatch]);
 
@@ -257,46 +243,68 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
     };
   }, [isOpen, shopId, currentConversation?._id, currentConversation?.type, currentConversation?.metadata?.shopId, messages.length, currentUserId, dispatch]);
 
-  // Auto send product message when opening from DetailProduct (has productId)
-  // Only send if conversation already existed (not newly created)
+  // Track pending product metadata so it can be sent once conversation is ready
+  useEffect(() => {
+    if (!isOpen || !productId) {
+      pendingProductMetadataRef.current = null;
+      return;
+    }
+
+    pendingProductMetadataRef.current = {
+      productId,
+      productName,
+      productImage,
+      productPrice,
+      shopId,
+      shopName,
+    };
+  }, [isOpen, productId, productName, productImage, productPrice, shopId, shopName]);
+
+  // Auto send product message (including first-time conversations)
   useEffect(() => {
     if (
       !isOpen ||
-      !productId ||
       !currentConversation?._id ||
+      !pendingProductMetadataRef.current ||
       hasSentProductMessageRef.current ||
-      !user?._id ||
-      isNewlyCreatedConversationRef.current // Don't send if this is a newly created conversation
+      !user?._id
     ) {
       return;
     }
 
-    // Wait a bit for conversation to be fully ready
+    // Ensure the conversation belongs to the current shop when shopId is provided
+    if (
+      shopId &&
+      (!currentConversation.metadata?.shopId ||
+        currentConversation.metadata.shopId !== shopId)
+    ) {
+      return;
+    }
+
+    const channel = (currentConversation.channel as "admin" | "shop" | "ai") || "shop";
+    let socketClient;
+
+    switch (channel) {
+      case "admin":
+        socketClient = socketClients.adminChat;
+        break;
+      case "shop":
+        socketClient = socketClients.shopChat;
+        break;
+      case "ai":
+        socketClient = socketClients.aiChat;
+        break;
+      default:
+        socketClient = socketClients.shopChat;
+    }
+
+    if (!socketClient) {
+      console.error("Socket client not available");
+      return;
+    }
+
     const timer = setTimeout(() => {
-      // Check if we should send (only if not already sent in this session)
       if (hasSentProductMessageRef.current) {
-        return;
-      }
-
-      const channel = (currentConversation.channel as "admin" | "shop" | "ai") || "shop";
-      let socketClient;
-
-      switch (channel) {
-        case "admin":
-          socketClient = socketClients.adminChat;
-          break;
-        case "shop":
-          socketClient = socketClients.shopChat;
-          break;
-        case "ai":
-          socketClient = socketClients.aiChat;
-          break;
-        default:
-          socketClient = socketClients.shopChat;
-      }
-
-      if (!socketClient) {
-        console.error("Socket client not available");
         return;
       }
 
@@ -306,36 +314,31 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
         return;
       }
 
-      // Send product message with metadata (always send when opening from DetailProduct)
-      const productMetadata: ProductMetadata = {
-        productId,
-        productName,
-        productImage,
-        productPrice,
-        shopId,
-        shopName,
-      };
+      const metadataToSend = pendingProductMetadataRef.current;
+      if (!metadataToSend) {
+        return;
+      }
 
       socket.emit(SOCKET_EVENTS.CHAT_MESSAGE_SEND, {
         conversationId: currentConversation._id,
-        message: productName ? `Tôi đang quan tâm đến sản phẩm: ${productName}` : "Tôi đang quan tâm đến sản phẩm này",
-        type: "product", // Set message type to "product"
-        metadata: productMetadata, // Always send product metadata when opening from DetailProduct
+        message: metadataToSend.productName
+          ? `Tôi đang quan tâm đến sản phẩm: ${metadataToSend.productName}`
+          : "Tôi đang quan tâm đến sản phẩm này",
+        type: "product",
+        metadata: metadataToSend,
       });
 
       hasSentProductMessageRef.current = true;
-    }, 500);
+      pendingProductMetadataRef.current = null;
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [
     isOpen,
-    productId, // Key: only send when productId exists (opening from DetailProduct)
-    productName,
-    productImage,
-    productPrice,
     shopId,
-    shopName,
     currentConversation?._id,
+    currentConversation?.channel,
+    currentConversation?.metadata?.shopId,
     user?._id,
   ]);
 
@@ -345,8 +348,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
       // Reset flags when modal closes to allow reloading when reopening
       hasCreatedConversationRef.current = false;
       hasSentProductMessageRef.current = false;
-      conversationIdForProductRef.current = null;
-      isNewlyCreatedConversationRef.current = false;
+      pendingProductMetadataRef.current = null;
       setIsMinimized(false);
       setAttachments([]);
       setMessage("");

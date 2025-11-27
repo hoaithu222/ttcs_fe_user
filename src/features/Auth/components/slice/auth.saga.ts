@@ -20,6 +20,7 @@ import {
 import { toastUtils } from "@/shared/utils/toast.utils";
 import { resetShopState } from "@/features/Shop/slice/shop.slice";
 import { resetProfileState } from "@/features/Profile/slice/profile.slice";
+import { resetChatState } from "@/app/store/slices/chat/chat.slice";
 
 // Login saga
 function* handleLogin(action: PayloadAction<LoginRequest>): Generator<any, void, any> {
@@ -35,6 +36,8 @@ function* handleLogin(action: PayloadAction<LoginRequest>): Generator<any, void,
         localStorage.setItem("refreshToken", response.data.user.refreshToken);
       }
 
+      // Reset chat data to avoid leaking conversations across accounts
+      yield put(resetChatState());
       yield put(loginSuccess(response.data.user));
       toastUtils.success("Đăng nhập thành công!");
     } else {
@@ -130,9 +133,10 @@ function* handleLogout(): Generator<any, void, any> {
     localStorage.removeItem("persist:auth");
     console.log("Redux persist data removed");
 
-    // Reset shop state và profile state khi logout
+    // Reset feature states that should not persist between accounts
     yield put(resetShopState());
     yield put(resetProfileState());
+    yield put(resetChatState());
 
     yield put(logoutSuccess());
     toastUtils.success("Đăng xuất thành công");
@@ -146,9 +150,10 @@ function* handleLogout(): Generator<any, void, any> {
     localStorage.removeItem("persist:root");
     localStorage.removeItem("persist:auth");
 
-    // Reset shop state và profile state khi logout
+    // Reset feature states that should not persist between accounts
     yield put(resetShopState());
     yield put(resetProfileState());
+    yield put(resetChatState());
 
     yield put(logoutSuccess());
     toastUtils.success("Đăng xuất thành công");
