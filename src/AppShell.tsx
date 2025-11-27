@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { Outlet } from "react-router-dom";
 import { lazy } from "react";
 import ToastContainer from "./widgets/toast/ToastContainer";
+import ScrollToTop from "./shared/components/ScrollToTop";
 
 const FloatingChatBubble = lazy(() => import("./widgets/floating-chat/FloatingChatBubble"));
 
@@ -24,6 +25,7 @@ const AppShell = () => {
     >
       {/* Outlet se được render layout tương ứng với router hiện tại (main,login,extension) */}
       <div className="flex overflow-hidden flex-col flex-1">
+        <ScrollToTop />
         <Outlet />
       </div>
       {/* Các Modal,Toast,Dialog,Tooltip,Popover, sẽ được render ở đây */}
