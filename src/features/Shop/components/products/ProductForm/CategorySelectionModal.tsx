@@ -4,6 +4,7 @@ import { userCategoriesApi } from "@/core/api/categories";
 import Button from "@/foundation/components/buttons/Button";
 import Modal from "@/foundation/components/modal/Modal";
 import Loading from "@/foundation/components/loading/Loading";
+import ScrollView from "@/foundation/components/scroll/ScrollView";
 
 interface CategorySelectionModalProps {
   open: boolean;
@@ -218,11 +219,8 @@ export default function CategorySelectionModal({
 
   const customTitle = (
     <div className="flex gap-3 items-center">
-      <div
-        className="flex justify-center items-center w-10 h-10 rounded-lg"
-        style={{ backgroundColor: "var(--color-primary-10)" }}
-      >
-        <FolderTree className="w-5 h-5" style={{ color: "var(--color-primary-6)" }} />
+      <div className="flex justify-center items-center w-8 h-8 rounded-lg bg-background-1">
+        <FolderTree className="w-5 h-5 text-primary-6" />
       </div>
       <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-6 to-primary-8">
         Chọn ngành hàng
@@ -231,7 +229,7 @@ export default function CategorySelectionModal({
   );
 
   const footer = (
-    <div className="flex gap-4 justify-end">
+    <div className="flex gap-4 justify-end p-4">
       <Button type="button" color="gray" variant="outline" size="lg" onClick={onClose}>
         Hủy
       </Button>
@@ -263,36 +261,26 @@ export default function CategorySelectionModal({
       padding="p-0"
       headerPadding="p-6 border-b"
     >
+      <ScrollView className="h-[500px]" hideScrollbarY={false}>
       <div className="flex flex-col h-full">
         {/* Content */}
-        <div className="flex overflow-hidden flex-col flex-1 p-6">
+        <div className="flex overflow-hidden flex-col flex-1 p-4">
           {/* Search */}
-          <div className="flex-shrink-0 mb-6">
-            <div
-              className="flex gap-3 items-center px-4 py-3 rounded-lg border transition-colors focus-within:border-primary-6"
-              style={{
-                backgroundColor: "var(--color-background-input)",
-                borderColor: "var(--color-border-1)",
-              }}
-            >
-              <Search
-                className="flex-shrink-0 w-5 h-5"
-                style={{ color: "var(--color-neutral-4)" }}
-              />
+          <div className="flex-shrink-0 mb-3">
+            <div className="flex gap-3 items-center px-4 py-3 rounded-lg border border-border-1 bg-background-input transition-colors focus-within:border-primary-6">
+              <Search className="flex-shrink-0 w-5 h-5 text-neutral-4" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm kiếm ngành hàng hoặc danh mục con..."
-                className="flex-1 bg-transparent outline-none"
-                style={{ color: "var(--color-neutral-7)" }}
+                className="flex-1 bg-transparent outline-none text-neutral-7"
               />
               {searchTerm && (
                 <button
                   type="button"
                   onClick={() => setSearchTerm("")}
-                  className="flex-shrink-0 p-1 rounded hover:bg-neutral-3 transition-colors"
-                  style={{ color: "var(--color-neutral-5)" }}
+                  className="flex-shrink-0 p-1 rounded text-neutral-5 hover:bg-neutral-3 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -308,177 +296,100 @@ export default function CategorySelectionModal({
           </div>
 
           {/* Category Selection */}
-          <div
-            className="flex overflow-hidden flex-1 min-h-0 rounded-lg border"
-            style={{
-              backgroundColor: "var(--color-background-2)",
-              borderColor: "var(--color-border-1)",
-            }}
-          >
+          <div className="flex overflow-hidden flex-1 min-h-0 rounded-lg border border-border-1 bg-background-2">
             {/* Categories List */}
-            <div
-              className="overflow-y-auto flex-shrink-0 w-1/2 border-r"
-              style={{
-                borderColor: "var(--color-border-1)",
-                backgroundColor: "var(--color-background-1)",
-                maxHeight: "400px",
-              }}
-            >
-              {loadingCategories ? (
-                <div
-                  className="flex justify-center items-center p-8"
-                  style={{ color: "var(--color-neutral-5)" }}
-                >
-                  <Loading layout="centered" message="Đang tải danh mục..." />
-                </div>
-              ) : filteredCategories.length > 0 ? (
-                filteredCategories.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex items-center justify-between p-4 cursor-pointer transition-all border-l-4 ${
-                      selectedCategory?.id === item.id ? "font-medium" : "border-transparent"
-                    }`}
-                    style={{
-                      backgroundColor:
-                        selectedCategory?.id === item.id
-                          ? "var(--color-primary-10)"
-                          : "transparent",
-                      borderLeftColor:
-                        selectedCategory?.id === item.id ? "var(--color-primary-6)" : "transparent",
-                      color:
-                        selectedCategory?.id === item.id
-                          ? "var(--color-primary-7)"
-                          : "var(--color-neutral-7)",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (selectedCategory?.id !== item.id) {
-                        e.currentTarget.style.backgroundColor = "var(--color-background-2)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (selectedCategory?.id !== item.id) {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }
-                    }}
-                    onClick={() => handleCategorySelect(item)}
-                  >
-                    <span className="text-base">{item.name}</span>
-                    <ChevronRight
-                      className="flex-shrink-0 w-5 h-5"
-                      style={{ color: "var(--color-neutral-4)" }}
-                    />
+            <div className="flex-shrink-0 w-1/2 border-r border-border-1 bg-background-1">
+              <ScrollView className="max-h-[320px]" hideScrollbarY={false}>
+                {loadingCategories ? (
+                  <div className="flex justify-center items-center p-8 text-neutral-5">
+                    <Loading layout="centered" message="Đang tải danh mục..." />
                   </div>
-                ))
-              ) : (
-                <div
-                  className="flex justify-center items-center p-8"
-                  style={{ color: "var(--color-neutral-5)" }}
-                >
-                  <p>Không tìm thấy ngành hàng</p>
-                </div>
-              )}
+                ) : filteredCategories.length > 0 ? (
+                  filteredCategories.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex items-center justify-between p-4 cursor-pointer transition-all border-l-4 ${
+                        selectedCategory?.id === item.id ? "font-medium border-primary-6" : "border-transparent"
+                      } ${selectedCategory?.id === item.id ? "bg-background-3" : "hover:bg-background-2"}`}
+                      onClick={() => handleCategorySelect(item)}
+                    >
+                      <span
+                        className={`text-base ${
+                          selectedCategory?.id === item.id ? "text-primary-7" : "text-neutral-7"
+                        }`}
+                      >
+                        {item.name}
+                      </span>
+                      <ChevronRight className="flex-shrink-0 w-5 h-5 text-neutral-4" />
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex justify-center items-center p-8 text-neutral-5">
+                    <p>Không tìm thấy ngành hàng</p>
+                  </div>
+                )}
+              </ScrollView>
             </div>
 
             {/* Subcategories List */}
-            <div
-              className="overflow-y-auto flex-shrink-0 w-1/2"
-              style={{
-                backgroundColor: "var(--color-background-1)",
-                maxHeight: "400px",
-              }}
-            >
-              {initializing ? (
-                <div
-                  className="flex justify-center items-center p-8"
-                  style={{ color: "var(--color-neutral-5)" }}
-                >
-                  <Loading layout="centered" message="Đang tải..." />
-                </div>
-              ) : loadingSubCategories ? (
-                <div
-                  className="flex justify-center items-center p-8"
-                  style={{ color: "var(--color-neutral-5)" }}
-                >
-                  <p className="text-center">Đang tải danh mục con...</p>
-                </div>
-              ) : (searchTerm ? filteredSubCategories : subCategory).length > 0 ? (
-                (searchTerm ? filteredSubCategories : subCategory).map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex items-center justify-between p-4 cursor-pointer transition-all border-l-4 ${
-                      selectedSubCategory?.id === item.id ? "font-medium" : "border-transparent"
-                    }`}
-                    style={{
-                      backgroundColor:
-                        selectedSubCategory?.id === item.id
-                          ? "var(--color-primary-10)"
-                          : "transparent",
-                      borderLeftColor:
-                        selectedSubCategory?.id === item.id
-                          ? "var(--color-primary-6)"
-                          : "transparent",
-                      color:
-                        selectedSubCategory?.id === item.id
-                          ? "var(--color-primary-7)"
-                          : "var(--color-neutral-7)",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (selectedSubCategory?.id !== item.id) {
-                        e.currentTarget.style.backgroundColor = "var(--color-background-2)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (selectedSubCategory?.id !== item.id) {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }
-                    }}
-                    onClick={() => handleSubCategorySelect(item)}
-                  >
-                    <span className="text-base">{item.name}</span>
-                    {selectedSubCategory?.id === item.id && (
-                      <CheckCircle2
-                        className="flex-shrink-0 w-5 h-5"
-                        style={{ color: "var(--color-primary-6)" }}
-                      />
-                    )}
+            <div className="flex-shrink-0 w-1/2 bg-background-2">
+              <ScrollView className="max-h-[320px]" hideScrollbarY={false}>
+                {initializing ? (
+                  <div className="flex justify-center items-center p-8 text-neutral-5">
+                    <Loading layout="centered" message="Đang tải..." />
                   </div>
-                ))
-              ) : (
-                <div
-                  className="flex justify-center items-center p-8"
-                  style={{ color: "var(--color-neutral-5)" }}
-                >
-                  <p className="text-center">
-                    {searchTerm
-                      ? "Không tìm thấy danh mục con phù hợp"
-                      : selectedCategory
-                        ? "Ngành hàng này chưa có danh mục con"
-                        : "Vui lòng chọn ngành hàng"}
-                  </p>
-                </div>
-              )}
+                ) : loadingSubCategories ? (
+                  <div className="flex justify-center items-center p-8 text-neutral-5">
+                    <p className="text-center">Đang tải danh mục con...</p>
+                  </div>
+                ) : (searchTerm ? filteredSubCategories : subCategory).length > 0 ? (
+                  (searchTerm ? filteredSubCategories : subCategory).map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex items-center justify-between p-4 cursor-pointer transition-all border-l-4 ${
+                        selectedSubCategory?.id === item.id
+                          ? "font-medium border-primary-6 bg-background-1"
+                          : "border-transparent hover:bg-background-2"
+                      }`}
+                      onClick={() => handleSubCategorySelect(item)}
+                    >
+                      <span
+                        className={`text-base ${
+                          selectedSubCategory?.id === item.id
+                            ? "text-primary-7"
+                            : "text-neutral-7"
+                        }`}
+                      >
+                        {item.name}
+                      </span>
+                      {selectedSubCategory?.id === item.id && (
+                        <CheckCircle2 className="flex-shrink-0 w-5 h-5 text-primary-6" />
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex justify-center items-center p-8 text-neutral-5">
+                    <p className="text-center">
+                      {searchTerm
+                        ? "Không tìm thấy danh mục con phù hợp"
+                        : selectedCategory
+                          ? "Ngành hàng này chưa có danh mục con"
+                          : "Vui lòng chọn ngành hàng"}
+                    </p>
+                  </div>
+                )}
+              </ScrollView>
             </div>
           </div>
 
           {/* Selected Path Info */}
-          <div
-            className="flex-shrink-0 p-4 mt-6 rounded-lg border"
-            style={{
-              backgroundColor: "var(--color-primary-10)",
-              borderColor: "var(--color-primary-6)",
-            }}
-          >
+          <div className="flex-shrink-0 p-4 mt-2 rounded-lg border border-primary-6 bg-background-1">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-sm font-medium" style={{ color: "var(--color-neutral-6)" }}>
-                  Đã chọn:
-                </p>
-                <p
-                  className="mt-1 text-base font-semibold"
-                  style={{ color: "var(--color-primary-7)" }}
-                >
+                <p className="text-sm font-medium text-neutral-6">Đã chọn:</p>
+                <p className="mt-1 text-base font-semibold text-primary-7">
                   {getSelectedPath() === "Chưa chọn" ? (
-                    <span style={{ color: "var(--color-neutral-5)" }}>Chưa chọn ngành hàng</span>
+                    <span className="text-neutral-5">Chưa chọn ngành hàng</span>
                   ) : (
                     getSelectedPath()
                   )}
@@ -488,6 +399,7 @@ export default function CategorySelectionModal({
           </div>
         </div>
       </div>
+      </ScrollView>
     </Modal>
   );
 }

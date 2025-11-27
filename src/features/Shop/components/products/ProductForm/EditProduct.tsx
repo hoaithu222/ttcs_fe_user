@@ -12,10 +12,26 @@ import SelectAttribute from "./SelectAttribute";
 import AddAttributeTypeModal from "./AddAttributeTypeModal";
 import { ProductVariantsManager } from "@/features/Shop/components/products/ProductVariants";
 import type { ProductVariant } from "@/features/Shop/components/products/ProductVariants";
+import type { UploadedImageAsset } from "@/features/Shop/components/products/types";
+import { uploadAndRegisterImage } from "@/features/Shop/components/products/utils/imageUpload";
+
+const normalizeImageAsset = (image: any): UploadedImageAsset | null => {
+  if (!image) return null;
+  if (typeof image === "string") {
+    return { url: image };
+  }
+  if (typeof image === "object") {
+    return {
+      _id: image._id || image.id,
+      url: image.url || image.secure_url || "",
+      publicId: image.publicId,
+    };
+  }
+  return null;
+};
 import { useSelector, useDispatch } from "react-redux";
 import { ProductService } from "@/features/Shop/api";
 import { userCategoriesApi } from "@/core/api/categories";
-import { imagesApi } from "@/core/api/images";
 import { addToast } from "@/app/store/slices/toast";
 import Loading from "@/foundation/components/loading/Loading";
 import { useNavigate, useParams } from "react-router-dom";
@@ -39,7 +55,8 @@ export default function EditProduct() {
     name: "",
     description: "",
     base_price: 0,
-    product_images: [] as string[],
+    discount: 0,
+    product_images: [] as UploadedImageAsset[],
     product_attributes: [] as any[],
     attributes: [] as any[],
     product_variants: [] as any[],
@@ -57,7 +74,7 @@ export default function EditProduct() {
   const [attributes, setAttributes] = useState<any[]>([]);
   const [selectedPath, setSelectedPath] = useState("");
   const [loading, setLoading] = useState(false);
-  const [productImages, setProductImages] = useState<{ url: string; publicId?: string }[]>([]);
+  const [productImages, setProductImages] = useState<UploadedImageAsset[]>([]);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -71,16 +88,10 @@ export default function EditProduct() {
 
           if (product) {
             const productAttrs = (product as any).attributes || [];
-            // Handle images - can be ObjectIds or populated objects
-            const images = Array.isArray(product.images)
-              ? product.images.map((img: any) => {
-                  // If populated, use url directly
-                  if (typeof img === "object" && img.url) {
-                    return img.url;
-                  }
-                  // If ObjectId string, return as is (will be handled by backend)
-                  return typeof img === "string" ? img : img._id || img;
-                })
+            const normalizedImages = Array.isArray(product.images)
+              ? (product.images
+                  .map((img: any) => normalizeImageAsset(img))
+                  .filter(Boolean) as UploadedImageAsset[])
               : [];
 
             // Convert variants to ProductVariant format
@@ -89,11 +100,7 @@ export default function EditProduct() {
               attributes: v.attributes || {},
               price: v.price || product.price || 0,
               stock: v.stock || 0,
-              image: v.image
-                ? typeof v.image === "string"
-                  ? { url: v.image }
-                  : { url: v.image.url || v.image }
-                : null,
+              image: normalizeImageAsset(v.image),
               sku: v.sku || undefined,
             }));
 
@@ -105,7 +112,8 @@ export default function EditProduct() {
               name: product.name || "",
               description: product.description || "",
               base_price: product.price || 0,
-              product_images: images,
+              discount: product.discount || 0,
+              product_images: normalizedImages,
               product_attributes: productAttrs,
               attributes: productAttrs,
               product_variants: product.variants || [],
@@ -119,16 +127,7 @@ export default function EditProduct() {
             });
 
             // Set product images - convert URLs to image objects
-            if (images.length > 0) {
-              setProductImages(
-                images.map((img: any) => {
-                  if (typeof img === "string") {
-                    return { url: img };
-                  }
-                  return { url: img.url || img._id, publicId: img.publicId };
-                })
-              );
-            }
+            setProductImages(normalizedImages);
 
             // Fetch category info if subcategory_id exists
             if (product.subCategoryId) {
@@ -189,6 +188,24 @@ export default function EditProduct() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+
+    if (name === "base_price" || name === "stock_quantity" || name === "weight") {
+      setData((prev) => ({
+        ...prev,
+        [name]: Number(value) || 0,
+      }));
+      return;
+    }
+
+    if (name === "discount") {
+      const numericValue = Math.min(100, Math.max(0, Number(value) || 0));
+      setData((prev) => ({
+        ...prev,
+        discount: numericValue,
+      }));
+      return;
+    }
+
     setData((prev) => ({
       ...prev,
       [name]: value,
@@ -203,20 +220,27 @@ export default function EditProduct() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Prepare variants data
       const variantsData = data.variants.map((variant) => ({
         attributes: variant.attributes,
         price: variant.price,
         stock: variant.stock,
-        image: variant.image?.url || null,
+        image:
+          typeof variant.image === "string"
+            ? variant.image
+            : variant.image?._id || variant.image?.url || null,
         sku: variant.sku || undefined,
       }));
+
+      const imageRefs = data.product_images
+        .map((img) => img?._id || img?.url)
+        .filter((value): value is string => Boolean(value));
 
       const updateData = {
         name: data.name,
         description: data.description,
         price: data.base_price,
-        images: data.product_images,
+        images: imageRefs,
+        discount: data.discount,
         stock: data.stock_quantity,
         weight: data.weight,
         isActive: data.is_active,
@@ -249,13 +273,9 @@ export default function EditProduct() {
     setLoading(false);
   };
 
-  const handleImageUpload = async (file: File): Promise<{ url: string; publicId?: string }> => {
+  const handleImageUpload = async (file: File): Promise<UploadedImageAsset> => {
     try {
-      const result = await imagesApi.uploadImage(file);
-      return {
-        url: result.url,
-        publicId: result.publicId,
-      };
+      return await uploadAndRegisterImage(file);
     } catch (error) {
       dispatch(
         addToast({
@@ -331,10 +351,11 @@ export default function EditProduct() {
                 label="Upload nhiều ảnh sản phẩm (tối đa 10 ảnh)"
                 value={productImages}
                 onChange={(images) => {
-                  setProductImages(images || []);
+                  const normalized = images || [];
+                  setProductImages(normalized);
                   setData((prev) => ({
                     ...prev,
-                    product_images: (images || []).map((img) => img.url),
+                    product_images: normalized,
                   }));
                 }}
                 onUpload={handleImageUpload}
@@ -509,7 +530,7 @@ export default function EditProduct() {
         <Section>
           <SectionTitle>Thông tin bán hàng</SectionTitle>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Input
                 name="base_price"
                 label="Giá sản phẩm (VNĐ)"
@@ -538,6 +559,17 @@ export default function EditProduct() {
                 value={data.weight || ""}
                 onChange={handleChange}
                 min={0}
+              />
+              <Input
+                name="discount"
+                label="Khuyến mãi (%)"
+                type="number"
+                placeholder="Ví dụ: 10"
+                value={data.discount}
+                onChange={handleChange}
+                min={0}
+                max={100}
+                description="Nhập phần trăm giảm giá (0-100)."
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

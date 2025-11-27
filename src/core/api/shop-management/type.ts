@@ -158,10 +158,12 @@ export interface CreateShopRequest {
 
 export interface UpdateShopRequest extends Partial<CreateShopRequest> {}
 
+export type ProductImageInput = string | { _id?: string; url: string; publicId?: string };
+
 export interface CreateProductRequest {
   name: string;
   description?: string;
-  images: string[];
+  images: ProductImageInput[];
   subCategoryId: string;
   categoryId: string;
   price: number;

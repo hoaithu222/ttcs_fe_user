@@ -18,11 +18,12 @@ export interface Image {
 
 // Request types
 export interface CreateImageRequest {
-  filename: string;
-  originalName: string;
-  mimeType: string;
-  size: number;
   url: string;
+  publicId: string;
+  filename?: string;
+  originalName?: string;
+  mimeType?: string;
+  size?: number;
   thumbnailUrl?: string;
   alt?: string;
   caption?: string;

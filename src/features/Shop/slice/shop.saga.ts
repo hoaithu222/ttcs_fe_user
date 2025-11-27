@@ -46,6 +46,8 @@ type UpdateOrderStatusAction = ReturnType<typeof updateOrderStatusStart>;
 type CreateProductAction = ReturnType<typeof createProductStart>;
 type DeleteProductAction = ReturnType<typeof deleteProductStart>;
 
+const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+
 // Helper function để lấy error message
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error && typeof error === "object") {
@@ -54,6 +56,46 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   }
   return fallback;
 };
+
+const isObjectId = (value: string): boolean => objectIdRegex.test(value);
+
+function* resolveImageReference(image: any): Generator<any, string | undefined, any> {
+  if (!image) {
+    return undefined;
+  }
+
+  if (typeof image === "string") {
+    if (isObjectId(image)) {
+      return image;
+    }
+    return undefined;
+  }
+
+  if (typeof image === "object") {
+    if (typeof image._id === "string" && isObjectId(image._id)) {
+      return image._id;
+    }
+
+    if (typeof image.url === "string" && isObjectId(image.url)) {
+      return image.url;
+    }
+
+    if (image.url && image.publicId) {
+      try {
+        const response: any = yield call([imagesApi, imagesApi.createImage], {
+          url: image.url,
+          publicId: image.publicId,
+        });
+        return response?.data?._id;
+      } catch (error) {
+        console.error("Failed to persist image reference:", error);
+        return undefined;
+      }
+    }
+  }
+
+  return undefined;
+}
 
 // Workers
 function* fetchOwnShopWorker(action: FetchOwnShopAction): Generator {
@@ -217,67 +259,29 @@ function* createProductWorker(action: CreateProductAction): Generator {
     const payload = action.payload;
     let productData = { ...payload };
 
-    // Upload images and create Image records if images are File objects or blob URLs
     if (payload.images && Array.isArray(payload.images)) {
-      const imageIds: string[] = [];
-
+      const resolvedImageIds: string[] = [];
       for (const imageItem of payload.images) {
-        // If it's already an ObjectId string, use it directly
-        if (typeof imageItem === "string" && imageItem.match(/^[0-9a-fA-F]{24}$/)) {
-          imageIds.push(imageItem);
-          continue;
-        }
-
-        // If it's a blob URL or File object, we need to upload it
-        // Note: This assumes images were already uploaded via handleImageUpload
-        // and we have the URL. We need to create Image record from URL.
-        if (typeof imageItem === "string") {
-          // If it's a URL (not ObjectId), create Image record
-          try {
-            const imageResponse: any = yield call([imagesApi, imagesApi.createImage], {
-              filename: `product-image-${Date.now()}.jpg`,
-              originalName: `product-image-${Date.now()}.jpg`,
-              mimeType: "image/jpeg",
-              size: 0,
-              url: imageItem,
-            });
-            if (imageResponse?.data?._id) {
-              imageIds.push(imageResponse.data._id);
-            }
-          } catch (err) {
-            console.error("Failed to create image record:", err);
-            // Continue with other images
-          }
+        const imageId: string | undefined = yield* resolveImageReference(imageItem);
+        if (imageId) {
+          resolvedImageIds.push(imageId);
         }
       }
 
-      if (imageIds.length > 0) {
-        productData.images = imageIds;
+      if (resolvedImageIds.length > 0) {
+        productData.images = resolvedImageIds;
       }
     }
 
-    // Upload variant images if they exist
     if (productData.variants && Array.isArray(productData.variants)) {
       for (const variant of productData.variants) {
-        if (
-          variant.image &&
-          typeof variant.image === "string" &&
-          !variant.image.match(/^[0-9a-fA-F]{24}$/)
-        ) {
-          try {
-            const imageResponse: any = yield call([imagesApi, imagesApi.createImage], {
-              filename: `variant-image-${Date.now()}.jpg`,
-              originalName: `variant-image-${Date.now()}.jpg`,
-              mimeType: "image/jpeg",
-              size: 0,
-              url: variant.image,
-            });
-            if (imageResponse?.data?._id) {
-              variant.image = imageResponse.data._id;
-            }
-          } catch (err) {
-            console.error("Failed to create variant image record:", err);
-          }
+        const resolvedVariantImage: string | undefined = yield* resolveImageReference(
+          variant.image
+        );
+        if (resolvedVariantImage) {
+          variant.image = resolvedVariantImage;
+        } else if (typeof variant.image === "object" && variant.image?.url) {
+          variant.image = variant.image.url;
         }
       }
     }

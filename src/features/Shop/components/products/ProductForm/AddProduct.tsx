@@ -13,10 +13,11 @@ import SelectAttribute from "./SelectAttribute";
 import AddAttributeTypeModal from "./AddAttributeTypeModal";
 import { ProductVariantsManager } from "@/features/Shop/components/products/ProductVariants";
 import type { ProductVariant } from "@/features/Shop/components/products/ProductVariants";
+import type { UploadedImageAsset } from "@/features/Shop/components/products/types";
+import { uploadAndRegisterImage } from "@/features/Shop/components/products/utils/imageUpload";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { createProductStart } from "@/features/Shop/slice/shop.slice";
-import { imagesApi } from "@/core/api/images";
 import { addToast } from "@/app/store/slices/toast";
 import { selectShopInfo } from "@/features/Shop/slice/shop.selector";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
@@ -71,27 +72,49 @@ const mapVariantAttributes = (attributeList: any[] | undefined | null): VariantA
     .filter((attr): attr is VariantAttribute => !!attr);
 };
 
-export default function AddProduct() {
+type ProductFormState = {
+  shopId: string;
+  subCategoryId: string;
+  categoryId: string;
+  name: string;
+  description: string;
+  price: number;
+  discount: number;
+  images: UploadedImageAsset[];
+  stock: number;
+  weight: number;
+  isActive: boolean;
+  warrantyInfo: string;
+  dimensions: string;
+  metaKeywords: string;
+  attributes: any[];
+  product_attributes: any[];
+  variants: ProductVariant[];
+};
+
+ export default function AddProduct() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const shopInfo = useSelector(selectShopInfo);
 
-  const [data, setData] = useState({
+  const [data, setData] = useState<ProductFormState>({
+    shopId: shopInfo?._id || "",
     subCategoryId: "",
-    categoryId: "", // Parent category ID for fetching variant attributes
+    categoryId: "",
     name: "",
     description: "",
     price: 0,
-    images: [] as string[],
+    discount: 0,
+    images: [],
     stock: 0,
     weight: 0,
     isActive: true,
     warrantyInfo: "",
     dimensions: "",
     metaKeywords: "",
-    attributes: [] as any[],
-    product_attributes: [] as any[],
-    variants: [] as ProductVariant[],
+    attributes: [],
+    product_attributes: [],
+    variants: [],
   });
   const [openCategory, setOpenCategory] = useState(false);
   const [openAddAttributeType, setOpenAddAttributeType] = useState(false);
@@ -99,7 +122,7 @@ export default function AddProduct() {
   const [variantAttributes, setVariantAttributes] = useState<VariantAttribute[]>([]);
   const [selectedPath, setSelectedPath] = useState("");
   const [loading, setLoading] = useState(false);
-  const [productImages, setProductImages] = useState<{ url: string; publicId?: string }[]>([]);
+  const [productImages, setProductImages] = useState<UploadedImageAsset[]>([]);
   const [aiSpecs, setAiSpecs] = useState({ ram: "", chip: "" });
   const [aiState, setAiState] = useState({
     isGenerating: false,
@@ -192,12 +215,22 @@ export default function AddProduct() {
         ...prev,
         [name]: Number(value) || 0,
       }));
-    } else {
+      return;
+    }
+
+    if (name === "discount") {
+      const numericValue = Math.min(100, Math.max(0, Number(value) || 0));
       setData((prev) => ({
         ...prev,
-        [name]: value,
+        discount: numericValue,
       }));
+      return;
     }
+
+    setData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleClose = () => {
@@ -237,6 +270,13 @@ export default function AddProduct() {
   useEffect(() => {
     if (!shopInfo) {
       navigate(NAVIGATION_CONFIG.shop.path);
+      return;
+    }
+    if (shopInfo._id) {
+      setData((prev) => ({
+        ...prev,
+        shopId: shopInfo._id,
+      }));
     }
   }, [shopInfo, navigate]);
 
@@ -265,32 +305,58 @@ export default function AddProduct() {
       return;
     }
 
+    if (!data.shopId) {
+      dispatch(addToast({ type: "error", message: "Không tìm thấy thông tin cửa hàng" }));
+      return;
+    }
+
+    if (data.images.length === 0) {
+      dispatch(addToast({ type: "error", message: "Vui lòng tải lên ít nhất một ảnh sản phẩm" }));
+      return;
+    }
+
+    if (!data.warrantyInfo.trim()) {
+      dispatch(addToast({ type: "error", message: "Vui lòng nhập thông tin bảo hành" }));
+      return;
+    }
+
+    if (!data.dimensions.trim()) {
+      dispatch(addToast({ type: "error", message: "Vui lòng nhập kích thước sản phẩm" }));
+      return;
+    }
+
+    if (!data.metaKeywords.trim()) {
+      dispatch(addToast({ type: "error", message: "Vui lòng nhập từ khóa tìm kiếm" }));
+      return;
+    }
+
     setLoading(true);
     try {
-      // Prepare variants data - keep image URLs, saga will handle conversion
       const variantsData = data.variants.map((variant) => ({
         attributes: variant.attributes,
         price: variant.price,
         stock: variant.stock,
-        image: variant.image?.url || null,
+        image: variant.image ? { ...variant.image } : null,
         sku: variant.sku || undefined,
       }));
 
       dispatch(
         createProductStart({
           ...data,
+          shopId: data.shopId,
           categoryId: data.categoryId,
           variants: variantsData.length > 0 ? variantsData : undefined,
         })
       );
 
-      // Reset form
       setData({
+        shopId: shopInfo._id,
         subCategoryId: "",
         categoryId: "",
         name: "",
         description: "",
         price: 0,
+        discount: 0,
         images: [],
         stock: 0,
         weight: 0,
@@ -321,13 +387,9 @@ export default function AddProduct() {
     }
   };
 
-  const handleImageUpload = async (file: File): Promise<{ url: string; publicId?: string }> => {
+  const handleImageUpload = async (file: File): Promise<UploadedImageAsset> => {
     try {
-      const result = await imagesApi.uploadImage(file);
-      return {
-        url: result.url,
-        publicId: result.publicId,
-      };
+      return await uploadAndRegisterImage(file);
     } catch (error) {
       dispatch(
         addToast({
@@ -502,10 +564,11 @@ export default function AddProduct() {
                 label="Upload nhiều ảnh sản phẩm (tối đa 10 ảnh)"
                 value={productImages}
                 onChange={(images) => {
-                  setProductImages(images || []);
+                  const normalized = images || [];
+                  setProductImages(normalized);
                   setData((prev) => ({
                     ...prev,
-                    images: (images || []).map((img) => img.url),
+                    images: normalized,
                   }));
                 }}
                 onUpload={handleImageUpload}
@@ -637,7 +700,7 @@ export default function AddProduct() {
         <Section>
           <SectionTitle>Thông tin bán hàng</SectionTitle>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Input
                 name="price"
                 label="Giá sản phẩm (VNĐ)"
@@ -666,6 +729,17 @@ export default function AddProduct() {
                 value={data.weight || ""}
                 onChange={handleChange}
                 min={0}
+              />
+              <Input
+                name="discount"
+                label="Khuyến mãi (%)"
+                type="number"
+                placeholder="Ví dụ: 10"
+                value={data.discount}
+                onChange={handleChange}
+                min={0}
+                max={100}
+                description="Nhập phần trăm giảm giá (0-100)."
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -7,6 +7,7 @@ import Select from "@/foundation/components/input/Select";
 import Checkbox from "@/foundation/components/input/Checkbox";
 import { userAttributeTypesApi } from "@/core/api/attribute-type";
 import { toastUtils } from "@/shared/utils/toast.utils";
+import type { UploadedImageAsset } from "../types";
 
 const SKU_PREFIX = "SSKU";
 
@@ -63,7 +64,7 @@ export interface ProductVariant {
   attributes: Record<string, string>; // { "Màu sắc": "Đỏ", "Kích thước": "M" }
   price: number;
   stock: number;
-  image?: { url: string; publicId?: string } | null;
+  image?: UploadedImageAsset | null;
   sku?: string;
 }
 
@@ -79,7 +80,7 @@ interface ProductVariantsManagerProps {
   onChange: (variants: ProductVariant[]) => void;
   basePrice?: number;
   baseStock?: number;
-  onImageUpload?: (file: File) => Promise<{ url: string; publicId?: string }>;
+  onImageUpload?: (file: File) => Promise<UploadedImageAsset>;
   categoryId?: string; // Category ID to fetch variant attributes
 }
 
