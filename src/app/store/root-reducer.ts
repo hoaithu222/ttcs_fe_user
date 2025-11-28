@@ -13,6 +13,8 @@ import paymentReducer from "@/features/Payment/slice/payment.slice";
 import notificationReducer from "./slices/notification/notification.slice";
 import chatReducer from "./slices/chat/chat.slice";
 import aiComparisonReducer from "@/features/Compare/slice/aiComparison.slice";
+import { settingReducer } from "./slices/setting/setting.slice";
+import settingUIReducer from "./slices/setting/settingSlice";
 import { AppReducerType } from "./types";
 
 export const rootReducer = combineReducers({
@@ -20,6 +22,8 @@ export const rootReducer = combineReducers({
   [AppReducerType.THEME]: themeReducer,
   [AppReducerType.AUTH]: authReducer,
   [AppReducerType.TOAST]: toastReducer,
+  [AppReducerType.SETTING]: settingReducer,
+  settingUI: settingUIReducer,
   home: homeReducer,
   profile: profileReducer,
   shop: shopReducer,

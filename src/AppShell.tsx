@@ -3,6 +3,10 @@ import { Outlet } from "react-router-dom";
 import { lazy } from "react";
 import ToastContainer from "./widgets/toast/ToastContainer";
 import ScrollToTop from "./shared/components/ScrollToTop";
+import FirstLoginFlowManager from "@/features/Auth/components/modals/FirstLoginFlowManager";
+import VerifyEmailModalManager from "@/features/Auth/components/modals/VerifyEmailModalManager";
+import PostLoginOtpManager from "@/features/Auth/components/modals/PostLoginOtpManager";
+import SettingAccountPage from "./widgets/setting-modal/Settting";
 
 const FloatingChatBubble = lazy(() => import("./widgets/floating-chat/FloatingChatBubble"));
 
@@ -32,6 +36,11 @@ const AppShell = () => {
       <ToastContainer />
       {/* Floating Chat Bubble - Always available */}
       <FloatingChatBubble />
+      <FirstLoginFlowManager />
+      <VerifyEmailModalManager />
+      <PostLoginOtpManager />
+      {/* Setting Modal */}
+      <SettingAccountPage />
     </div>
   );
 };

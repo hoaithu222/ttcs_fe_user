@@ -1,9 +1,15 @@
 // Authentication request types for users
+export enum OtpChannel {
+  EMAIL = "email",
+  PHONE = "phone",
+}
+
 export interface RegisterUserRequest {
   name: string;
   email: string;
   password: string;
   phone?: string;
+  otpMethod?: OtpChannel | "smart_otp";
 }
 
 export interface LoginRequest {
@@ -20,11 +26,10 @@ export interface ForgotPasswordRequest {
 }
 
 export interface ResetPasswordRequest {
-  token: string;
-  password: string;
-  confirmPassword: string;
   identifier: string;
   otp: string;
+  password: string;
+  confirmPassword: string;
 }
 
 // OTP request types
@@ -32,12 +37,14 @@ export interface OtpRequest {
   identifier: string;
   channel: "email" | "phone";
   purpose: string;
+  smartOtpPassword?: string;
 }
 
 export interface OtpVerifyRequest {
   identifier: string;
   code: string;
   purpose: string;
+  smartOtpPassword?: string;
 }
 
 // Authentication response types
@@ -53,10 +60,15 @@ export interface User {
   isPhoneVerified: boolean;
   accessToken?: string;
   refreshToken?: string;
+  twoFactorAuth?: boolean;
+  twoFactorAuthSecret?: string;
+  smartOtpSecret?: string;
+  otpMethod?: OtpChannel | "smart_otp";
+  isFirstLogin?: boolean;
   createdAt: string;
   updatedAt: string;
   // Shop status (added when fetching profile)
-  shopStatus?: "not_registered" | "pending_review" | "approved" | "rejected" | "active" | "blocked" | "suspended";
+  shopStatus?: "not_registered" |  "pending_review" | "approved" | "rejected" | "active" | "blocked" | "suspended";
   shop?: {
     id: string;
     name: string;

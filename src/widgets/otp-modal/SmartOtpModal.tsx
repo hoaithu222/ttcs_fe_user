@@ -20,7 +20,7 @@ import { useAppDispatch, useAppSelector } from "@/app/store";
 import Button from "@/foundation/components/buttons/Button";
 import Icon from "@/foundation/components/icons/Icon";
 import IconCircleWrapper from "@/foundation/components/icons/IconCircleWrapper";
-import { useNSTranslate } from "@/shared/hooks/language";
+import { ShieldCheck, X } from "lucide-react";
 
 import GuideSmartOtp from "./GuideSmartOtp";
 import PinInput, { PinInputRef } from "./PinInput";
@@ -46,13 +46,11 @@ const otpVerifyingSelector = (state: any) => state.otp?.verifying;
 
 interface SmartOtpModalProps {
   visible: boolean;
+  onClose?: () => void;
 }
 
-const SmartOtpModal: React.FC<SmartOtpModalProps> = ({ visible }) => {
+const SmartOtpModal: React.FC<SmartOtpModalProps> = ({ visible, onClose }) => {
   const dispatch = useAppDispatch();
-  const tOtp = useNSTranslate("otp");
-  const tValidation = useNSTranslate("validation");
-  const tCommon = useNSTranslate("common");
 
   // Redux state selectors
   const loading = useAppSelector(otpVerifyingSelector);
@@ -88,7 +86,8 @@ const SmartOtpModal: React.FC<SmartOtpModalProps> = ({ visible }) => {
       dispatch({ type: cancelActionType as string, payload: requestData });
     }
     dispatch(closeOtpModal());
-  }, [cancelActionType, dispatch, requestData]);
+    onClose?.();
+  }, [cancelActionType, dispatch, onClose, requestData]);
 
   // Verify OTP handler
   const onVerify = useCallback(() => {
@@ -126,36 +125,36 @@ const SmartOtpModal: React.FC<SmartOtpModalProps> = ({ visible }) => {
   return (
     <Dialog.Root open={visible} onOpenChange={handleClose}>
       <Dialog.Portal>
-        <Dialog.Overlay className="bg-base-black/50 fixed inset-0 z-[90] backdrop-blur-sm transition-opacity" />
+        <Dialog.Overlay className="bg-overlay fixed inset-0 z-[90] backdrop-blur-sm transition-opacity" />
         <Dialog.Content
           className={clsx(
-            "shadow-1 fixed left-1/2 top-1/2 z-[100] max-h-[600px] w-full max-w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-neutral-3 bg-background-popup p-6",
+            "shadow-1 fixed left-1/2 top-1/2 z-[100] max-h-[600px] w-full max-w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-neutral-3 bg-background-dialog text-neutral-9 p-6",
             Boolean(showWarningType) && "max-h-[700px]"
           )}
         >
           {/* Header */}
           <div className="flex justify-between items-start mb-4">
-            <Dialog.Title className="text-title-20-bold text-neutral-9">
+            <Dialog.Title className="text-2xl font-bold text-neutral-9">
               <IconCircleWrapper extraBorder>
-                <Icon name="SmartOtp" size="base" className="text-neutral-9" />
+                <Icon icon={ShieldCheck} size="base" className="text-primary-7" />
               </IconCircleWrapper>
             </Dialog.Title>
             <Dialog.Close asChild>
-              <Icon name="CloseOutlined" className="text-neutral-6" />
+              <Icon icon={X} className="text-neutral-6" />
             </Dialog.Close>
           </div>
           {/* Warning section */}
           {showWarningType && <WarningOtp type={showWarningType} typeOtp="M" />}
-          <span className="text-title-20-bold text-neutral-7">{tOtp("smartOtpTitle")}</span>
-          <p className="mb-6 text-body-14 text-neutral-7">{tOtp("smartOtpDescription")}</p>
+          <span className="text-2xl font-bold text-neutral-9">Xác thực Smart OTP</span>
+          <p className="mb-6 text-sm text-neutral-6">Nhập mã OTP 6 số từ ứng dụng Smart OTP của bạn</p>
           {/* OTP input */}
           <Controller
             name="otp"
             control={control}
             rules={{
-              required: tValidation("otp.required"),
-              minLength: { value: 6, message: tValidation("otp.minLength") },
-              maxLength: { value: 6, message: tValidation("otp.maxLength") },
+              required: "OTP là bắt buộc",
+              minLength: { value: 6, message: "OTP phải có 6 ký tự" },
+              maxLength: { value: 6, message: "OTP phải có 6 ký tự" },
             }}
             render={({ field }) => (
               <PinInput
@@ -169,11 +168,11 @@ const SmartOtpModal: React.FC<SmartOtpModalProps> = ({ visible }) => {
               />
             )}
           />
-          <div className="mt-2 h-4 text-center text-caption-12 text-red-5">{reason || error}</div>
+          <div className="mt-2 h-4 text-center text-xs text-error">{reason || error}</div>
           {isBlocked && (
-            <div className="flex justify-center mb-6 text-center text-body-14 text-neutral-9">
+            <div className="flex justify-center mb-6 text-center text-sm text-neutral-9">
               <Button variant="text" className="cursor-default hover:no-underline">
-                {String(tOtp("lockingTimer", { minutes: minutes }))}
+                Tài khoản bị khóa trong {minutes} phút
               </Button>
             </div>
           )}
@@ -183,7 +182,7 @@ const SmartOtpModal: React.FC<SmartOtpModalProps> = ({ visible }) => {
           {/* Action buttons */}
           <div className="flex gap-2 justify-between w-full">
             <Button variant="outlined" onClick={handleClose} fullWidth size="lg">
-              {tCommon("cancel")}
+              Hủy
             </Button>
             <Button
               variant="primary"
@@ -195,10 +194,10 @@ const SmartOtpModal: React.FC<SmartOtpModalProps> = ({ visible }) => {
               size="lg"
             >
               {loading
-                ? String(tOtp("verifying"))
+                ? "Đang xác minh..."
                 : isBlocked
-                  ? `${String(tOtp("locking"))}`
-                  : String(tCommon("confirm"))}
+                  ? "Đang khóa..."
+                  : "Xác nhận"}
             </Button>
           </div>
           <VisuallyHidden>

@@ -40,6 +40,7 @@ import { Notification } from "@/core/api/notifications/type";
 import { MessageSquare } from "lucide-react";
 import { getConversationsStart, createConversationStart } from "@/app/store/slices/chat/chat.slice";
 import { selectTotalUnreadCount, selectConversations } from "@/app/store/slices/chat/chat.selector";
+import { setVisibleModalSetting } from "@/app/store/slices/setting/settingSlice";
 
 const Header = () => {
   const { user, onLogout } = useAuth();
@@ -386,7 +387,10 @@ const Header = () => {
                     </button>
                     <hr className="my-1 border-divider-1" />
                     <button
-                      onClick={() => setIsDropdownOpen(false)}
+                      onClick={() => {
+                        dispatch(setVisibleModalSetting(true));
+                        setIsDropdownOpen(false);
+                      }}
                       className="flex items-center px-4 py-2 space-x-3 w-full text-sm text-neutral-9 hover:bg-background-2 transition-colors"
                     >
                       <Settings className="w-4 h-4" />

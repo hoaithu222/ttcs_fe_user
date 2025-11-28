@@ -53,7 +53,7 @@ const SummaryAction: React.FC<SummaryActionProps> = ({ label, amount, action, de
               />
             )}
           </div>
-          <span className="text-title-20-bold">{amount}</span>
+          <span className="text-2xl font-bold">{amount}</span>
         </div>
         <div className="flex-1">{action}</div>
       </div>

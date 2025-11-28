@@ -15,6 +15,7 @@ export const AppReducerType = {
   THEME: "theme",
   TOAST: "toast",
   AUTH: "auth",
+  SETTING: "setting",
 } as const;
 
 export type AppReducerTypeKeys = keyof typeof AppReducerType;

@@ -68,3 +68,17 @@ export const selectForgotPasswordState = createSelector(
   [authSelector],
   (state) => state.forgotPassword
 );
+
+export const selectFirstLoginFlow = createSelector(
+  [authSelector],
+  (state) => state.firstLoginFlow
+);
+
+export const selectVerifyEmailFlow = createSelector(
+  [authSelector],
+  (state) => state.verifyEmailFlow
+);
+
+export const selectLoginStep = createSelector([authSelector], (state) => state.loginStep);
+
+export const selectUserOtp = createSelector([authSelector], (state) => state.userOtp);

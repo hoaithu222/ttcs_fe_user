@@ -9,7 +9,7 @@ import {
   stripSpecialCharactersUnicode,
 } from "@/shared/utils/string.utils";
 
-import Icon from "../icons/Icon";
+import { Eye, EyeOff } from "lucide-react";
 import type { InputSize } from "./inputs.consts";
 import {
   BASE_INPUT_CLASS,
@@ -299,7 +299,7 @@ const Input = React.forwardRef<HTMLInputElement, FieldInputProps>(
           {label && (
             <Form.Label
               htmlFor={inputId}
-              className="block mb-1 text-start mb-2 text-body-13 text-neutral-9"
+              className="block mb-2 text-start text-body-13 text-neutral-9"
             >
               {label}
               {required && <span className="text-error">*</span>}
@@ -338,12 +338,10 @@ const Input = React.forwardRef<HTMLInputElement, FieldInputProps>(
 
             {/* Icon show/hide password HOẶC iconRight */}
             {type === "password" ? (
-              <Icon
-                name={showPassword ? "ViewOn" : "ViewOff"}
+              <button
+                type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                key={showPassword ? "ViewOn" : "ViewOff"}
-                color="secondary"
-                role="button"
+                className="shrink-0 p-1 text-neutral-6 hover:text-neutral-9 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-5 rounded"
                 tabIndex={-1}
                 aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 onKeyDown={(e) => {
@@ -352,7 +350,13 @@ const Input = React.forwardRef<HTMLInputElement, FieldInputProps>(
                     setShowPassword((prev) => !prev);
                   }
                 }}
-              />
+              >
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
             ) : (
               iconRight && (
                 <span

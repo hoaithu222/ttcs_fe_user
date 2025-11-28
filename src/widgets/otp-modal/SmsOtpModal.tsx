@@ -28,8 +28,8 @@ import { useAppDispatch, useAppSelector } from "@/app/store";
 import Button from "@/foundation/components/buttons/Button";
 import Icon from "@/foundation/components/icons/Icon";
 import IconCircleWrapper from "@/foundation/components/icons/IconCircleWrapper";
-import { useNSTranslate } from "@/shared/hooks/language";
 import { maskPhone } from "@/shared/utils/string.utils";
+import { MessageSquare, X } from "lucide-react";
 
 import PinInput, { PinInputRef } from "./PinInput";
 // import WarningOtp from "./WarningOtp";
@@ -58,15 +58,20 @@ const otpStatusOtpSelector = (state: any) => state.otp?.status;
 
 interface SmsOtpModalProps {
   visible: boolean;
+  onClose?: () => void;
+  title?: string;
+  description?: string;
 }
 const DEFAULT_TIMER = 60; // sd LONG
 const SHORT_TIMER = 30;
 
-const SmsOtpModal: React.FC<SmsOtpModalProps> = ({ visible }) => {
+const SmsOtpModal: React.FC<SmsOtpModalProps> = ({
+  visible,
+  onClose,
+  title,
+  description,
+}) => {
   const dispatch = useAppDispatch();
-  const tOtp = useNSTranslate("otp");
-  const tValidation = useNSTranslate("validation");
-  const tCommon = useNSTranslate("common");
 
   // Redux selectors
   const phone = useAppSelector(otpPhoneSelector);
@@ -106,7 +111,8 @@ const SmsOtpModal: React.FC<SmsOtpModalProps> = ({ visible }) => {
   const handleClose = useCallback(() => {
     if (cancelType) dispatch({ type: cancelType as string, payload: requestData });
     dispatch(closeOtpModal());
-  }, [cancelType, dispatch, requestData]);
+    onClose?.();
+  }, [cancelType, dispatch, onClose, requestData]);
 
   const onResend = useCallback(() => {
     dispatch(sendOtpRequest({}));
@@ -158,39 +164,41 @@ const SmsOtpModal: React.FC<SmsOtpModalProps> = ({ visible }) => {
   }, [visible, dispatch]);
 
   // Render
+  const modalTitle = title ?? "Nhập mã OTP";
+  const modalDescription =
+    description ?? `Mã OTP đã được gửi đến ${maskPhone(String(phone ?? ""))}`;
+
   return (
     <Dialog.Root open={visible} onOpenChange={handleClose}>
       <Dialog.Portal>
-        <Dialog.Overlay className="bg-base-black/50 fixed inset-0 z-[90] backdrop-blur-sm transition-opacity" />
+        <Dialog.Overlay className="bg-overlay fixed inset-0 z-[90] backdrop-blur-sm transition-opacity" />
         <Dialog.Content
           className={clsx(
-            "shadow-1 fixed left-1/2 top-1/2 z-[100] max-h-[396px] w-full max-w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-neutral-3 bg-background-popup p-6",
+            "shadow-1 fixed left-1/2 top-1/2 z-[100] max-h-[396px] w-full max-w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-neutral-3 bg-background-dialog text-neutral-9 p-6",
             Boolean(showWarningType) && "max-h-[600px]"
           )}
         >
           <div className="flex justify-between items-start mb-4">
-            <Dialog.Title className="text-title-20-bold text-neutral-9">
+            <Dialog.Title className="text-2xl font-bold text-neutral-9">
               <IconCircleWrapper>
-                <Icon name="SmartOtp" size="base" className="text-neutral-9" />
+                <Icon icon={MessageSquare} size="base" className="text-primary-7" />
               </IconCircleWrapper>
             </Dialog.Title>
             <Dialog.Close asChild>
-              <Icon name="CloseOutlined" className="text-neutral-6" />
+              <Icon icon={X} className="text-neutral-6" />
             </Dialog.Close>
           </div>
 
           {Boolean(showWarningType) && <WarningOtp type={showWarningType as string} typeOtp="O" />}
-          <span className="text-title-20-bold text-neutral-7">{tOtp("title")}</span>
-          <p className="mb-6 text-body-14 text-neutral-7">
-            {tOtp("description", { phone: maskPhone(String(phone ?? "")) })}
-          </p>
+          <span className="text-2xl font-bold text-neutral-9">{modalTitle}</span>
+          <p className="mb-6 text-sm text-neutral-6">{modalDescription}</p>
 
           <Controller
             name="otp"
             control={control}
             rules={{
-              required: tValidation("otp.required"),
-              minLength: { value: 6, message: tValidation("otp.minLength") },
+              required: "OTP là bắt buộc",
+              minLength: { value: 6, message: "OTP phải có 6 ký tự" },
             }}
             render={({ field }) => (
               <PinInput
@@ -204,26 +212,26 @@ const SmsOtpModal: React.FC<SmsOtpModalProps> = ({ visible }) => {
               />
             )}
           />
-          <div className="mt-2 h-4 text-center text-caption-12 text-red-5">{reason || error}</div>
+          <div className="mt-2 h-4 text-center text-xs text-error">{reason || error}</div>
 
           {/* Resend */}
-          <div className="flex justify-center mb-6 text-center text-body-14 text-neutral-9">
+          <div className="flex justify-center mb-6 text-center text-sm text-neutral-9">
             {resendTimer > 0 || isBlocked ? (
               <Button variant="text" className="cursor-default hover:no-underline">
                 {isBlocked
-                  ? `${String(tOtp("lockingTimer", { minutes: minutes }))}`
-                  : String(tOtp("resendTimer", { resendTimer }))}
+                  ? `Tài khoản bị khóa trong ${minutes} phút`
+                  : `Gửi lại sau ${resendTimer} giây`}
               </Button>
             ) : (
               <Button variant="text" onClick={onResend} disabled={loading}>
-                {tOtp("resend")}
+                Gửi lại OTP
               </Button>
             )}
           </div>
 
           <div className="flex gap-2 justify-between w-full">
             <Button variant="outlined" onClick={handleClose} fullWidth size="lg">
-              {tCommon("cancel")}
+              Hủy
             </Button>
             <Button
               variant="primary"
@@ -235,10 +243,10 @@ const SmsOtpModal: React.FC<SmsOtpModalProps> = ({ visible }) => {
               size="lg"
             >
               {loading
-                ? String(tOtp("verifying"))
+                ? "Đang xác minh..."
                 : isBlocked
-                  ? `${String(tOtp("locking"))}`
-                  : String(tCommon("confirm"))}
+                  ? "Đang khóa..."
+                  : "Xác nhận"}
             </Button>
           </div>
 

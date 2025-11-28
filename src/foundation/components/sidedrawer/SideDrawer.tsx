@@ -259,7 +259,7 @@ const SideDrawer: React.FC<SideDrawerProps> = ({
           {/* Accessibility title */}
           {!title && (
             <VisuallyHidden asChild>
-              <Dialog.Title className="flex-1 min-w-0 truncate text-title-20-bold text-neutral-9">
+              <Dialog.Title className="flex-1 min-w-0 truncate text-2xl font-bold text-neutral-9">
                 {title ?? ""}
               </Dialog.Title>
             </VisuallyHidden>

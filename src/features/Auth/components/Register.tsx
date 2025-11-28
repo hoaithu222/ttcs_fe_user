@@ -8,6 +8,9 @@ import { useNavigate } from "react-router-dom";
 import useAuth from "@/features/Auth/hooks/useAuth";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
 import { ReduxStateType } from "@/app/store/types";
+import { useAppDispatch, useAppSelector } from "@/app/store";
+import { selectVerifyEmailFlow } from "@/features/Auth/components/slice/auth.selector";
+import { resetVerifyEmailFlow } from "@/features/Auth/components/slice/auth.slice";
 
 interface RegisterRequest {
   email: string;
@@ -19,6 +22,8 @@ interface RegisterRequest {
 const Register = () => {
   const { isLoadingRegister, registerStatus, onSubmitRegister, resetRegisterStatus } = useAuth();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const verifyEmailFlow = useAppSelector(selectVerifyEmailFlow);
   const [data, setData] = useState<RegisterRequest>({
     email: "",
     password: "",
@@ -34,15 +39,20 @@ const Register = () => {
     navigate(NAVIGATION_CONFIG.login.path);
   };
 
-  // Redirect to login page when register is successful
+  // Khi đăng ký thành công chỉ reset trạng thái, còn OTP modal sẽ tự bật
   useEffect(() => {
     if (registerStatus === ReduxStateType.SUCCESS) {
-      // Reset register status
       resetRegisterStatus();
-      // Redirect to login page
-      navigate(NAVIGATION_CONFIG.login.path);
     }
-  }, [registerStatus, navigate, resetRegisterStatus]);
+  }, [registerStatus, resetRegisterStatus]);
+
+  // Sau khi xác minh email thành công (trigger từ register) thì chuyển sang trang login
+  useEffect(() => {
+    if (verifyEmailFlow.verified && verifyEmailFlow.lastTrigger === "register") {
+      navigate(NAVIGATION_CONFIG.login.path, { replace: true });
+      dispatch(resetVerifyEmailFlow());
+    }
+  }, [verifyEmailFlow, navigate, dispatch]);
 
   const isFormValid =
     data.email &&

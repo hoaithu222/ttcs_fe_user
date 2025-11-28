@@ -10,6 +10,7 @@ import { paymentSaga } from "@/features/Payment/slice/payment.saga";
 import { notificationSaga } from "./slices/notification/notification.saga";
 import { chatSaga } from "./slices/chat/chat.saga";
 import { aiComparisonSaga } from "@/features/Compare/slice/aiComparison.saga";
+import { settingSaga } from "./slices/setting/setting.saga";
 
 export const rootSage = function* () {
   try {
@@ -25,6 +26,7 @@ export const rootSage = function* () {
       notificationSaga(),
       chatSaga(),
       aiComparisonSaga(),
+      settingSaga(),
     ]);
   } catch (error) {
     console.error(error);

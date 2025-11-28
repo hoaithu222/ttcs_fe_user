@@ -1,8 +1,10 @@
-import { IAuthState } from "./auth.types";
+import { IAuthState, ILoginStep, stepRegister } from "./auth.types";
 import { createResettableSlice } from "@/app/store/create-resettabable-slice";
 import { AppReducerType, ReduxStateType } from "@/app/store/types";
 import { LoginRequest } from "@/core/api/auth/type";
 import { PayloadAction } from "@reduxjs/toolkit";
+
+
 
 const initialState: IAuthState = {
   isAuthenticated: false,
@@ -13,6 +15,23 @@ const initialState: IAuthState = {
   isLoadingRegister: false,
   isLoadingForgotPassword: false,
   registerStatus: ReduxStateType.INIT,
+  registerStep: stepRegister.INIT,
+  loginStatus: ReduxStateType.INIT,
+  loginStep: ILoginStep.INIT,
+  userOtp: {
+    otpType: "email",
+    otp: "",
+    otpExpiresAt: new Date(),
+    otpSmart: "",
+  },
+  firstLoginFlow: {
+    show2FAReminder: false,
+    showMethodSelector: false,
+    showOtpModal: false,
+    selectedMethod: "email",
+    submitting: false,
+    enableTwoFactor: false,
+  },
   forgotPassword: {
     forgotPasswordStatus: ReduxStateType.INIT,
     stepForgotPassword: "email",
@@ -23,6 +42,14 @@ const initialState: IAuthState = {
   },
   logout: {
     logoutStatus: ReduxStateType.INIT,
+  },
+  verifyEmailFlow: {
+    open: false,
+    email: undefined,
+    submitting: false,
+    resending: false,
+    verified: false,
+    lastTrigger: undefined,
   },
 };
 
@@ -49,16 +76,38 @@ export const { slice, reducer } = createResettableSlice({
       state.isLoadingLogin = true;
       state.isAuthenticated = false;
       state.user = null;
+      state.loginStatus = ReduxStateType.LOADING;
+      state.loginStep = ILoginStep.INIT;
+      state.userOtp = {
+        otpType: "email",
+        otp: "",
+        otpExpiresAt: new Date(),
+        otpSmart: "",
+      };
     },
     loginSuccess: (state, action) => {
-      console.log("[auth.slice] loginSuccess - user payload:", action.payload);
       state.isLoadingLogin = false;
-      state.isAuthenticated = true;
       state.user = action.payload;
-      console.log("[auth.slice] loginSuccess - Updated state:", {
-        isAuthenticated: state.isAuthenticated,
-        user: state.user,
-      });
+      if (action.payload?.isFirstLogin) {
+        // First login flow: Show 2FA reminder modal first
+        state.isAuthenticated = true;
+        state.firstLoginFlow.show2FAReminder = true;
+        state.firstLoginFlow.selectedMethod =
+          action.payload.otpMethod === "smart_otp" ? "smart" : "email";
+        state.firstLoginFlow.enableTwoFactor = Boolean(action.payload.twoFactorAuth);
+        state.loginStep = ILoginStep.INIT;
+      } else if (action.payload?.twoFactorAuth) {
+        // User has 2FA enabled, require OTP verification
+        state.isAuthenticated = false; // Don't set authenticated until OTP is verified
+        state.loginStep = ILoginStep.VERIFY_2FA;
+        state.userOtp.otpType = action.payload.otpMethod === "smart_otp" ? "smart" : "email";
+        state.firstLoginFlow = { ...initialState.firstLoginFlow };
+      } else {
+        // Normal login, no 2FA
+        state.isAuthenticated = true;
+        state.loginStep = ILoginStep.INIT;
+        state.firstLoginFlow = { ...initialState.firstLoginFlow };
+      }
     },
     loginFailed: (state) => {
       state.isLoadingLogin = false;
@@ -67,8 +116,12 @@ export const { slice, reducer } = createResettableSlice({
     },
     register: (state, _action: PayloadAction<any>) => {
       state.isLoadingRegister = true;
+      state.registerStep = stepRegister.INIT;
       state.registerStatus = ReduxStateType.LOADING;
       state.user = null;
+    },
+    verifyEmail: (state) => {
+      state.registerStep = stepRegister.VERIFY_EMAIL;
     },
     registerSuccess: (state) => {
       state.isLoadingRegister = false;
@@ -90,6 +143,7 @@ export const { slice, reducer } = createResettableSlice({
     forgotPasswordSuccess: (state) => {
       state.isLoadingForgotPassword = false;
       state.forgotPassword.forgotPasswordStatus = ReduxStateType.SUCCESS;
+      state.forgotPassword.stepForgotPassword = "otp";
     },
     forgotPasswordFailed: (state) => {
       state.isLoadingForgotPassword = false;
@@ -126,6 +180,7 @@ export const { slice, reducer } = createResettableSlice({
       state.isAuthenticated = false;
       state.user = null;
       state.logout.logoutStatus = ReduxStateType.SUCCESS;
+      state.firstLoginFlow = { ...initialState.firstLoginFlow };
     },
     logoutFailed: (state) => {
       state.isAuthenticated = false;
@@ -147,6 +202,116 @@ export const { slice, reducer } = createResettableSlice({
       state.isAuthenticated = false;
       state.user = null;
       state.logout.logoutStatus = ReduxStateType.ERROR;
+    },
+    // First login flow: 2FA reminder
+    acknowledgeTwoFactorReminder: (state) => {
+      state.firstLoginFlow.show2FAReminder = false;
+    },
+    skipTwoFactorReminder: (state) => {
+      // Skip 2FA reminder, simply mark as complete
+      state.firstLoginFlow.show2FAReminder = false;
+    },
+    backToTwoFactorReminder: (state) => {
+      state.firstLoginFlow.show2FAReminder = true;
+      state.firstLoginFlow.showMethodSelector = false;
+      state.firstLoginFlow.showOtpModal = false;
+    },
+    setFirstLoginSelectedMethod: (
+      state,
+      action: PayloadAction<"email" | "smart">
+    ) => {
+      state.firstLoginFlow.selectedMethod = action.payload;
+    },
+    setTwoFactorOptIn: (state, action: PayloadAction<boolean>) => {
+      state.firstLoginFlow.enableTwoFactor = action.payload;
+    },
+    openFirstLoginOtpModal: (state) => {
+      state.firstLoginFlow.showOtpModal = true;
+      state.firstLoginFlow.showMethodSelector = false;
+    },
+    closeFirstLoginOtpModal: (state) => {
+      state.firstLoginFlow = { ...initialState.firstLoginFlow };
+    },
+    completeFirstLoginSetup: (
+      state,
+      _action: PayloadAction<{ twoFactorAuth: boolean }>
+    ) => {
+      state.firstLoginFlow.submitting = true;
+    },
+    completeFirstLoginSetupSuccess: (
+      state,
+      action: PayloadAction<{ twoFactorAuth: boolean }>
+    ) => {
+      state.firstLoginFlow.submitting = false;
+      if (state.user) {
+        state.user.isFirstLogin = false; // Mark first login as complete
+        state.user.twoFactorAuth = action.payload.twoFactorAuth;
+      }
+      // Reset first login flow
+      state.firstLoginFlow = { ...initialState.firstLoginFlow };
+    },
+    // Mark first login as complete (after showing modals)
+    markFirstLoginComplete: (state) => {
+      if (state.user) {
+        state.user.isFirstLogin = false;
+      }
+      state.firstLoginFlow = { ...initialState.firstLoginFlow };
+    },
+    completeFirstLoginSetupFailed: (state) => {
+      state.firstLoginFlow.submitting = false;
+    },
+    openVerifyEmailFlow: (state, action: PayloadAction<{ email: string; trigger?: "register" | "login" }>) => {
+      state.verifyEmailFlow.open = true;
+      state.verifyEmailFlow.email = action.payload.email;
+      state.verifyEmailFlow.verified = false;
+      state.verifyEmailFlow.submitting = false;
+      state.verifyEmailFlow.resending = false;
+      state.verifyEmailFlow.lastTrigger = action.payload.trigger;
+    },
+    closeVerifyEmailFlow: (state) => {
+      state.verifyEmailFlow.open = false;
+    },
+    submitVerifyEmailOtp: (state, _action: PayloadAction<{ token: string }>) => {
+      state.verifyEmailFlow.submitting = true;
+    },
+    submitVerifyEmailOtpSuccess: (state) => {
+      state.verifyEmailFlow.submitting = false;
+      state.verifyEmailFlow.verified = true;
+      state.verifyEmailFlow.open = false;
+    },
+    submitVerifyEmailOtpFailed: (state) => {
+      state.verifyEmailFlow.submitting = false;
+    },
+    resendVerifyEmailOtp: (state, _action: PayloadAction<{ email: string }>) => {
+      state.verifyEmailFlow.resending = true;
+    },
+    resendVerifyEmailOtpSuccess: (state) => {
+      state.verifyEmailFlow.resending = false;
+    },
+    resendVerifyEmailOtpFailed: (state) => {
+      state.verifyEmailFlow.resending = false;
+    },
+    resetVerifyEmailFlow: (state) => {
+      state.verifyEmailFlow = { ...initialState.verifyEmailFlow };
+    },
+    // Post-login OTP verification (for 2FA)
+    submitPostLoginOtp: (state, _action: PayloadAction<{ code: string }>) => {
+      state.loginStatus = ReduxStateType.LOADING;
+    },
+    submitPostLoginOtpSuccess: (state) => {
+      state.loginStatus = ReduxStateType.SUCCESS;
+      state.isAuthenticated = true;
+      state.loginStep = ILoginStep.INIT;
+      state.userOtp.otp = "";
+      state.userOtp.otpSmart = "";
+    },
+    submitPostLoginOtpFailed: (state) => {
+      state.loginStatus = ReduxStateType.ERROR;
+      state.userOtp.otp = "";
+      state.userOtp.otpSmart = "";
+    },
+    resendPostLoginOtp: (state) => {
+      // Trigger OTP resend
     },
   },
   persist: {
@@ -181,6 +346,30 @@ export const {
   resetLogoutStatus,
   refreshTokenSuccess,
   refreshTokenFailed,
+  acknowledgeTwoFactorReminder,
+  skipTwoFactorReminder,
+  markFirstLoginComplete,
+  setFirstLoginSelectedMethod,
+  setTwoFactorOptIn,
+  openFirstLoginOtpModal,
+  closeFirstLoginOtpModal,
+  completeFirstLoginSetup,
+  completeFirstLoginSetupSuccess,
+  completeFirstLoginSetupFailed,
+  backToTwoFactorReminder,
+  openVerifyEmailFlow,
+  closeVerifyEmailFlow,
+  submitVerifyEmailOtp,
+  submitVerifyEmailOtpSuccess,
+  submitVerifyEmailOtpFailed,
+  resendVerifyEmailOtp,
+  resendVerifyEmailOtpSuccess,
+  resendVerifyEmailOtpFailed,
+  resetVerifyEmailFlow,
+  submitPostLoginOtp,
+  submitPostLoginOtpSuccess,
+  submitPostLoginOtpFailed,
+  resendPostLoginOtp,
 } = slice.actions;
 
 export default reducer;

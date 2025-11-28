@@ -97,6 +97,9 @@ class UserAuthApiService extends VpsHttpClient {
     currentPassword: string;
     newPassword: string;
     confirmPassword: string;
+    otp?: string;
+    otpPurpose?: string;
+    smartOtpPassword?: string;
   }): Promise<ApiSuccess<void>> {
     const response = await this.post(USER_AUTH_ENDPOINTS.CHANGE_PASSWORD, data);
     return response.data;
