@@ -145,11 +145,29 @@ const CheckoutPage: React.FC = () => {
     loadWalletBalance();
   }, [dispatch, getPaymentMethods]);
 
+  // Don't redirect to cart if we're in the process of creating an order
+  // Backend removes cart items after order creation, which would trigger this redirect
   useEffect(() => {
-    if (isEmpty) {
+    if (isEmpty && !isCreatingOrder && !createdOrderId) {
+      console.log("[CheckoutPage] Cart is empty and not creating order, redirecting to /cart");
       navigate("/cart");
     }
-  }, [isEmpty, navigate]);
+  }, [isEmpty, navigate, isCreatingOrder, createdOrderId]);
+
+  // Debug: Log checkoutData changes
+  useEffect(() => {
+    console.log("[CheckoutPage] checkoutData changed:", {
+      checkoutData,
+      paymentId: checkoutData?.paymentId,
+      qrCode: checkoutData?.qrCode,
+      instructions: checkoutData?.instructions,
+    });
+  }, [checkoutData]);
+
+  // Debug: Log createdOrderId changes
+  useEffect(() => {
+    console.log("[CheckoutPage] createdOrderId changed:", createdOrderId);
+  }, [createdOrderId]);
 
   // Handle address selection
   const handleAddressSelect = (address: Address) => {
@@ -294,7 +312,20 @@ const CheckoutPage: React.FC = () => {
           voucherId: undefined,
         };
 
+        console.log("[CheckoutPage] Creating order for shop:", {
+          shopId,
+          shopName: group.shopName,
+          paymentMethod: paymentMethodType,
+          itemCount: orderItems.length,
+        });
+
         const response = await userOrdersApi.createOrder(orderRequest);
+
+        console.log("[CheckoutPage] Order creation response:", {
+          success: response.success,
+          orderId: response.data?._id,
+          message: response.message,
+        });
 
         if (!response.success || !response.data?._id) {
           throw new Error(response.message || "Không thể tạo đơn hàng");
@@ -305,17 +336,31 @@ const CheckoutPage: React.FC = () => {
           shopId,
           shopName: group.shopName,
         });
+        
+        console.log("[CheckoutPage] Order added to createdOrders:", {
+          orderId: response.data._id,
+          totalCreated: createdOrders.length,
+        });
       }
 
-      // Refresh cart only if not buyNow (buyNow doesn't add to cart)
-      if (!buyNowData) {
-        dispatch(getCartStart());
-      }
+      // Don't refresh cart immediately after order creation
+      // Backend already removes ordered items from cart
+      // We'll refresh cart later after redirect to avoid isEmpty check redirecting to /cart
+      // if (!buyNowData) {
+      //   console.log("[CheckoutPage] Refreshing cart...");
+      //   dispatch(getCartStart());
+      // }
       setPendingPaymentOrders(createdOrders.length > 1 ? createdOrders : []);
 
       if (createdOrders.length === 1) {
         const orderId = createdOrders[0].orderId;
+        console.log("[CheckoutPage] Single order created:", {
+          orderId,
+          paymentMethod: selectedPaymentMethod,
+          paymentMethodType: selectedPaymentConfig?.type,
+        });
         setCreatedOrderId(orderId);
+        console.log("[CheckoutPage] Calling createCheckout...");
         createCheckout(orderId, selectedPaymentMethod);
       } else {
         setCreatedOrderId(null);
@@ -355,16 +400,37 @@ const CheckoutPage: React.FC = () => {
 
   // Redirect to payment page when checkout succeeds
   useEffect(() => {
+    console.log("[CheckoutPage] Redirect useEffect triggered:", {
+      checkoutData,
+      paymentId: checkoutData?.paymentId,
+      createdOrderId,
+      selectedPaymentConfig,
+      methodType: selectedPaymentConfig?.type,
+    });
+
     if (checkoutData?.paymentId && createdOrderId) {
       const methodType = selectedPaymentConfig?.type;
-
+      console.log("[CheckoutPage] Conditions met for redirect:", {
+        methodType,
+        willRedirectToPayment: methodType === "wallet" || methodType === "bank_transfer",
+        willRedirectToResult: methodType !== "wallet" && methodType !== "bank_transfer",
+      });
+      
       // Với các phương thức cần thanh toán online (wallet, bank_transfer) -> sang màn thanh toán
       if (methodType === "wallet" || methodType === "bank_transfer") {
+        console.log("[CheckoutPage] Redirecting to payment page:", `/payment/${createdOrderId}`);
         navigate(`/payment/${createdOrderId}`);
       } else {
         // Với COD hoặc phương thức khác -> sang màn cảm ơn
+        console.log("[CheckoutPage] Redirecting to result page:", `/payment/result/${createdOrderId}`);
         navigate(`/payment/result/${createdOrderId}`);
       }
+    } else {
+      console.log("[CheckoutPage] Redirect conditions not met:", {
+        hasCheckoutData: !!checkoutData,
+        hasPaymentId: !!checkoutData?.paymentId,
+        hasCreatedOrderId: !!createdOrderId,
+      });
     }
   }, [checkoutData, createdOrderId, navigate, selectedPaymentConfig]);
 

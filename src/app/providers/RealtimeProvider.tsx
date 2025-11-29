@@ -26,6 +26,8 @@ import {
 import { updateNotificationFromSocket } from "@/app/store/slices/notification/notification.slice";
 import { updateMessageFromSocket, updateConversationFromSocket, getConversationsStart } from "@/app/store/slices/chat/chat.slice";
 import { selectUser } from "@/features/Auth/components/slice/auth.selector";
+import { useSuccessModal } from "@/shared/contexts/SuccessModalContext";
+import { useSocketRefresh } from "@/shared/contexts/SocketRefreshContext";
 
 const MAX_NOTIFICATIONS = 50;
 
@@ -97,6 +99,8 @@ const toRealtimeNotification = (
 
 const RealtimeProvider = ({ children }: PropsWithChildren) => {
   const dispatch = useAppDispatch();
+  const { showSuccessModal } = useSuccessModal();
+  const { triggerPaymentRefresh, triggerDepositRefresh } = useSocketRefresh();
   const shopOrdersQuery = useAppSelector(
     (state) => (state as any).shop.orders.lastQuery
   );
@@ -338,6 +342,43 @@ const RealtimeProvider = ({ children }: PropsWithChildren) => {
 
       if (payload?.type?.startsWith("shop:")) {
         handleShopStatusEvent();
+      }
+
+      // Handle payment success notification
+      if (payload?.type === "payment:success") {
+        console.log("[RealtimeProvider] Payment success notification received:", payload);
+        
+        // Trigger payment status refresh
+        const orderId = payload.metadata?.orderId || payload.data?.orderId;
+        if (orderId) {
+          console.log("[RealtimeProvider] Triggering payment refresh for orderId:", orderId);
+          triggerPaymentRefresh(orderId);
+        }
+        
+        showSuccessModal({
+          type: "payment",
+          title: payload.title || "Thanh toán thành công",
+          message: payload.content || "Đơn hàng của bạn đã được thanh toán thành công.",
+          confirmText: "Xem đơn hàng",
+          actionUrl: payload.actionUrl,
+        });
+      }
+
+      // Handle wallet deposit success notification
+      if (payload?.type === "wallet:deposit:success") {
+        console.log("[RealtimeProvider] Deposit success notification received:", payload);
+        
+        // Trigger deposit/wallet balance refresh
+        console.log("[RealtimeProvider] Triggering deposit refresh");
+        triggerDepositRefresh();
+        
+        showSuccessModal({
+          type: "deposit",
+          title: payload.title || "Nạp tiền thành công",
+          message: payload.content || "Số dư ví của bạn đã được cập nhật.",
+          confirmText: "Xem ví",
+          actionUrl: payload.actionUrl,
+        });
       }
     };
 

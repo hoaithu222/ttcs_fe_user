@@ -15,6 +15,7 @@ import Chip from "@/foundation/components/info/Chip";
 import Section from "@/foundation/components/sections/Section";
 import AlertMessage from "@/foundation/components/info/AlertMessage";
 import { QRCodeDisplay } from "@/features/Payment/components";
+import { useSocketRefresh } from "@/shared/contexts/SocketRefreshContext";
 
 type DepositMethod = "bank";
 
@@ -24,6 +25,7 @@ const DepositPage = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
+  const { subscribeDepositRefresh } = useSocketRefresh();
   
   const walletType = (searchParams.get("walletType") || "user") as "user" | "shop";
   const returnUrl = searchParams.get("returnUrl") || "/profile?tab=wallet";
@@ -65,6 +67,30 @@ const DepositPage = () => {
   useEffect(() => {
     loadBalance();
   }, [loadBalance]);
+
+  // Subscribe to socket refresh events for deposit
+  useEffect(() => {
+    const unsubscribe = subscribeDepositRefresh(async () => {
+      console.log("[DepositPage] Socket refresh triggered for deposit");
+      // Reload balance khi nhận được socket notification
+      const response = await userWalletApi.getBalance();
+      if (response.success && response.data) {
+        const newBalance = response.data.wallet?.balance || 0;
+        const oldBalance = walletData?.wallet?.balance || 0;
+        
+        // Nếu số dư tăng lên và đang ở trạng thái processing, cập nhật status
+        if (newBalance > oldBalance && depositStatus === "processing") {
+          setDepositStatus("completed");
+          setWalletData(response.data);
+        } else if (newBalance !== oldBalance) {
+          // Cập nhật wallet data nếu có thay đổi
+          setWalletData(response.data);
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [subscribeDepositRefresh, depositStatus, walletData]);
 
   // Check for success query param (from VNPay return)
   useEffect(() => {

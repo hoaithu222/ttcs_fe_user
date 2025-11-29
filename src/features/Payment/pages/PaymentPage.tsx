@@ -13,11 +13,15 @@ import { userWalletApi } from "@/core/api/wallet";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
 import AlertMessage from "@/foundation/components/info/AlertMessage";
 import ScrollView from "@/foundation/components/scroll/ScrollView";
+import { useSuccessModal } from "@/shared/contexts/SuccessModalContext";
+import { useSocketRefresh } from "@/shared/contexts/SocketRefreshContext";
 
 const PaymentPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { showSuccessModal } = useSuccessModal();
+  const { subscribePaymentRefresh } = useSocketRefresh();
 
   const { 
     paymentStatus, 
@@ -48,13 +52,34 @@ const PaymentPage: React.FC = () => {
   }, [paymentStatus?.method]);
 
   // Load payment status once when vào trang hoặc đổi orderId
+  // Reset hasShownSuccessToast khi orderId thay đổi để tránh redirect sớm
   useEffect(() => {
     if (!orderId) {
       navigate("/profile?tab=orders");
       return;
     }
+    // Reset success toast flag khi orderId thay đổi
+    setHasShownSuccessToast(false);
+    // Clear redirect timer nếu có
+    if (redirectTimer) {
+      clearTimeout(redirectTimer);
+      setRedirectTimer(null);
+    }
+    // Load payment status mới
     getPaymentStatus(orderId);
   }, [orderId, navigate, getPaymentStatus]);
+
+  // Subscribe to socket refresh events for this orderId
+  useEffect(() => {
+    if (!orderId) return;
+
+    const unsubscribe = subscribePaymentRefresh(orderId, () => {
+      console.log("[PaymentPage] Socket refresh triggered for orderId:", orderId);
+      getPaymentStatus(orderId);
+    });
+
+    return unsubscribe;
+  }, [orderId, subscribePaymentRefresh, getPaymentStatus]);
 
   // Dọn redirect timer khi unmount
   useEffect(() => {
@@ -65,27 +90,48 @@ const PaymentPage: React.FC = () => {
     };
   }, [redirectTimer]);
 
-  // Handle successful payment
+  // Handle successful payment - chỉ redirect khi payment đã completed và không phải đang loading
   useEffect(() => {
-    if (paymentStatus?.status === "completed" && !hasShownSuccessToast) {
+    if (
+      paymentStatus?.status === "completed" && 
+      !hasShownSuccessToast &&
+      !isPaymentStatusLoading
+    ) {
       setHasShownSuccessToast(true);
+      
+      // Hiển thị success modal (fallback nếu socket không hoạt động)
+      showSuccessModal({
+        type: "payment",
+        title: "Thanh toán thành công!",
+        message: `Đơn hàng #${orderId?.slice(-6).toUpperCase()} đã được thanh toán thành công.`,
+        confirmText: "Xem đơn hàng",
+        actionUrl: orderId ? `/payment/result/${orderId}` : "/profile?tab=orders",
+        onConfirm: () => {
+          if (orderId) {
+            navigate(`/payment/result/${orderId}`);
+          } else {
+            navigate("/profile?tab=orders");
+          }
+        },
+      });
+
       dispatch(
         addToast({
           type: "success",
           message: "Thanh toán thành công!",
         })
       );
-      // Redirect to trang cảm ơn sau 3 giây
+      // Redirect to trang cảm ơn sau 3 giây (nếu user không click vào modal)
       const timer = setTimeout(() => {
         if (orderId) {
           navigate(`/payment/result/${orderId}`);
         } else {
           navigate("/profile?tab=orders");
         }
-      }, 3000);
+      }, 5000);
       setRedirectTimer(timer);
     }
-  }, [paymentStatus, navigate, dispatch, hasShownSuccessToast]);
+  }, [paymentStatus, navigate, dispatch, hasShownSuccessToast, isPaymentStatusLoading, orderId, showSuccessModal]);
 
   const handleRefresh = () => {
     if (orderId) {
@@ -139,6 +185,7 @@ const PaymentPage: React.FC = () => {
   }
 
   // Determine if we should show QR/instructions
+  // Hiển thị QR khi: payment status là pending/processing và method là bank_transfer
   const shouldShowPaymentInstructions = 
     paymentStatus && 
     (paymentStatus.status === "pending" || paymentStatus.status === "processing") &&
@@ -214,15 +261,83 @@ const PaymentPage: React.FC = () => {
                       }
                       compact
                     />
-                    <QRCodeDisplay
-                      qrCode={paymentStatus.qrCode}
-                      instructions={paymentStatus.instructions}
-                      accountInfo={accountInfo}
-                      expiresInMinutes={QR_EXPIRES_IN_MINUTES}
-                      onRefresh={handleRefresh}
-                      isRefreshing={isPaymentStatusLoading}
-                    />
+                    {paymentStatus.qrCode ? (
+                      <QRCodeDisplay
+                        qrCode={paymentStatus.qrCode}
+                        instructions={paymentStatus.instructions}
+                        accountInfo={accountInfo}
+                        expiresInMinutes={QR_EXPIRES_IN_MINUTES}
+                        onRefresh={handleRefresh}
+                        isRefreshing={isPaymentStatusLoading}
+                      />
+                    ) : (
+                      <AlertMessage
+                        type="warning"
+                        title="Đang tạo mã QR..."
+                        message="Hệ thống đang tạo mã QR cho bạn. Vui lòng đợi trong giây lát hoặc nhấn nút làm mới."
+                        action={
+                          <Button
+                            variant="solid"
+                            size="sm"
+                            onClick={handleRefresh}
+                            loading={isPaymentStatusLoading}
+                          >
+                            Làm mới
+                          </Button>
+                        }
+                      />
+                    )}
                   </Section>
+                </div>
+              )}
+
+              {/* Fallback: Hiển thị thông báo khi payment method là bank_transfer nhưng chưa có QR hoặc status không đúng */}
+              {paymentStatus && 
+               paymentStatus.method === "bank_transfer" &&
+               !shouldShowPaymentInstructions && 
+               paymentStatus.status !== "completed" && 
+               paymentStatus.status !== "failed" && 
+               paymentStatus.status !== "cancelled" && (
+                <div className="lg:col-span-2">
+                  <AlertMessage
+                    type="info"
+                    title="Đang xử lý thanh toán"
+                    message="Hệ thống đang chuẩn bị thông tin thanh toán cho bạn. Vui lòng đợi trong giây lát."
+                    action={
+                      <Button
+                        variant="solid"
+                        size="sm"
+                        onClick={handleRefresh}
+                        loading={isPaymentStatusLoading}
+                      >
+                        Làm mới
+                      </Button>
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Fallback: Hiển thị thông báo khi payment method là bank_transfer nhưng chưa có QR */}
+              {paymentStatus && 
+               paymentStatus.method === "bank_transfer" &&
+               (paymentStatus.status === "pending" || paymentStatus.status === "processing") &&
+               !shouldShowPaymentInstructions && (
+                <div className="lg:col-span-2">
+                  <AlertMessage
+                    type="info"
+                    title="Đang xử lý thanh toán"
+                    message="Hệ thống đang chuẩn bị thông tin thanh toán cho bạn. Vui lòng đợi trong giây lát."
+                    action={
+                      <Button
+                        variant="solid"
+                        size="sm"
+                        onClick={handleRefresh}
+                        loading={isPaymentStatusLoading}
+                      >
+                        Làm mới
+                      </Button>
+                    }
+                  />
                 </div>
               )}
 

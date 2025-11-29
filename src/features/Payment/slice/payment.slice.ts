@@ -49,9 +49,15 @@ const paymentSlice = createSlice({
       state.checkout.message = null;
     },
     createCheckoutSuccess: (state, action: PayloadAction<CheckoutResponse>) => {
+      console.log("[PaymentSlice] createCheckoutSuccess reducer called with:", action.payload);
       state.checkout.status = ReduxStateType.SUCCESS;
       state.checkout.data = action.payload;
       state.checkout.error = null;
+      console.log("[PaymentSlice] State updated:", {
+        status: state.checkout.status,
+        hasData: !!state.checkout.data,
+        paymentId: state.checkout.data?.paymentId,
+      });
     },
     createCheckoutFailure: (state, action: PayloadAction<string>) => {
       state.checkout.status = ReduxStateType.ERROR;

@@ -34,6 +34,11 @@ type GetPaymentHistoryAction = ReturnType<typeof getPaymentHistoryStart>;
 function* createCheckoutWorker(action: CreateCheckoutAction): Generator {
   try {
     const { orderId, paymentMethod } = action.payload;
+    console.log("[PaymentSaga] createCheckoutWorker called:", {
+      orderId,
+      paymentMethod,
+    });
+
     const checkoutRequest: CheckoutRequest = {
       orderId,
       paymentMethod,
@@ -41,16 +46,29 @@ function* createCheckoutWorker(action: CreateCheckoutAction): Generator {
       cancelUrl: `${window.location.origin}/cart`,
     };
 
+    console.log("[PaymentSaga] Calling API createCheckout with:", checkoutRequest);
+
     const response: any = yield call([userPaymentsApi, userPaymentsApi.createCheckout], checkoutRequest);
+    
+    console.log("[PaymentSaga] createCheckout API response:", {
+      success: response.success,
+      data: response.data,
+      message: response.message,
+      paymentId: response.data?.paymentId,
+    });
+
     if (response.success && response.data) {
+      console.log("[PaymentSaga] Dispatching createCheckoutSuccess with:", response.data);
       yield put(createCheckoutSuccess(response.data));
     } else {
       const message = response.message || "Failed to create checkout";
+      console.error("[PaymentSaga] createCheckout failed:", message);
       yield put(createCheckoutFailure(message));
       yield put(addToast({ type: "error", message }));
     }
   } catch (error: unknown) {
     const message = getErrorMessage(error, "Failed to create checkout");
+    console.error("[PaymentSaga] createCheckout error:", error, message);
     yield put(createCheckoutFailure(message));
     yield put(addToast({ type: "error", message }));
   }

@@ -241,9 +241,9 @@ const Index = () => {
                     className="group relative px-3 h-7 bg-gradient-to-br from-neutral-2 to-neutral-3 hover:from-primary-8 hover:to-primary-6 rounded-md flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-110 hover:-translate-y-0.5 cursor-default"
                   >
                     <div className="flex flex-col items-center">
-                      <span className="text-xs font-bold text-neutral-7 group-hover:text-neutral-0 transition-colors duration-300">
+                    <span className="text-xs font-bold text-neutral-7 group-hover:text-neutral-0 transition-colors duration-300">
                         {method.label}
-                      </span>
+                    </span>
                     </div>
                   </div>
                 ))}
