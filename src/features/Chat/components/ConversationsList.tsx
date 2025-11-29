@@ -19,6 +19,7 @@ import Tabs from "@/foundation/components/navigation/tabs/Tab";
 import Popover from "@/foundation/components/popover/Popever";
 import type { ChatConversation } from "@/core/api/chat/type";
 import { images } from "@/assets/image";
+import ScrollView from "@/foundation/components/scroll/ScrollView";
 
 type FilterTab = "all" | "unread";
 type SortOption = "time" | "name";
@@ -48,8 +49,18 @@ const ConversationsList: React.FC = () => {
   };
 
   const getOtherParticipant = (conversation: ChatConversation) => {
+    if (!conversation?.participants || conversation.participants.length === 0) {
+      return null;
+    }
     if (!currentUserId) return conversation.participants[0];
     return conversation.participants.find((p) => p.userId !== currentUserId) || conversation.participants[0];
+  };
+
+  // Helper function to truncate text to ~30 characters
+  const truncateText = (text: string | undefined | null, maxLength: number = 30): string => {
+    if (!text || typeof text !== 'string') return text || "";
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + "...";
   };
 
   // Helper function to get avatar for conversation
@@ -81,6 +92,7 @@ const ConversationsList: React.FC = () => {
     
     const hasUnread = myUnread > 0;
     const avatar = getConversationAvatar(conversation, otherParticipant?.avatar);
+    const displayName = otherParticipant?.name || "Người dùng";
 
     return (
       <div
@@ -88,7 +100,7 @@ const ConversationsList: React.FC = () => {
         onClick={() => handleSelectConversation(conversation)}
         className={clsx(
           "flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200",
-          "border-b border-neutral-2",
+          "border-b border-neutral-2 w-full max-w-full overflow-hidden",
           isActive
             ? "bg-background-1 border-l-4 border-primary-6 shadow-sm"
             : "hover:bg-background-2 active:bg-background-1"
@@ -99,13 +111,20 @@ const ConversationsList: React.FC = () => {
             {avatar ? (
               <Image
                 src={avatar}
-                alt={otherParticipant?.name || "User"}
+                alt={displayName}
                 rounded
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to initial if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  if (target.parentElement) {
+                    target.style.display = 'none';
+                  }
+                }}
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary-6 to-primary-7 text-neutral-1 flex items-center justify-center text-base font-bold">
-                {(otherParticipant?.name || "U")[0].toUpperCase()}
+                {displayName[0].toUpperCase()}
               </div>
             )}
           </div>
@@ -121,14 +140,14 @@ const ConversationsList: React.FC = () => {
           )}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1.5">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5 min-w-0">
             <h3 className={clsx(
-              "text-sm truncate",
+              "text-sm flex-1 min-w-0 text-left",
               isActive ? "text-primary-9 font-bold" : "text-neutral-10 font-semibold",
               hasUnread && !isActive && "font-bold"
             )}>
-              {otherParticipant?.name || "Người dùng"}
+              {truncateText(otherParticipant?.name || "Người dùng")}
             </h3>
             {conversation.lastMessage && (
               <span className="text-xs text-neutral-6 flex-shrink-0 ml-2 font-medium">
@@ -136,7 +155,7 @@ const ConversationsList: React.FC = () => {
               </span>
             )}
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between min-w-0">
             {(() => {
               const lastMessage = conversation.lastMessage;
               const hasText = lastMessage?.message && typeof lastMessage.message === 'string' && lastMessage.message.trim();
@@ -168,11 +187,11 @@ const ConversationsList: React.FC = () => {
               // If has text or no message, show text
               return (
                 <p className={clsx(
-                  "text-sm truncate",
+                  "text-sm w-full min-w-0 text-left",
                   isActive ? "text-neutral-8" : "text-neutral-7",
                   hasUnread && !isActive && "font-medium text-neutral-9"
                 )}>
-                  {hasText ? lastMessage.message : "Chưa có tin nhắn"}
+                  {hasText ? truncateText(lastMessage.message) : "Chưa có tin nhắn"}
                 </p>
               );
             })()}
@@ -295,7 +314,7 @@ const ConversationsList: React.FC = () => {
         onClick={handleSelectCSKH}
         className={clsx(
           "flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200",
-          "border-b border-neutral-2",
+          "border-b border-neutral-2 w-full max-w-full overflow-hidden",
           isActive
             ? "bg-background-1 border-l-4 border-primary-6 shadow-sm"
             : "hover:bg-background-2 active:bg-background-1"
@@ -317,10 +336,10 @@ const ConversationsList: React.FC = () => {
           )}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1.5">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5 min-w-0">
             <h3 className={clsx(
-              "text-sm font-semibold truncate",
+              "text-sm font-semibold flex-1 min-w-0 text-left",
               isActive ? "text-primary-9" : "text-neutral-10",
               hasUnread && !isActive && "font-bold"
             )}>
@@ -332,7 +351,7 @@ const ConversationsList: React.FC = () => {
               </span>
             )}
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between min-w-0">
             {(() => {
               const lastMessage = cskhConversation.lastMessage;
               const hasText = lastMessage?.message && typeof lastMessage.message === 'string' && lastMessage.message.trim();
@@ -364,11 +383,11 @@ const ConversationsList: React.FC = () => {
               // If has text or no message, show text
               return (
                 <p className={clsx(
-                  "text-sm truncate",
+                  "text-sm w-full min-w-0 text-left",
                   isActive ? "text-neutral-8" : "text-neutral-7",
                   hasUnread && !isActive && "font-medium text-neutral-9"
                 )}>
-                  {hasText ? lastMessage.message : "Nhắn tin để được hỗ trợ"}
+                  {hasText ? truncateText(lastMessage.message) : "Nhắn tin để được hỗ trợ"}
                 </p>
               );
             })()}
@@ -380,9 +399,9 @@ const ConversationsList: React.FC = () => {
 
   // Render header section
   const renderHeader = () => (
-    <div className="bg-background-base border-b border-neutral-3">
+    <div className="bg-background-base border-b border-neutral-3 w-full max-w-full overflow-x-hidden">
       <Form.Root>
-        <div className="px-4 pt-4 pb-3">
+        <div className="px-4 pt-4 pb-3 w-full max-w-full overflow-x-hidden">
          
 
           {/* Search Input */}
@@ -471,9 +490,9 @@ const ConversationsList: React.FC = () => {
 
   if (status === "LOADING") {
     return (
-      <div className="flex flex-col h-full min-h-[calc(100vh-65px)] bg-background-1">
+      <div className="flex flex-col h-full min-h-[calc(100vh-65px)] bg-background-1 overflow-x-hidden max-w-full">
         {renderHeader()}
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full max-w-full">
           {shouldShowCSKH && renderCSKHItem()}
           <div className="flex items-center justify-center py-12">
             <Spinner size="lg" />
@@ -487,14 +506,10 @@ const ConversationsList: React.FC = () => {
   const showEmptyState = !hasConversations && !shouldShowCSKH;
 
   return (
-    <div className="flex flex-col h-full min-h-[calc(100vh-65px)] bg-background-1">
+    <div className="flex flex-col h-full min-h-[calc(100vh-65px)] bg-background-1 overflow-x-hidden max-w-full">
       {renderHeader()}
-
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {/* CSKH Fixed Item */}
+      <ScrollView className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full max-w-full">
         {shouldShowCSKH && renderCSKHItem()}
-
-        {/* Filtered Conversations */}
         {hasConversations ? (
           filteredAndSortedConversations.map((conversation: ChatConversation) => (
             <ConversationItem key={conversation._id} conversation={conversation} />
@@ -517,7 +532,7 @@ const ConversationsList: React.FC = () => {
             </div>
           </div>
         ) : null}
-      </div>
+      </ScrollView>
     </div>
   );
 };

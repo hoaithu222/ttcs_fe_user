@@ -30,8 +30,8 @@ const ChatPage: React.FC = () => {
 
   if (isMobile) {
     return (
-      <div className="h-full bg-background-base overflow-hidden">
-        <div className="flex bg-neutral-1 h-full overflow-hidden">
+      <div className="h-full bg-background-base overflow-hidden overflow-x-hidden">
+        <div className="flex bg-neutral-1 h-full overflow-hidden overflow-x-hidden">
         {currentConversation ? (
           <>
             <ChatWindow />
@@ -47,9 +47,9 @@ const ChatPage: React.FC = () => {
 
 
   return (
-    <div className="h-full flex bg-neutral-1 overflow-hidden">
+    <div className="h-[calc(100vh-65px)] flex bg-neutral-1 overflow-hidden">
       {/* Sidebar - Conversations List */}
-      <div className="w-80 border-r border-neutral-3 bg-background-base flex flex-col h-full overflow-hidden flex-shrink-0">
+      <div className="w-80 border-r border-neutral-3 bg-background-base flex flex-col h-full overflow-hidden overflow-x-hidden flex-shrink-0 max-w-[320px]">
         <ConversationsList />
       </div>
 
