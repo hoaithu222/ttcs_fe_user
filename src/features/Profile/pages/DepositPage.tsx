@@ -13,7 +13,7 @@ import type { WalletBalanceResponse } from "@/core/api/wallet/type";
 import Page from "@/foundation/components/layout/Page";
 import Chip from "@/foundation/components/info/Chip";
 
-type DepositMethod = "bank" | "vnpay";
+type DepositMethod = "bank";
 
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000, 2000000, 3000000];
 
@@ -92,7 +92,7 @@ const DepositPage = () => {
       const response = await userWalletApi.createDeposit(
         { 
           amount,
-          depositMethod: depositMethod // Pass deposit method to backend
+          depositMethod: "bank"
         }, 
         walletType
       );
@@ -105,14 +105,8 @@ const DepositPage = () => {
           bankAccount: response.data.bankAccount,
           instructions: response.data.instructions,
         });
-        
-        // If VNPay method, redirect to payment URL
-        if (depositMethod === "vnpay" && response.data.paymentUrl) {
-          window.location.href = response.data.paymentUrl;
-          return;
-        }
-        
-        // If bank transfer, show processing status
+
+        // Với Sepay (chuyển khoản ngân hàng), luôn hiển thị màn hình hướng dẫn/QR
         setDepositStatus("processing");
         dispatch(addToast({ type: "success", message: "Đã tạo yêu cầu nạp tiền. Vui lòng chuyển khoản theo thông tin bên dưới." }));
       }
@@ -225,58 +219,20 @@ const DepositPage = () => {
                 <label className="block text-sm font-semibold text-neutral-9 mb-3">
                   Phương thức nạp tiền
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setDepositMethod("bank")}
-                    className={`p-4 rounded-lg border-2 transition-all text-left ${
-                      depositMethod === "bank"
-                        ? "border-primary-6 bg-primary-1"
-                        : "border-border-1 bg-background-1 hover:border-primary-3"
-                    }`}
+                <div className="grid grid-cols-1 gap-3">
+                  <div
+                    className="p-4 rounded-lg border-2 border-primary-6 bg-primary-1 text-left"
                   >
                     <div className="flex items-center gap-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          depositMethod === "bank"
-                            ? "bg-primary-6 text-white"
-                            : "bg-neutral-2 text-neutral-7"
-                        }`}
-                      >
+                      <div className="p-2 rounded-lg bg-primary-6 text-white">
                         <Building2 className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-neutral-9">Chuyển khoản ngân hàng</p>
-                        <p className="text-xs text-neutral-6">Quét QR code hoặc chuyển khoản</p>
+                        <p className="text-sm font-semibold text-neutral-9">Chuyển khoản qua ngân hàng (Sepay)</p>
+                        <p className="text-xs text-neutral-6">Quét QR code hoặc chuyển khoản theo thông tin hiển thị</p>
                       </div>
                     </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setDepositMethod("vnpay")}
-                    className={`p-4 rounded-lg border-2 transition-all text-left ${
-                      depositMethod === "vnpay"
-                        ? "border-primary-6 bg-primary-1"
-                        : "border-border-1 bg-background-1 hover:border-primary-3"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          depositMethod === "vnpay"
-                            ? "bg-primary-6 text-white"
-                            : "bg-neutral-2 text-neutral-7"
-                        }`}
-                      >
-                        <CreditCard className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-neutral-9">VNPay</p>
-                        <p className="text-xs text-neutral-6">Thanh toán qua VNPay</p>
-                      </div>
-                    </div>
-                  </button>
+                  </div>
                 </div>
               </div>
 
@@ -308,7 +264,7 @@ const DepositPage = () => {
                 loading={isCreatingDeposit}
                 disabled={!depositAmount || parseFloat(depositAmount) <= 0}
               >
-                {depositMethod === "vnpay" ? "Thanh toán qua VNPay" : "Tạo yêu cầu nạp tiền"}
+                Tạo yêu cầu nạp tiền
               </Button>
             </div>
           )}
@@ -324,9 +280,7 @@ const DepositPage = () => {
                   Yêu cầu nạp tiền đang được xử lý
                 </h2>
                 <p className="text-sm text-neutral-6 mb-4">
-                  {depositMethod === "vnpay" 
-                    ? "Bạn đã được chuyển đến trang thanh toán VNPay. Nếu chưa thanh toán, vui lòng quay lại và thử lại."
-                    : "Vui lòng chuyển khoản theo thông tin bên dưới. Hệ thống sẽ tự động cập nhật số dư sau khi nhận được chuyển khoản."}
+                  Vui lòng chuyển khoản theo thông tin bên dưới. Hệ thống sẽ tự động cập nhật số dư sau khi nhận được chuyển khoản qua Sepay.
                 </p>
                 <Chip
                   colorClass="bg-warning text-white border-none"
@@ -341,34 +295,8 @@ const DepositPage = () => {
                 </Chip>
               </div>
 
-              {/* VNPay Payment Link (only if VNPay method) */}
-              {depositMethod === "vnpay" && depositData.paymentUrl && (
-                <div className="text-center">
-                  <p className="text-sm font-semibold text-neutral-9 mb-3">
-                    Link thanh toán VNPay
-                  </p>
-                  <div className="bg-background-1 rounded-lg p-4 border border-border-1">
-                    <a
-                      href={depositData.paymentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary-6 hover:underline break-all"
-                    >
-                      {depositData.paymentUrl}
-                    </a>
-                    <Button
-                      variant="solid"
-                      className="mt-3 w-full"
-                      onClick={() => window.open(depositData.paymentUrl, "_blank")}
-                    >
-                      Mở trang thanh toán VNPay
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* QR Code (only for bank transfer) */}
-              {depositMethod === "bank" && depositData.qrCode && (
+              {/* QR Code */}
+              {depositData.qrCode && (
                 <div className="text-center">
                   <p className="text-sm font-semibold text-neutral-9 mb-3">
                     Quét QR code để chuyển khoản
@@ -390,8 +318,8 @@ const DepositPage = () => {
                 </div>
               )}
 
-              {/* Bank Account Info (only for bank transfer) */}
-              {depositMethod === "bank" && depositData.bankAccount && (
+              {/* Bank Account Info */}
+              {depositData.bankAccount && (
                 <div className="bg-background-1 rounded-lg p-4 border border-border-1 space-y-3">
                   <p className="text-sm font-semibold text-neutral-9 mb-3">Thông tin tài khoản nhận tiền:</p>
                   <div className="space-y-2">

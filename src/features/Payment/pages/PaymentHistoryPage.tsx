@@ -6,6 +6,7 @@ import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import Button from "@/foundation/components/buttons/Button";
 import Loading from "@/foundation/components/loading/Loading";
+import AlertMessage from "@/foundation/components/info/AlertMessage";
 import { PaymentHistory } from "../components";
 import { usePayment } from "../hooks";
 import type { Payment } from "@/core/api/payments/type";
@@ -69,6 +70,15 @@ const PaymentHistoryPage: React.FC = () => {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Helper info */}
+          <div className="mb-4">
+            <AlertMessage
+              type="info"
+              compact
+              message="Chạm vào một giao dịch để xem lại chi tiết thanh toán và trạng thái mới nhất."
+            />
           </div>
 
           {/* Payment History */}

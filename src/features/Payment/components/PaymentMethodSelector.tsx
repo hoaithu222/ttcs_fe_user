@@ -19,43 +19,25 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
 }) => {
   const getMethodIcon = (type: PaymentMethod["type"]) => {
     switch (type) {
-      case "credit_card":
-        return <CreditCard className="w-5 h-5" />;
       case "bank_transfer":
         return <Building2 className="w-5 h-5" />;
       case "cod":
         return <Truck className="w-5 h-5" />;
-      case "paypal":
-      case "momo":
-      case "zalopay":
-      case "vnpay":
-      case "test":
-        return <Wallet className="w-5 h-5" />;
+      case "wallet":
       default:
-        return <CreditCard className="w-5 h-5" />;
+        return <Wallet className="w-5 h-5" />;
     }
   };
 
   const getMethodLabel = (type: PaymentMethod["type"]) => {
     switch (type) {
-      case "credit_card":
-        return "Thẻ tín dụng";
       case "bank_transfer":
-        return "Chuyển khoản ngân hàng";
+        return "Chuyển khoản qua ngân hàng (Sepay)";
       case "cod":
         return "Thanh toán khi nhận hàng";
-      case "paypal":
-        return "PayPal";
-      case "vnpay":
-        return "VNPay";
-      case "momo":
-        return "MoMo";
-      case "zalopay":
-        return "ZaloPay";
-      case "test":
-        return "Thanh toán thử nghiệm";
+      case "wallet":
       default:
-        return type;
+        return "Thanh toán bằng ví";
     }
   };
 

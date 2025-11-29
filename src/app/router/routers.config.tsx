@@ -10,6 +10,7 @@ const CartPage = lazy(() => import("@/features/Cart/CartPage"));
 const OrdersPage = lazy(() => import("@/features/Orders/OrdersPage"));
 const CheckoutPage = lazy(() => import("@/features/Payment/pages/CheckoutPage"));
 const PaymentPage = lazy(() => import("@/features/Payment/pages/PaymentPage"));
+const PaymentResultPage = lazy(() => import("@/features/Payment/pages/PaymentResultPage"));
 const PaymentHistoryPage = lazy(() => import("@/features/Payment/pages/PaymentHistoryPage"));
 const WishlistPage = lazy(() => import("@/features/Wishlist/WishlistPage"));
 const ProfilePage = lazy(() => import("@/features/Profile/ProfilePage"));
@@ -111,7 +112,13 @@ export const ROUTE = {
   payment: {
     path: "/payment/:orderId",
     element: <PaymentPage />,
-    layout: "main",
+    layout: "extension",
+    options: defaultProtectedOptions,
+  },
+  paymentResult: {
+    path: "/payment/result/:orderId",
+    element: <PaymentResultPage />,
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   paymentHistory: {

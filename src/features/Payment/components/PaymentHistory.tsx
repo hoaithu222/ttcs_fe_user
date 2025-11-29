@@ -52,22 +52,12 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({
 
   const getMethodLabel = (method: Payment["method"]) => {
     switch (method) {
-      case "credit_card":
-        return "Thẻ tín dụng";
-      case "bank_transfer":
-        return "Chuyển khoản";
       case "cod":
         return "COD";
-      case "paypal":
-        return "PayPal";
-      case "vnpay":
-        return "VNPay";
-      case "momo":
-        return "MoMo";
-      case "zalopay":
-        return "ZaloPay";
-      case "test":
-        return "Thanh toán thử nghiệm";
+      case "bank_transfer":
+        return "Chuyển khoản qua ngân hàng (Sepay)";
+      case "wallet":
+        return "Thanh toán bằng ví";
       default:
         return method;
     }

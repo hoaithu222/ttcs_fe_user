@@ -5,6 +5,7 @@ import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import Button from "@/foundation/components/buttons/Button";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
+import AlertMessage from "@/foundation/components/info/AlertMessage";
 
 interface PaymentStatusProps {
   payment: Payment | null;
@@ -88,31 +89,29 @@ const PaymentStatus: React.FC<PaymentStatusProps> = ({
 
   const getMethodLabel = (method: Payment["method"]) => {
     switch (method) {
-      case "credit_card":
-        return "Thẻ tín dụng";
       case "bank_transfer":
-        return "Chuyển khoản ngân hàng";
-      case "cod":
-        return "Thanh toán khi nhận hàng";
-      case "paypal":
-        return "PayPal";
-      case "vnpay":
-        return "VNPay";
-      case "momo":
-        return "MoMo";
-      case "zalopay":
-        return "ZaloPay";
-      case "test":
-        return "Thanh toán thử nghiệm";
+        return "Chuyển khoản qua ngân hàng (Sepay)";
+      case "wallet":
+        return "Thanh toán bằng ví";
       default:
         return method;
     }
   };
 
   return (
-    <Section className="bg-background-2 rounded-2xl p-6 border border-border-1">
+    <Section className="bg-background-1 rounded-2xl p-6 border border-border-1 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <SectionTitle>Trạng thái thanh toán</SectionTitle>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center  justify-center w-10 h-10 rounded-full bg-background-2">
+            {getStatusIcon(payment.status)}
+          </div>
+          <div>
+            <SectionTitle className="text-lg mb-0 text-left">Trạng thái thanh toán</SectionTitle>
+            <p className={`text-xs text-left font-medium ${getStatusColor(payment.status)}`}>
+              {getStatusLabel(payment.status)}
+            </p>
+          </div>
+        </div>
         {onRefresh && (
           <Button
             variant="ghost"
@@ -129,18 +128,18 @@ const PaymentStatus: React.FC<PaymentStatusProps> = ({
 
       <div className="space-y-4">
         {/* Status Badge */}
-        <div className="flex items-center gap-3 p-4 bg-background-1 rounded-lg border border-border-1">
-          {getStatusIcon(payment.status)}
-          <div className="flex-1">
-            <p className="text-sm text-neutral-6">Trạng thái</p>
-            <p className={`text-base font-semibold ${getStatusColor(payment.status)}`}>
-              {getStatusLabel(payment.status)}
-            </p>
-          </div>
-        </div>
+       
+         
+          <AlertMessage
+            type={payment.status === "completed" ? "success" : payment.status === "processing" ? "warning" : "error"}
+            title={getStatusLabel(payment.status)}
+            message={"Vui lòng thanh toán theo hướng dẫn để đơn hàng được xử lý nhanh chóng."}
+            className="w-full text-left"
+            compact
+          />
 
         {/* Payment Info */}
-        <div className="space-y-3 p-4 bg-background-1 rounded-lg border border-border-1">
+        <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm text-neutral-6">Mã đơn hàng</span>
             <span className="text-sm font-medium text-neutral-9">

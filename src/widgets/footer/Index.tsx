@@ -231,14 +231,20 @@ const Index = () => {
                 Phương thức thanh toán:
               </span>
               <div className="flex space-x-2">
-                {["VISA", "MC", "ATM"].map((method, index) => (
+                {[
+                  { label: "COD", desc: "Thanh toán khi nhận hàng" },
+                  { label: "Sepay", desc: "Chuyển khoản ngân hàng" },
+                  { label: "Ví", desc: "Thanh toán bằng ví" },
+                ].map((method, index) => (
                   <div
                     key={index}
-                    className="group relative w-12 h-7 bg-gradient-to-br from-neutral-2 to-neutral-3 hover:from-primary-8 hover:to-primary-6 rounded-md flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-110 hover:-translate-y-0.5 cursor-pointer"
+                    className="group relative px-3 h-7 bg-gradient-to-br from-neutral-2 to-neutral-3 hover:from-primary-8 hover:to-primary-6 rounded-md flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-110 hover:-translate-y-0.5 cursor-default"
                   >
-                    <span className="text-xs font-bold text-neutral-7 group-hover:text-neutral-0 transition-colors duration-300">
-                      {method}
-                    </span>
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs font-bold text-neutral-7 group-hover:text-neutral-0 transition-colors duration-300">
+                        {method.label}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

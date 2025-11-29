@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Wallet } from "lucide-react";
+import { ArrowLeft, XCircle } from "lucide-react";
 import Page from "@/foundation/components/layout/Page";
 import Section from "@/foundation/components/sections/Section";
 import Button from "@/foundation/components/buttons/Button";
@@ -11,6 +11,8 @@ import { addToast } from "@/app/store/slices/toast";
 import { useDispatch } from "react-redux";
 import { userWalletApi } from "@/core/api/wallet";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
+import AlertMessage from "@/foundation/components/info/AlertMessage";
+import ScrollView from "@/foundation/components/scroll/ScrollView";
 
 const PaymentPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -23,17 +25,9 @@ const PaymentPage: React.FC = () => {
     getPaymentStatus,
     paymentStatusError 
   } = usePayment();
-
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const getPaymentStatusRef = useRef(getPaymentStatus);
   const [hasShownSuccessToast, setHasShownSuccessToast] = useState(false);
   const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-
-  // Keep ref updated
-  useEffect(() => {
-    getPaymentStatusRef.current = getPaymentStatus;
-  }, [getPaymentStatus]);
 
   // Load wallet balance if payment method is wallet
   useEffect(() => {
@@ -53,53 +47,23 @@ const PaymentPage: React.FC = () => {
     loadWalletBalance();
   }, [paymentStatus?.method]);
 
+  // Load payment status once when vào trang hoặc đổi orderId
   useEffect(() => {
     if (!orderId) {
       navigate("/profile?tab=orders");
       return;
     }
+    getPaymentStatus(orderId);
+  }, [orderId, navigate, getPaymentStatus]);
 
-    // Initial load
-    getPaymentStatusRef.current(orderId);
-
-    // Poll payment status every 5 seconds if pending/processing
-    // Only poll if status is pending or processing
-    const shouldPoll = () => {
-      if (!paymentStatus) return true;
-      return paymentStatus.status === "pending" || paymentStatus.status === "processing";
-    };
-
-    if (shouldPoll()) {
-      pollingIntervalRef.current = setInterval(() => {
-        if (orderId && shouldPoll()) {
-          getPaymentStatusRef.current(orderId);
-        }
-      }, 5000);
-    }
-
+  // Dọn redirect timer khi unmount
+  useEffect(() => {
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
       if (redirectTimer) {
         clearTimeout(redirectTimer);
       }
     };
-  }, [orderId, navigate]); // Only depend on orderId and navigate
-
-  // Stop polling when payment is completed, failed, or cancelled
-  useEffect(() => {
-    if (paymentStatus) {
-      const finalStatuses = ["completed", "failed", "cancelled", "refunded"];
-      if (finalStatuses.includes(paymentStatus.status)) {
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
-      }
-    }
-  }, [paymentStatus]);
+  }, [redirectTimer]);
 
   // Handle successful payment
   useEffect(() => {
@@ -111,9 +75,13 @@ const PaymentPage: React.FC = () => {
           message: "Thanh toán thành công!",
         })
       );
-      // Redirect to orders after 3 seconds
+      // Redirect to trang cảm ơn sau 3 giây
       const timer = setTimeout(() => {
-        navigate("/profile?tab=orders");
+        if (orderId) {
+          navigate(`/payment/result/${orderId}`);
+        } else {
+          navigate("/profile?tab=orders");
+        }
       }, 3000);
       setRedirectTimer(timer);
     }
@@ -137,7 +105,7 @@ const PaymentPage: React.FC = () => {
   if (paymentStatusError && !paymentStatus && !isPaymentStatusLoading) {
     return (
       <Page>
-        <div className="min-h-screen bg-background-1">
+        <div className="min-h-screen bg-background-base">
           <div className="container mx-auto px-4 py-8 lg:py-12">
             <div className="flex items-center gap-4 mb-8">
               <Button
@@ -149,33 +117,21 @@ const PaymentPage: React.FC = () => {
                 Quay lại đơn hàng
               </Button>
             </div>
-            <Section className="bg-error/10 rounded-2xl p-6 border border-error/20">
-              <div className="flex flex-col items-center text-center">
-                <AlertCircle className="w-16 h-16 text-error mb-4" />
-                <h2 className="text-xl font-bold text-error mb-2">
-                  Không tìm thấy thông tin thanh toán
-                </h2>
-                <p className="text-sm text-neutral-6 mb-4">
-                  {paymentStatusError}
-                </p>
+            <AlertMessage
+              type="error"
+              title="Không tìm thấy thông tin thanh toán"
+              message={paymentStatusError}
+              action={
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="md"
-                    onClick={handleBackToOrders}
-                  >
+                  <Button variant="outline" size="sm" onClick={handleBackToOrders}>
                     Quay lại đơn hàng
                   </Button>
-                  <Button
-                    variant="solid"
-                    size="md"
-                    onClick={handleRefresh}
-                  >
+                  <Button variant="solid" size="sm" onClick={handleRefresh}>
                     Thử lại
                   </Button>
                 </div>
-              </div>
-            </Section>
+              }
+            />
           </div>
         </div>
       </Page>
@@ -186,10 +142,7 @@ const PaymentPage: React.FC = () => {
   const shouldShowPaymentInstructions = 
     paymentStatus && 
     (paymentStatus.status === "pending" || paymentStatus.status === "processing") &&
-    (paymentStatus.method === "bank_transfer" || 
-     paymentStatus.method === "vnpay" || 
-     paymentStatus.method === "momo" || 
-     paymentStatus.method === "zalopay");
+    paymentStatus.method === "bank_transfer";
 
   // Extract account info from instructions if available
   const extractAccountInfo = (instructions?: string) => {
@@ -208,24 +161,25 @@ const PaymentPage: React.FC = () => {
   };
 
   const accountInfo = extractAccountInfo(paymentStatus?.instructions);
+  const QR_EXPIRES_IN_MINUTES = 10;
 
   return (
     <Page>
-      <div className="min-h-screen bg-background-1">
-        <div className="container mx-auto px-4 py-8 lg:py-12">
+      <div className="min-h-[calc(100vh-80px)] px-4 bg-background-base">
+        <ScrollView className="min-h-[calc(100vh-80px)] bg-background-base">
+        <div className=" px-8 py-8 lg:py-12 space-y-6">
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={<ArrowLeft className="w-4 h-4" />}
-              onClick={handleBackToOrders}
-            >
-              Quay lại đơn hàng
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-neutral-9">Thanh toán đơn hàng</h1>
-              <p className="text-sm text-neutral-6">Mã đơn hàng: {orderId}</p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<ArrowLeft className="w-4 h-4" />}
+                onClick={handleBackToOrders}
+              >
+                Quay lại đơn hàng
+              </Button>
+             
             </div>
           </div>
 
@@ -234,9 +188,9 @@ const PaymentPage: React.FC = () => {
               <Loading layout="centered" message="Đang tải thông tin thanh toán..." />
             </div>
           ) : paymentStatus ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
               {/* Payment Status */}
-              <div>
+              <div className="lg:col-span-1">
                 <PaymentStatus
                   payment={paymentStatus}
                   isLoading={isPaymentStatusLoading}
@@ -246,57 +200,66 @@ const PaymentPage: React.FC = () => {
 
               {/* Payment Instructions - Show for pending/processing payments */}
               {shouldShowPaymentInstructions && (
-                <div>
-                  <QRCodeDisplay
-                    qrCode={paymentStatus.qrCode}
-                    instructions={paymentStatus.instructions}
-                    accountInfo={accountInfo}
-                  />
+                <div className="lg:col-span-2 space-y-4">
+                  <Section className="bg-background-1 rounded-2xl p-6 border border-border-1 shadow-sm space-y-4">
+                    
+                    <AlertMessage
+                      type="info"
+                      title="Chuyển khoản qua ngân hàng (Sepay)"
+                      message={
+                        <>
+                          Mã QR này được tạo riêng cho đơn hàng của bạn. Vui lòng không chia sẻ cho
+                          người khác để đảm bảo an toàn.
+                        </>
+                      }
+                      compact
+                    />
+                    <QRCodeDisplay
+                      qrCode={paymentStatus.qrCode}
+                      instructions={paymentStatus.instructions}
+                      accountInfo={accountInfo}
+                      expiresInMinutes={QR_EXPIRES_IN_MINUTES}
+                      onRefresh={handleRefresh}
+                      isRefreshing={isPaymentStatusLoading}
+                    />
+                  </Section>
                 </div>
               )}
 
               {/* Success State */}
               {paymentStatus.status === "completed" && (
                 <div className="lg:col-span-2">
-                  <Section className="bg-success/10 rounded-2xl p-6 border border-success/20">
-                    <div className="flex flex-col items-center text-center">
-                      <CheckCircle2 className="w-16 h-16 text-success mb-4" />
-                      <h2 className="text-2xl font-bold text-success mb-2">
-                        Thanh toán thành công!
-                      </h2>
-                      <p className="text-sm text-neutral-6 mb-4">
-                        Đơn hàng của bạn đã được thanh toán thành công. Bạn sẽ được chuyển đến trang đơn hàng trong giây lát...
-                      </p>
+                  <AlertMessage
+                    type="success"
+                    title="Thanh toán thành công!"
+                    message="Đơn hàng của bạn đã được thanh toán thành công. Bạn sẽ được chuyển đến trang đơn hàng trong giây lát..."
+                    action={
                       <Button
                         color="green"
                         variant="solid"
-                        size="md"
+                        size="sm"
                         onClick={handleBackToOrders}
                       >
                         Xem đơn hàng ngay
                       </Button>
-                    </div>
-                  </Section>
+                    }
+                  />
                 </div>
               )}
 
               {/* Failed State */}
               {paymentStatus.status === "failed" && (
                 <div className="lg:col-span-2">
-                  <Section className="bg-error/10 rounded-2xl p-6 border border-error/20">
-                    <div className="flex flex-col items-center text-center">
-                      <XCircle className="w-16 h-16 text-error mb-4" />
-                      <h2 className="text-xl font-bold text-error mb-2">
-                        Thanh toán thất bại
-                      </h2>
-                      <p className="text-sm text-neutral-6 mb-4">
-                        Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại hoặc chọn phương thức thanh toán khác.
-                      </p>
+                  <AlertMessage
+                    type="error"
+                    title="Thanh toán thất bại"
+                    message="Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại hoặc chọn phương thức thanh toán khác."
+                    action={
                       <div className="flex gap-2">
                         <Button
                           color="red"
                           variant="outline"
-                          size="md"
+                          size="sm"
                           onClick={handleBackToOrders}
                         >
                           Quay lại đơn hàng
@@ -304,38 +267,30 @@ const PaymentPage: React.FC = () => {
                         <Button
                           color="red"
                           variant="solid"
-                          size="md"
+                          size="sm"
                           onClick={handleRefresh}
                         >
                           Thử lại
                         </Button>
                       </div>
-                    </div>
-                  </Section>
+                    }
+                  />
                 </div>
               )}
 
               {/* Cancelled State */}
               {paymentStatus.status === "cancelled" && (
                 <div className="lg:col-span-2">
-                  <Section className="bg-neutral-4/10 rounded-2xl p-6 border border-neutral-4/20">
-                    <div className="flex flex-col items-center text-center">
-                      <XCircle className="w-16 h-16 text-neutral-6 mb-4" />
-                      <h2 className="text-xl font-bold text-neutral-9 mb-2">
-                        Thanh toán đã bị hủy
-                      </h2>
-                      <p className="text-sm text-neutral-6 mb-4">
-                        Giao dịch thanh toán đã bị hủy. Vui lòng thử lại nếu bạn muốn tiếp tục thanh toán.
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="md"
-                        onClick={handleBackToOrders}
-                      >
+                  <AlertMessage
+                    type="info"
+                    title="Thanh toán đã bị hủy"
+                    message="Giao dịch thanh toán đã bị hủy. Vui lòng thử lại nếu bạn muốn tiếp tục thanh toán."
+                    action={
+                      <Button variant="outline" size="sm" onClick={handleBackToOrders}>
                         Quay lại đơn hàng
                       </Button>
-                    </div>
-                  </Section>
+                    }
+                  />
                 </div>
               )}
 
@@ -343,42 +298,38 @@ const PaymentPage: React.FC = () => {
               {paymentStatus.method === "wallet" && 
                (paymentStatus.status === "pending" || paymentStatus.status === "processing") && (
                 <div className="lg:col-span-2">
-                  <Section className="bg-primary-10 rounded-2xl p-6 border border-primary-4">
-                    <div className="flex flex-col items-center text-center">
-                      <Wallet className="w-16 h-16 text-primary-6 mb-4" />
-                      <h2 className="text-xl font-bold text-primary-9 mb-2">
-                        Đang xử lý thanh toán bằng ví
-                      </h2>
-                      <p className="text-sm text-neutral-6 mb-4">
-                        Hệ thống đang xử lý thanh toán từ ví của bạn. Vui lòng đợi trong giây lát...
-                      </p>
-                      {walletBalance !== null && (
-                        <div className="mb-4 p-3 bg-background-1 rounded-lg border border-border-1">
-                          <p className="text-xs text-neutral-6 mb-1">Số dư ví hiện tại</p>
-                          <p className="text-lg font-bold text-primary-6">
-                            {formatPriceVND(walletBalance)}
-                          </p>
-                        </div>
-                      )}
+                  <AlertMessage
+                    type="info"
+                    title="Đang xử lý thanh toán bằng ví"
+                    message={
+                      <>
+                        Hệ thống đang xử lý thanh toán từ ví của bạn. Vui lòng đợi trong giây lát.
+                        {walletBalance !== null && (
+                          <div className="mt-2 text-xs text-neutral-6">
+                            Số dư ví hiện tại:{" "}
+                            <span className="font-semibold text-primary-6">
+                              {formatPriceVND(walletBalance)}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    }
+                    action={
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="md"
-                          onClick={handleBackToOrders}
-                        >
+                        <Button variant="outline" size="sm" onClick={handleBackToOrders}>
                           Quay lại
                         </Button>
                         <Button
                           variant="solid"
-                          size="md"
+                          size="sm"
                           onClick={handleRefresh}
                           loading={isPaymentStatusLoading}
                         >
                           Làm mới
                         </Button>
                       </div>
-                    </div>
-                  </Section>
+                    }
+                  />
                 </div>
               )}
 
@@ -444,24 +395,16 @@ const PaymentPage: React.FC = () => {
               {/* COD - No payment needed */}
               {paymentStatus.method === "cod" && paymentStatus.status === "pending" && (
                 <div className="lg:col-span-2">
-                  <Section className="bg-primary-10 rounded-2xl p-6 border border-primary-4">
-                    <div className="flex flex-col items-center text-center">
-                      <CheckCircle2 className="w-16 h-16 text-primary-6 mb-4" />
-                      <h2 className="text-xl font-bold text-primary-9 mb-2">
-                        Đơn hàng đã được tạo
-                      </h2>
-                      <p className="text-sm text-neutral-6 mb-4">
-                        Bạn đã chọn thanh toán khi nhận hàng (COD). Vui lòng thanh toán khi nhận được sản phẩm.
-                      </p>
-                      <Button
-                        variant="solid"
-                        size="md"
-                        onClick={handleBackToOrders}
-                      >
+                  <AlertMessage
+                    type="success"
+                    title="Đơn hàng đã được tạo"
+                    message="Bạn đã chọn thanh toán khi nhận hàng (COD). Vui lòng thanh toán khi nhận được sản phẩm."
+                    action={
+                      <Button variant="solid" size="sm" onClick={handleBackToOrders}>
                         Xem đơn hàng
                       </Button>
-                    </div>
-                  </Section>
+                    }
+                  />
                 </div>
               )}
             </div>
@@ -482,6 +425,7 @@ const PaymentPage: React.FC = () => {
             </Section>
           )}
         </div>
+        </ScrollView>
       </div>
     </Page>
   );

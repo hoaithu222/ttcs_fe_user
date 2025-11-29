@@ -9,6 +9,7 @@ import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import Button from "@/foundation/components/buttons/Button";
 import Input from "@/foundation/components/input/Input";
 import Loading from "@/foundation/components/loading/Loading";
+import AlertMessage from "@/foundation/components/info/AlertMessage";
 import { PaymentAddressSelector } from "../components";
 import Modal from "@/foundation/components/modal/Modal";
 import type { Address } from "@/core/api/addresses/type";
@@ -355,25 +356,17 @@ const CheckoutPage: React.FC = () => {
   // Redirect to payment page when checkout succeeds
   useEffect(() => {
     if (checkoutData?.paymentId && createdOrderId) {
-      const paymentUrl = checkoutData.paymentUrl;
-      
-      // Check if paymentUrl is an external gateway URL (contains gateway domain)
-      const isExternalGateway = paymentUrl && 
-        (paymentUrl.includes('vnpayment.vn') ||
-         paymentUrl.includes('momo.vn') ||
-         paymentUrl.includes('zalopay.vn') ||
-         paymentUrl.includes('paypal.com') ||
-         paymentUrl.includes('sandbox.vnpayment.vn'));
-      
-      if (isExternalGateway && paymentUrl) {
-        // Redirect to external payment gateway
-        window.location.href = paymentUrl;
-      } else {
-        // Navigate to frontend payment page with orderId
+      const methodType = selectedPaymentConfig?.type;
+
+      // Với các phương thức cần thanh toán online (wallet, bank_transfer) -> sang màn thanh toán
+      if (methodType === "wallet" || methodType === "bank_transfer") {
         navigate(`/payment/${createdOrderId}`);
+      } else {
+        // Với COD hoặc phương thức khác -> sang màn cảm ơn
+        navigate(`/payment/result/${createdOrderId}`);
       }
     }
-  }, [checkoutData, createdOrderId, navigate]);
+  }, [checkoutData, createdOrderId, navigate, selectedPaymentConfig]);
 
   // Calculate totals based on filtered cartItems (selected items or buyNow)
   const calculatedSubtotal = useMemo(() => {
@@ -602,12 +595,11 @@ const CheckoutPage: React.FC = () => {
                         .map((method) => {
                           const getMethodIcon = (type: PaymentMethod["type"]) => {
                             switch (type) {
-                              case "credit_card":
-                                return <CreditCard className="w-4 h-4" />;
                               case "bank_transfer":
                                 return <Building2 className="w-4 h-4" />;
                               case "cod":
                                 return <Truck className="w-4 h-4" />;
+                              case "wallet":
                               default:
                                 return <Wallet className="w-4 h-4" />;
                             }
@@ -615,22 +607,12 @@ const CheckoutPage: React.FC = () => {
 
                           const getMethodLabel = (type: PaymentMethod["type"]) => {
                             switch (type) {
-                              case "credit_card":
-                                return "Thẻ tín dụng";
                               case "bank_transfer":
-                                return "Chuyển khoản";
+                                return "Chuyển khoản qua ngân hàng (Sepay)";
                               case "cod":
                                 return "Thanh toán khi nhận hàng";
                               case "wallet":
                                 return "Thanh toán bằng ví";
-                              case "paypal":
-                                return "PayPal";
-                              case "vnpay":
-                                return "VNPay";
-                              case "momo":
-                                return "MoMo";
-                              case "zalopay":
-                                return "ZaloPay";
                               default:
                                 return method.name || type;
                             }
@@ -743,17 +725,33 @@ const CheckoutPage: React.FC = () => {
                   </div>
 
                   {shopCount > 1 && (
-                    <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
-                      Giỏ hàng của bạn thuộc {shopCount} cửa hàng. Hệ thống sẽ tạo{" "}
-                      {shopCount} đơn hàng riêng biệt và cần thanh toán theo từng shop.
-                    </div>
+                    <AlertMessage
+                      type="info"
+                      compact
+                      className="mt-3"
+                      title="Nhiều cửa hàng trong đơn hàng"
+                      message={
+                        <>
+                          Giỏ hàng của bạn thuộc <strong>{shopCount}</strong> cửa hàng. Hệ thống sẽ tạo
+                          riêng từng đơn cho mỗi shop và bạn cần thanh toán theo từng shop.
+                        </>
+                      }
+                    />
                   )}
                   
                   {isWalletInsufficient && (
-                    <div className="rounded-lg border border-error/40 bg-error/10 p-3 text-sm text-error">
-                      Số dư ví không đủ để thanh toán. Vui lòng nạp thêm{" "}
-                      {formatPriceVND(totalAmount - (walletBalance || 0))} để tiếp tục.
-                    </div>
+                    <AlertMessage
+                      type="warning"
+                      compact
+                      className="mt-3"
+                      title="Số dư ví không đủ"
+                      message={
+                        <>
+                          Số dư ví hiện tại không đủ để thanh toán. Vui lòng nạp thêm{" "}
+                          <strong>{formatPriceVND(totalAmount - (walletBalance || 0))}</strong> để tiếp tục.
+                        </>
+                      }
+                    />
                   )}
                 </div>
 

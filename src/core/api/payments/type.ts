@@ -5,16 +5,7 @@ export interface Payment {
   userId: string;
   amount: number;
   currency: string;
-  method:
-    | "cod"
-    | "bank_transfer"
-    | "credit_card"
-    | "paypal"
-    | "vnpay"
-    | "momo"
-    | "zalopay"
-    | "wallet"
-    | "test";
+  method: "cod" | "bank_transfer" | "wallet";
   status: "pending" | "processing" | "completed" | "failed" | "cancelled" | "refunded";
   transactionId?: string;
   gatewayResponse?: Record<string, any>;
@@ -31,16 +22,7 @@ export interface Payment {
 export interface PaymentMethod {
   id: string;
   name: string;
-  type:
-    | "cod"
-    | "bank_transfer"
-    | "credit_card"
-    | "paypal"
-    | "vnpay"
-    | "momo"
-    | "zalopay"
-    | "wallet"
-    | "test";
+  type: "cod" | "bank_transfer" | "wallet";
   isActive: boolean;
   config?: Record<string, any>;
   icon?: string;

@@ -57,7 +57,7 @@ export interface WalletTransaction {
 export interface CreateDepositRequest {
   amount: number;
   description?: string;
-  depositMethod?: "bank" | "vnpay"; // Phương thức nạp tiền
+  depositMethod?: "bank"; // Phương thức nạp tiền (Sepay qua chuyển khoản)
 }
 
 export interface WalletTransactionsQuery {
