@@ -148,7 +148,7 @@ export const ROUTE = {
   deposit: {
     path: "/wallet/deposit",
     element: <DepositPage />,
-    layout: "main",
+    layout: "extension",
     options: defaultProtectedOptions,
   },
   shop: {

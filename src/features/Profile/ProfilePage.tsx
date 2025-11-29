@@ -23,12 +23,12 @@ const ProfilePage = () => {
   const tab = searchParams.get("tab") || "account";
   return (
     <Page>
-      <div className="px-4 py-4">
+      <div className="px-4">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 min-h-[calc(100vh-80px)]">
           <div className="lg:col-span-3">
             <Sidebar />
           </div>
-          <div className="space-y-6 lg:col-span-9 mt-4 lg:mt-0 min-h-[calc(100vh-90px)] max-h-[calc(100vh-90px)] overflow-y-auto pr-1">
+          <div className="py-4 space-y-6 lg:col-span-9 mt-4 lg:mt-0 min-h-[calc(100vh-90px)] max-h-[calc(100vh-90px)] overflow-y-auto pr-1">
             {tab === "account" && <InfoAccountPanel />}
             {tab === "address" && <AddressesPanel />}
             {tab === "orders" && <OrdersPanel />}

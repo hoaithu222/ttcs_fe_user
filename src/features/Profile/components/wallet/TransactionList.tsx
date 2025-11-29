@@ -185,7 +185,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
   }
 
   return (
-    <ScrollView className="max-h-96 overflow-y-auto hidden-scrollbar ">
+    <ScrollView className="overflow-y-auto hidden-scrollbar">
     <div className="border border-border-1 rounded-2xl p-6 bg-gradient-to-br from-background-2 to-background-1">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-neutral-10">Lịch sử giao dịch</h3>
