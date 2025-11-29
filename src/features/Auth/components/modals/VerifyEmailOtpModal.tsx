@@ -33,6 +33,17 @@ const VerifyEmailOtpModal = ({
   infoMessage,
   confirmText = "Xác nhận",
 }: VerifyEmailOtpModalProps) => {
+  console.log(
+    "[VerifyEmailOtpModal][render] open:",
+    open,
+    "email:",
+    email,
+    "submitting:",
+    submitting,
+    "resending:",
+    resending
+  );
+
   const {
     control,
     handleSubmit,
@@ -54,8 +65,13 @@ const VerifyEmailOtpModal = ({
   return (
     <Modal
       open={open}
-      onOpenChange={(val) => !val && !submitting && onClose()}
-      size="md"
+      onOpenChange={(val) => {
+        console.log("[VerifyEmailOtpModal] onOpenChange called, val:", val, "submitting:", submitting);
+        if (!val && !submitting) {
+          onClose();
+        }
+      }}
+      size="lg"
       customTitle={
         <div className="flex gap-3 items-center">
           <IconCircleWrapper size="md" color="info">
@@ -63,9 +79,6 @@ const VerifyEmailOtpModal = ({
           </IconCircleWrapper>
           <div>
             <h2 className="text-xl font-bold text-neutral-9">{title}</h2>
-            <p className="text-sm text-neutral-6 mt-0.5">
-              {description}
-            </p>
           </div>
         </div>
       }
@@ -85,8 +98,9 @@ const VerifyEmailOtpModal = ({
           message={
             infoMessage ?? (
               <>
-                Mã OTP 6 số đã được gửi đến <strong className="text-primary-7">{email ?? "email của bạn"}</strong>.
-                Vui lòng kiểm tra hộp thư và nhập mã để xác minh.
+                Mã OTP 6 số đã được gửi đến{" "}
+                <strong className="text-primary-7">{email ?? "email của bạn"}</strong>. Vui lòng kiểm tra hộp thư
+                và nhập mã để xác minh. Mã có hiệu lực trong <strong>10 phút</strong>.
               </>
             )
           }

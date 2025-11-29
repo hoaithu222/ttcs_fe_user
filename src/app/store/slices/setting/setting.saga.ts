@@ -19,7 +19,9 @@ import {
 import { toastUtils } from "@/shared/utils/toast.utils";
 
 // Toggle 2FA
-function* handleToggle2FA(action: PayloadAction<{ otp: string; smartOtpPassword?: string }>): Generator<any, void, any> {
+function* handleToggle2FA(
+  action: PayloadAction<{ otp: string; desiredEnabled: boolean; smartOtpPassword?: string }>
+): Generator<any, void, any> {
   try {
     console.log("[Toggle 2FA] Starting with OTP:", action.payload.otp);
     // Verify OTP first
@@ -50,24 +52,11 @@ function* handleToggle2FA(action: PayloadAction<{ otp: string; smartOtpPassword?
     }
 
     const userOtpMethod = userData.otpMethod || user.data.otpMethod;
-    const userTwoFactorAuth = userData.twoFactorAuth !== undefined ? userData.twoFactorAuth : user.data.twoFactorAuth;
 
-    // Nếu user đang dùng Smart OTP, cần smartOtpPassword
-    const verifyPayload: any = {
-      identifier: userEmail,
-      code: action.payload.otp,
-      purpose: "verify_setting_change",
-    };
-    
-    if (userOtpMethod === "smart_otp" && action.payload.smartOtpPassword) {
-      verifyPayload.smartOtpPassword = action.payload.smartOtpPassword;
-    }
+    const desiredEnabled = action.payload.desiredEnabled;
 
-    // Không verify OTP ở đây - để backend verify trong updateProfile
-    // Backend sẽ verify OTP trước khi update để đảm bảo security
-    const current2FA = userTwoFactorAuth || false;
     const updatePayload: any = {
-      twoFactorAuth: !current2FA,
+      twoFactorAuth: desiredEnabled,
       otp: action.payload.otp,
       otpPurpose: "verify_setting_change",
     };
@@ -82,10 +71,8 @@ function* handleToggle2FA(action: PayloadAction<{ otp: string; smartOtpPassword?
     console.log("[Toggle 2FA] Update response:", response);
 
     if (response && response.success) {
-      yield put(toggle2FASuccess({ enabled: !current2FA }));
-      toastUtils.success(
-        !current2FA ? "Đã bật xác minh 2 bước" : "Đã tắt xác minh 2 bước"
-      );
+      yield put(toggle2FASuccess({ enabled: desiredEnabled }));
+      toastUtils.success(desiredEnabled ? "Đã bật xác minh 2 bước" : "Đã tắt xác minh 2 bước");
       // Refresh user profile để cập nhật state
       try {
         const updatedUser: any = yield call(authAPI.getProfile);

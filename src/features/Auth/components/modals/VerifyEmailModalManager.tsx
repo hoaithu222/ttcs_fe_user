@@ -33,6 +33,16 @@ const VerifyEmailModalManager = () => {
       onClose={() => dispatch(closeVerifyEmailFlow())}
       onSubmit={handleSubmit}
       onResend={handleResend}
+      title="Xác minh tài khoản"
+      description="Nhập mã OTP 6 số đã được gửi đến email của bạn để kích hoạt tài khoản."
+      infoMessage={
+        <>
+          Mã OTP 6 số đã được gửi đến{" "}
+          <strong className="text-primary-7">{flow.email ?? "email của bạn"}</strong>. Vui lòng nhập mã để
+          hoàn tất xác minh tài khoản. Mã có hiệu lực trong <strong>10 phút</strong>.
+        </>
+      }
+      confirmText="Xác minh tài khoản"
     />
   );
 };

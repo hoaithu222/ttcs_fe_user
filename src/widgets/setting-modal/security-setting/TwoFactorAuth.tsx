@@ -8,7 +8,8 @@ import VerifyEmailOtpModal from "@/features/Auth/components/modals/VerifyEmailOt
 import Switch from "@/foundation/components/input/Switch";
 import IconCircleWrapper from "@/foundation/components/icons/IconCircleWrapper";
 import AlertMessage from "@/foundation/components/info/AlertMessage";
-import { ShieldCheck } from "lucide-react";
+import Modal from "@/foundation/components/modal/Modal";
+import { ShieldCheck, AlertTriangle } from "lucide-react";
 import { ReduxStateType } from "@/app/store/types";
 
 interface TwoFactorAuthProps {
@@ -24,6 +25,8 @@ const TwoFactorAuth: React.FC<TwoFactorAuthProps> = () => {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [resending, setResending] = useState(false);
+   const [pendingEnabled, setPendingEnabled] = useState<boolean | null>(null);
+  const [hasSubmittedOtp, setHasSubmittedOtp] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -58,6 +61,7 @@ const TwoFactorAuth: React.FC<TwoFactorAuthProps> = () => {
 
   const handleResendOtp = () => {
     if (!user?.email) return;
+    console.log("[TwoFactorAuth] handleResendOtp called for:", user.email);
     setResending(true);
     userOtpApi
       .request({
@@ -66,33 +70,60 @@ const TwoFactorAuth: React.FC<TwoFactorAuthProps> = () => {
         purpose: "verify_setting_change",
       })
       .then(() => {
+        console.log("[TwoFactorAuth] Resend OTP success");
         setOtpSent(true);
         setResending(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("[TwoFactorAuth] Resend OTP failed:", error);
         setResending(false);
       });
   };
 
-  const handleToggle2FA = () => {
-    setShowOtpModal(true);
-    setOtpSent(false);
+  const [showDisableWarning, setShowDisableWarning] = useState(false);
+
+  const handleToggle2FA = (nextChecked: boolean) => {
+    console.log("[TwoFactorAuth] handleToggle2FA called, nextChecked:", nextChecked, "current is2FAEnabled:", is2FAEnabled);
+    setPendingEnabled(nextChecked);
+    setHasSubmittedOtp(false);
+
+    if (!nextChecked) {
+      // User muốn tắt 2FA -> hiển thị cảnh báo trước
+      setShowDisableWarning(true);
+      setShowOtpModal(false);
+      setOtpSent(false);
+    } else {
+      // User muốn bật 2FA -> mở luôn modal OTP
+      setShowDisableWarning(false);
+      setShowOtpModal(true);
+      setOtpSent(false);
+    }
   };
 
   const handleOtpSubmit = (otp: string) => {
     console.log("[TwoFactorAuth] Submitting OTP:", otp);
-    dispatch(toggle2FAStart({ otp }));
+    setHasSubmittedOtp(true);
+    const desiredEnabled = pendingEnabled ?? !is2FAEnabled;
+    dispatch(toggle2FAStart({ otp, desiredEnabled }));
     // Không đóng modal ngay, để user thấy loading state
     // Modal sẽ tự đóng khi success
   };
 
   // Đóng modal khi thành công
   useEffect(() => {
-    if (login2FA.status === ReduxStateType.SUCCESS && showOtpModal) {
+    console.log(
+      "[TwoFactorAuth] login2FA.status changed:",
+      login2FA.status,
+      "showOtpModal:",
+      showOtpModal
+    );
+    if (login2FA.status === ReduxStateType.SUCCESS && showOtpModal && hasSubmittedOtp) {
+      console.log("[TwoFactorAuth] Closing OTP modal on SUCCESS after submit");
       setShowOtpModal(false);
       setOtpSent(false);
+      setHasSubmittedOtp(false);
     }
-  }, [login2FA.status, showOtpModal]);
+  }, [login2FA.status, showOtpModal, hasSubmittedOtp]);
 
   // Đóng modal khi có lỗi (để user có thể thử lại)
   useEffect(() => {
@@ -102,6 +133,11 @@ const TwoFactorAuth: React.FC<TwoFactorAuthProps> = () => {
   }, [login2FA.status, showOtpModal]);
 
   const isLoading = login2FA.status === ReduxStateType.LOADING;
+
+  console.log("[TwoFactorAuth][render] showOtpModal:", showOtpModal);
+  console.log("[TwoFactorAuth][render] is2FAEnabled:", is2FAEnabled);
+  console.log("[TwoFactorAuth][render] login2FA.status:", login2FA.status);
+  console.log("[TwoFactorAuth][render] user.email:", user?.email);
 
   return (
     <>
@@ -147,10 +183,67 @@ const TwoFactorAuth: React.FC<TwoFactorAuthProps> = () => {
         onClose={() => {
           setShowOtpModal(false);
           setOtpSent(false);
+          setHasSubmittedOtp(false);
+          setPendingEnabled(null);
         }}
         onSubmit={handleOtpSubmit}
         onResend={handleResendOtp}
+        title="Xác nhận thay đổi bảo mật"
+        description="Nhập mã OTP được gửi đến email của bạn để xác nhận thay đổi thiết lập bảo mật."
+        infoMessage={
+          <>
+            Mã OTP 6 số đã được gửi đến{" "}
+            <strong className="text-primary-7">{user?.email ?? "email của bạn"}</strong>. Vui lòng nhập mã để
+            xác nhận thay đổi bảo mật. Mã có hiệu lực trong <strong>10 phút</strong>.
+          </>
+        }
+        confirmText="Xác nhận thay đổi"
       />
+
+      <Modal
+        open={showDisableWarning}
+        onOpenChange={(val) => {
+          if (!val) {
+            setShowDisableWarning(false);
+          }
+        }}
+        size="lg"
+        customTitle={
+          <div className="flex gap-3 items-center">
+            <IconCircleWrapper size="md" color="warning">
+              <AlertTriangle className="text-warning-7 dark:text-white" />
+            </IconCircleWrapper>
+            <div>
+              <h2 className="text-xl font-bold text-neutral-9">Tắt xác minh 2 bước</h2>
+             
+            </div>
+          </div>
+        }
+        onCancel={() => {
+          setShowDisableWarning(false);
+          setPendingEnabled(null);
+        }}
+        onConfirm={() => {
+          setShowDisableWarning(false);
+          setShowOtpModal(true);
+          setOtpSent(false);
+          setHasSubmittedOtp(false);
+        }}
+        closeText="Giữ lại 2FA"
+        confirmText="Tiếp tục tắt"
+      >
+        <div className="space-y-3">
+          <AlertMessage
+            type="warning"
+            title="Bạn có chắc chắn muốn tắt xác minh 2 bước?"
+            message="Khi tắt xác minh 2 bước, tài khoản của bạn sẽ chỉ được bảo vệ bằng mật khẩu. Chúng tôi khuyến nghị bạn nên giữ 2FA để tăng cường bảo mật."
+          />
+          <p className="text-sm text-neutral-6">
+            Nếu bạn vẫn muốn tắt, hãy chọn <span className="font-semibold text-warning-7">Tiếp tục tắt</span> và xác
+            nhận bằng mã OTP.
+          </p>
+        </div>
+      </Modal>
     </>
   );
 };

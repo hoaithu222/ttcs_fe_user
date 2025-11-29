@@ -379,7 +379,9 @@ const ForgotPassword = () => {
         description="Mã OTP đã được gửi đến email của bạn để đặt lại mật khẩu."
         infoMessage={
           <>
-            Mã OTP 6 số đã được gửi đến <strong className="text-primary-7">{forgotPasswordEmail}</strong>. Vui lòng nhập mã để tiếp tục.
+            Mã OTP 6 số đã được gửi đến{" "}
+            <strong className="text-primary-7">{forgotPasswordEmail}</strong>. Vui lòng nhập mã để tiếp tục. Mã
+            có hiệu lực trong <strong>10 phút</strong>.
           </>
         }
         confirmText="Tiếp tục"

@@ -25,7 +25,7 @@ export const { slice, reducer: settingReducer } = createResettableSlice({
   initialState,
   reducers: {
     // Toggle 2FA
-    toggle2FAStart: (state, _action: PayloadAction<{ otp: string; smartOtpPassword?: string }>) => {
+    toggle2FAStart: (state, _action: PayloadAction<{ otp: string; desiredEnabled: boolean; smartOtpPassword?: string }>) => {
       state.login2fa.status = ReduxStateType.LOADING;
       state.login2fa.error = "";
     },

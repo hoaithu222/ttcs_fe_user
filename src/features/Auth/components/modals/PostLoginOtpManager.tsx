@@ -84,6 +84,16 @@ const PostLoginOtpManager = () => {
       }}
       onSubmit={handleOtpSubmit}
       onResend={handleResendOtp}
+      title="Xác minh đăng nhập"
+      description="Nhập mã OTP 6 số đã được gửi đến email của bạn để hoàn tất đăng nhập."
+      infoMessage={
+        <>
+          Mã OTP 6 số đã được gửi đến{" "}
+          <strong className="text-primary-7">{user?.email || "email của bạn"}</strong>. Vui lòng nhập mã để
+          xác nhận đăng nhập. Mã có hiệu lực trong <strong>10 phút</strong>.
+        </>
+      }
+      confirmText="Hoàn tất đăng nhập"
     />
   );
 };

@@ -291,6 +291,16 @@ const ChangePassword: React.FC<ChangePasswordProps> = () => {
         }}
         onSubmit={handleOtpSubmit}
         onResend={handleResendOtp}
+        title="Xác nhận đổi mật khẩu"
+        description="Nhập mã OTP được gửi đến email của bạn để xác nhận yêu cầu đổi mật khẩu."
+        infoMessage={
+          <>
+            Mã OTP 6 số đã được gửi đến{" "}
+            <strong className="text-primary-7">{user?.email ?? "email của bạn"}</strong>. Vui lòng nhập mã để
+            xác nhận đổi mật khẩu. Mã có hiệu lực trong <strong>10 phút</strong>.
+          </>
+        }
+        confirmText="Xác nhận đổi mật khẩu"
       />
     </>
   );
