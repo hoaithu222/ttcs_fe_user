@@ -67,15 +67,27 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   }, [selectedItemsList, cartItems, selectedItems]);
 
   return (
-    <div className="sticky top-4 p-6 bg-background-2 rounded-2xl border border-border-1 shadow-sm">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex justify-center items-center w-10 h-10 rounded-lg bg-primary-6/10">
-          <ShoppingBag className="w-5 h-5 text-primary-6" />
+    <div className="sticky top-4 p-6 bg-background-2 rounded-3xl border border-border-1 shadow-md">
+      <div className="flex flex-col gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="flex justify-center items-center w-10 h-10 rounded-xl bg-primary-6/10">
+            <ShoppingBag className="w-5 h-5 text-primary-6" />
+          </div>
+          <h2 className="text-xl font-bold text-neutral-9">Tóm tắt đơn hàng</h2>
         </div>
-        <h2 className="text-xl font-bold text-neutral-9">Tóm tắt đơn hàng</h2>
+        {/* Checkout steps indicator */}
+        <div className="flex items-center gap-2 text-xs text-neutral-5">
+          <span className="font-semibold text-primary-6">Giỏ hàng</span>
+          <span>—</span>
+          <span>Địa chỉ</span>
+          <span>—</span>
+          <span>Thanh toán</span>
+          <span>—</span>
+          <span>Hoàn tất</span>
+        </div>
       </div>
 
-      <div className="space-y-4 mb-6">
+      <div className="space-y-5 mb-6">
         {/* Subtotal */}
         <div className="flex justify-between items-center">
           <span className="text-sm text-neutral-6">Tạm tính</span>
@@ -179,14 +191,14 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         )}
 
         {onCheckoutShop && shopGroups.length > 1 && (
-          <div className="text-xs text-center text-neutral-6">
+          <div className="text-xs text-left text-neutral-6">
             Hoặc thanh toán từng shop riêng biệt ở danh sách bên trái
           </div>
         )}
       </div>
 
       {/* Info */}
-      <p className="mt-4 text-xs text-center text-neutral-6">
+      <p className="mt-4 text-xs text-left text-neutral-6">
         Miễn phí vận chuyển cho đơn hàng trên 500.000đ
       </p>
     </div>

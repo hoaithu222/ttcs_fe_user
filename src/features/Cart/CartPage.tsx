@@ -194,7 +194,7 @@ const CartPage: React.FC = () => {
   if (cartStatus === ReduxStateType.LOADING && !cart) {
     return (
       <Page>
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-10">
           <Loading layout="centered" message="Đang tải giỏ hàng..." />
         </div>
       </Page>
@@ -204,15 +204,15 @@ const CartPage: React.FC = () => {
   return (
     <Page>
       <div className="min-h-screen bg-background-1">
-        <div className="container mx-auto px-4 py-8 lg:py-12">
+        <div className="container mx-auto px-4 py-6 lg:py-10">
           {/* Header */}
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="flex justify-center items-center w-12 h-12 rounded-lg bg-primary-6">
-                <ShoppingCart className="w-6 h-6 text-white" />
+              <div className="flex justify-center items-center w-12 h-12 rounded-2xl bg-primary-6 text-white shadow-sm">
+                <ShoppingCart className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-neutral-9">Giỏ hàng</h1>
+                <h2 className="text-2xl text-left lg:text-3xl font-bold text-neutral-9">Giỏ hàng</h2>
                 <p className="text-sm text-neutral-6">
                   {cart?.itemCount || 0} sản phẩm trong giỏ hàng
                   {selectedItemsCount > 0 && (
@@ -224,7 +224,7 @@ const CartPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center lg:justify-end">
               {!isEmpty && (
                 <>
                   <Button

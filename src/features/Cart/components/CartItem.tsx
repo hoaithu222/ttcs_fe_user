@@ -78,7 +78,13 @@ const CartItem: React.FC<CartItemProps> = ({
   };
 
   return (
-    <div className="flex items-start gap-3 p-3 hover:bg-background-3 transition-colors">
+    <div
+      className={`flex flex-col sm:flex-row items-start gap-3 p-3 sm:p-4 transition-colors rounded-xl border ${
+        isSelected
+          ? "bg-primary-1/40 border-primary-3/60 hover:bg-primary-1/70"
+          : "bg-transparent border-transparent hover:bg-background-3"
+      }`}
+    >
       {/* Checkbox */}
       {onSelectChange && (
         <div className="pt-1 flex-shrink-0">

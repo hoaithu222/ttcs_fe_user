@@ -70,9 +70,9 @@ const CartShopGroup: React.FC<CartShopGroupProps> = ({
   };
 
   return (
-    <div className="mb-4 bg-background-2 rounded-lg border border-border-1 overflow-hidden">
+    <div className="mb-4 bg-background-2 rounded-2xl border border-border-1 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       {/* Shop Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-background-1 border-b border-border-1">
+      <div className="flex items-center gap-3 px-4 py-3 bg-background-1/80 backdrop-blur-sm border-b border-border-1">
         {onItemSelect && (
           <Checkbox
             checked={allItemsSelected ? true : someItemsSelected ? "indeterminate" : false}
@@ -155,10 +155,12 @@ const CartShopGroup: React.FC<CartShopGroupProps> = ({
         </div> */}
 
         {/* Shipping Section */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
           <div className="flex items-center gap-2">
             <Truck className="w-4 h-4 text-primary-6" />
-            <span className="text-sm text-neutral-7">Giảm 500.000₫ phí vận chuyển đơn tối thiểu 0₫</span>
+            <span className="text-neutral-7">
+              Ưu đãi phí vận chuyển cho các đơn từ shop này (nếu đủ điều kiện)
+            </span>
           </div>
           <button className="text-sm text-primary-6 hover:text-primary-7">Tìm hiểu thêm</button>
         </div>
