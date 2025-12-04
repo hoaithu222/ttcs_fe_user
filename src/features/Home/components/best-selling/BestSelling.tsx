@@ -4,6 +4,7 @@ import CardProduct from "../card-product/CardProduct";
 import Spinner from "@/foundation/components/feedback/Spinner";
 import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
+import { Product } from "@/core/api/products/type";
 
 const BestSelling: React.FC = () => {
   const { products, isLoading } = useBestSelling(1, 12);
@@ -27,7 +28,7 @@ const BestSelling: React.FC = () => {
     <Section>
       <SectionTitle className="text-center mb-4 text-2xl font-bold text-primary-6">Sản phẩm bán chạy</SectionTitle>
       <div className="grid grid-cols-2 mb-6 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {products.map((product) => (
+        {products.map((product: Product) => (
           <CardProduct key={product._id} product={product} />
         ))}
       </div>

@@ -75,7 +75,7 @@ const TableListProduct: React.FC<TableListProductProps> = ({ data, fetchData }) 
   const handleEdit = (productId: string) => {
     navigate(`/shop/products/${productId}/edit`);
   };
-
+  console.log("product",data)
   return (
     <div className="overflow-hidden bg-background-1 rounded-xl shadow-lg border border-border-1">
       <div className="overflow-x-auto">
@@ -131,9 +131,9 @@ const TableListProduct: React.FC<TableListProductProps> = ({ data, fetchData }) 
                       {product.name}
                     </p>
                     <p className="text-xs text-neutral-6 font-mono">ID: {product._id.slice(-8)}</p>
-                    {product.salesCount && product.salesCount > 0 && (
-                      <p className="text-xs text-success-6 mt-1">Đã bán: {product.salesCount}</p>
-                    )}
+                    {/* { product.salesCount && product.salesCount > 0 && product.salesCount != 0 && (
+                      <p className="text-xs text-success-6 mt-1">Đã bán:  {product.salesCount}</p>
+                    )} */}
                   </td>
                   <td className="p-4 text-left">
                     <div className="flex flex-col gap-1">
@@ -269,18 +269,18 @@ const TableListProduct: React.FC<TableListProductProps> = ({ data, fetchData }) 
                                     </p>
                                   </div>
                                   <div className="space-y-1">
-                                    <p className="text-xs font-medium text-neutral-6 uppercase tracking-wide">
+                                    <p className="text-xs text-start font-medium text-neutral-6 uppercase tracking-wide">
                                       Kho
                                     </p>
                                     <div className="flex items-center gap-1">
                                       <Package className="w-3.5 h-3.5 text-neutral-6" />
-                                      <p className="font-semibold text-neutral-9">
+                                      <p className="font-semibold text-center text-neutral-9">
                                         {variant.stock || 0}
                                       </p>
                                     </div>
                                   </div>
-                                  <div className="space-y-1">
-                                    <p className="text-xs font-medium text-neutral-6 uppercase tracking-wide">
+                                  <div className="space-y-1 text-center items-center">
+                                    <p className="text-start text-xs font-medium text-neutral-6 uppercase tracking-wide">
                                       Hình ảnh
                                     </p>
                                     {variant.image ? (

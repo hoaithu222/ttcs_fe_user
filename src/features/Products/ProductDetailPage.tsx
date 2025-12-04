@@ -297,6 +297,7 @@ const ProductDetailPage: React.FC = () => {
               quantity={quantity}
               isWishlist={isWishlist}
               selectedVariant={selectedVariant}
+              totalReviews={reviews?.length || product.reviewCount || 0}
               onQuantityChange={handleQuantityChange}
               onVariantChange={handleVariantChange}
               onAddToCart={handleAddToCart}

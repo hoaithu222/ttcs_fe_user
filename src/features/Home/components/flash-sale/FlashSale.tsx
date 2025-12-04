@@ -4,6 +4,7 @@ import CardProduct from "../card-product/CardProduct";
 import Spinner from "@/foundation/components/feedback/Spinner";
 import Section from "@/foundation/components/sections/Section";
 import SectionTitle from "@/foundation/components/sections/SectionTitle";
+import { Product } from "@/core/api/products/type";
 
 const FlashSale: React.FC = () => {
   const { products, isLoading } = useFlashSale(1, 12);
@@ -26,8 +27,8 @@ const FlashSale: React.FC = () => {
   return (
     <Section className="py-6">
       <SectionTitle className="text-center mb-4 text-2xl font-bold text-primary-6">Flash Sale</SectionTitle>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {products.map((product) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4  gap-4">
+        {products.map((product: Product) => (
           <CardProduct key={product._id} product={product} />
         ))}
       </div>

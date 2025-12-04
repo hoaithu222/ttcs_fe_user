@@ -31,6 +31,7 @@ interface DetailProductProps {
   onToggleWishlist: () => void;
   isWishlistLoading?: boolean;
   isOwnShopProduct?: boolean;
+  totalReviews?: number;
 }
 
 const DetailProduct: React.FC<DetailProductProps> = ({
@@ -45,6 +46,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
   onToggleWishlist,
   isWishlistLoading = false,
   isOwnShopProduct = false,
+  totalReviews,
 }) => {
   const dispatch = useAppDispatch();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -54,6 +56,16 @@ const DetailProduct: React.FC<DetailProductProps> = ({
   const [variantError, setVariantError] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const requiresVariantSelection = Boolean(product.variants && product.variants.length > 0);
+
+  // Format attribute name and value to user-friendly text
+  const formatAttributeLabel = (key: string) => {
+    const normalized = key.replace(/_/g, " ");
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  };
+
+  const formatAttributeValue = (value: string) => {
+    return String(value).replace(/_/g, " ");
+  };
 
   // Get image URLs
   const getImageUrls = (images: Product["images"] | undefined): string[] => {
@@ -122,6 +134,9 @@ const DetailProduct: React.FC<DetailProductProps> = ({
     if (!ensureVariantSelected()) return;
     onBuyNow();
   };
+
+
+  console.log("product.variants",product.variants)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
@@ -228,9 +243,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
         {/* Product Name */}
         <div className="flex items-start flex-col justify-start gap-2">
           <h1 className="text-3xl font-bold text-neutral-9 mb-2">{product.name}</h1>
-          {product.metaKeywords && (
-            <p className="text-sm text-neutral-6">Tags: {product.metaKeywords}</p>
-          )}
+         
         </div>
 
         {/* Rating */}
@@ -247,7 +260,9 @@ const DetailProduct: React.FC<DetailProductProps> = ({
               ))}
             </div>
             <span className="text-sm text-neutral-6">
-              {product.rating.toFixed(1)} ({product.reviewCount || 0} đánh giá)
+              {product.rating.toFixed(1)} (
+              {(typeof totalReviews === "number" ? totalReviews : product.reviewCount) || 0} đánh giá
+              )
             </span>
           </div>
         )}
@@ -285,7 +300,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
               return (
                 <div key={attrName}>
                   <label className="block mb-2 text-sm font-medium text-neutral-9">
-                    {attrName}:
+                    {formatAttributeLabel(attrName)}:
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {uniqueValues.map((value) => {
@@ -308,7 +323,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                                 : "border-border-1 text-neutral-4 cursor-not-allowed opacity-50"
                           }`}
                         >
-                          {value}
+                          {formatAttributeValue(String(value))}
                           {variant && variant.stock > 0 && (
                             <span className="ml-1 text-xs">({variant.stock})</span>
                           )}
@@ -327,7 +342,10 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                   <span className="font-medium text-neutral-9">Đã chọn:</span>
                   <span className="text-neutral-7">
                     {Object.entries(localSelectedVariant.attributes)
-                      .map(([key, value]) => `${key}: ${value}`)
+                      .map(
+                        ([key, value]) =>
+                          `${formatAttributeLabel(key)}: ${formatAttributeValue(String(value))}`
+                      )
                       .join(", ")}
                   </span>
                 </div>

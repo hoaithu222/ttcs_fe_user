@@ -89,7 +89,7 @@ const CardProduct: React.FC<CardProductProps> = ({
   return (
     <div
       className={clsx(
-        "group relative flex flex-col h-full overflow-hidden rounded-lg bg-background-dialog border border-border-1",
+        "group/card relative flex flex-col h-full overflow-hidden rounded-lg bg-background-dialog border border-border-1",
         "transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
         "cursor-pointer",
         className
@@ -102,7 +102,7 @@ const CardProduct: React.FC<CardProductProps> = ({
           <Image
             src={mainImage}
             alt={product.name}
-            className="w-full h-full transition-transform duration-500 group-hover:scale-110"
+            className="w-full h-full transition-transform duration-500 group-hover/card:scale-110"
             objectFit="cover"
             fallbackType="default"
           />
@@ -155,7 +155,7 @@ const CardProduct: React.FC<CardProductProps> = ({
       {/* Content - Style Shopee */}
       <div className="flex flex-1 flex-col p-3 gap-2">
         {/* Product Name */}
-        <h3 className="text-sm font-medium text-neutral-9 line-clamp-2 min-h-[2.5rem] leading-snug group-hover:text-primary-6 transition-colors">
+        <h3 className="text-sm font-medium text-neutral-9 line-clamp-2 min-h-[2.5rem] leading-snug group-hover/card:text-primary-6 transition-colors">
           {product.name}
         </h3>
 
