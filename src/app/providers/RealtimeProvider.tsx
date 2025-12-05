@@ -18,6 +18,7 @@ import {
   applySocketOrderUpdate,
   fetchShopStatusByUserStart,
   getOrdersStart,
+  getShopInfoStart,
 } from "@/features/Shop/slice/shop.slice";
 import {
   fetchOrdersStart as fetchProfileOrdersStart,
@@ -285,7 +286,9 @@ const RealtimeProvider = ({ children }: PropsWithChildren) => {
   const handleShopStatusEvent = useCallback(() => {
     const currentUserId = shopOwnerUserIdRef.current;
     if (!currentUserId) return;
+    // Immediately refetch shop status and info to get latest information
     dispatch(fetchShopStatusByUserStart({ userId: currentUserId }));
+    dispatch(getShopInfoStart());
   }, [dispatch]);
 
   useEffect(() => {

@@ -29,7 +29,7 @@ const Step4Documents = ({
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <ImageUploadMulti
-          label="Ảnh CCCD/CMND (cả hai mặt, bắt buộc)"
+          label="Ảnh CCCD/CMND (cả hai mặt, tùy chọn)"
           value={data.idCardImages}
           onChange={(value) => onChange({ idCardImages: value })}
           onUpload={onIdCardUpload}

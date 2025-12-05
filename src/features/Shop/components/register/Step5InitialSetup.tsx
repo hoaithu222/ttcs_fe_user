@@ -33,10 +33,9 @@ const Step5InitialSetup = ({ data, onChange, errors }: Step5InitialSetupProps) =
         <Form.Field name="shippingPolicy">
           <TextArea
             name="shippingPolicy"
-            label="Chính sách Vận chuyển (bắt buộc)"
+            label="Chính sách Vận chuyển (tùy chọn)"
             placeholder="Đơn vị vận chuyển, phí ship..."
             rows={4}
-            required
             value={data.shippingPolicy}
             onChange={(e) => onChange({ shippingPolicy: e.target.value })}
             error={errors?.shippingPolicy}

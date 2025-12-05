@@ -317,9 +317,10 @@ const RegisterShopPage = () => {
 
   const validateStep4 = useCallback((): boolean => {
     const stepErrors: Partial<Record<keyof Step4Data, string>> = {};
-    if (!formData.step4.idCardImages || formData.step4.idCardImages.length === 0) {
-      stepErrors.idCardImages = "Ảnh CCCD/CMND là bắt buộc";
-    }
+    // Bỏ qua validation cho ảnh CCCD/CMND - không bắt buộc
+    // if (!formData.step4.idCardImages || formData.step4.idCardImages.length === 0) {
+    //   stepErrors.idCardImages = "Ảnh CCCD/CMND là bắt buộc";
+    // }
     if (
       formData.step3.businessType !== "individual" &&
       (!formData.step4.businessLicenseImages || formData.step4.businessLicenseImages.length === 0)
@@ -332,9 +333,10 @@ const RegisterShopPage = () => {
 
   const validateStep5 = useCallback((): boolean => {
     const stepErrors: Partial<Record<keyof Step5Data, string>> = {};
-    if (!formData.step5.shippingPolicy?.trim()) {
-      stepErrors.shippingPolicy = "Chính sách vận chuyển là bắt buộc";
-    }
+    // Bỏ qua validation cho shippingPolicy - không bắt buộc
+    // if (!formData.step5.shippingPolicy?.trim()) {
+    //   stepErrors.shippingPolicy = "Chính sách vận chuyển là bắt buộc";
+    // }
     if (!formData.step5.returnPolicy?.trim()) {
       stepErrors.returnPolicy = "Chính sách đổi trả là bắt buộc";
     }
@@ -462,13 +464,15 @@ const RegisterShopPage = () => {
       bankAccount: formData.step3.bankAccount.trim(),
       bankHolder: formData.step3.bankHolder.trim(),
       // Ưu tiên url để hiển thị được
+      // Bỏ qua idCardImages - không bắt buộc
       idCardImages: formData.step4.idCardImages
         .map((img) => img.url || img.publicId || "")
         .filter(Boolean),
       businessLicenseImages: formData.step4.businessLicenseImages
         .map((img) => img.url || img.publicId || "")
         .filter(Boolean),
-      shippingPolicy: formData.step5.shippingPolicy.trim(),
+      // Bỏ qua shippingPolicy - không bắt buộc, gửi chuỗi rỗng nếu không có
+      shippingPolicy: formData.step5.shippingPolicy?.trim() || "",
       returnPolicy: formData.step5.returnPolicy.trim(),
       openHour: formData.step5.openHour.trim(),
       closeHour: formData.step5.closeHour.trim(),

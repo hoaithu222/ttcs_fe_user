@@ -11,7 +11,7 @@ import {
   selectShopStatusByUser,
   selectShopStatusByUserStatus,
 } from "./slice/shop.selector";
-import { fetchOwnShopStart, fetchShopStatusByUserStart, resetShopState } from "./slice/shop.slice";
+import { fetchOwnShopStart, fetchShopStatusByUserStart, resetShopState, getShopInfoStart } from "./slice/shop.slice";
 import { ReduxStateType } from "@/app/store/types";
 import { useNavigate } from "react-router-dom";
 import { socketClients, SOCKET_EVENTS } from "@/core/socket";
@@ -56,8 +56,9 @@ const ShopEntryPage = () => {
       if (payload?.type?.startsWith("shop:")) {
         console.log("[ShopEntryPage] Received shop notification:", payload);
         
-        // Refetch shop status to get the latest information
+        // Immediately refetch shop status and info to get latest information
         dispatch(fetchShopStatusByUserStart({ userId: user._id }));
+        dispatch(getShopInfoStart());
         // Also refetch shop data as fallback
         dispatch(fetchOwnShopStart({ userId: user._id, page: 1, limit: 1 }));
       }
