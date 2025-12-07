@@ -47,6 +47,14 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
   const requiresTrackingNumber = newStatus === "shipped";
   const requiresNotes = newStatus === "cancelled" || newStatus === "processing";
 
+  // Helper function to derive order number with fallback
+  const getOrderNumber = (order: ShopOrder | null): string => {
+    if (!order) return "#UNKNOWN";
+    if (order.orderNumber) return order.orderNumber;
+    if (order._id) return `#${String(order._id).slice(-6).toUpperCase()}`;
+    return "#UNKNOWN";
+  };
+
   const handleSubmit = () => {
     const finalNotes =
       newStatus === "cancelled"
@@ -119,7 +127,7 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
             <div className="flex flex-wrap gap-3">
               <div>
                 <p className="text-neutral-5">Mã đơn hàng</p>
-                <p className="text-base font-semibold text-neutral-9">#{order.orderNumber}</p>
+                <p className="text-base font-semibold text-neutral-9">{getOrderNumber(order)}</p>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-neutral-5">Từ</span>

@@ -335,6 +335,14 @@ const shopSlice = createSlice({
       if ((patch as any)?.status && !orderStatus) {
         updatedOrder.orderStatus = (patch as any).status;
       }
+      // Ensure orderNumber is always present
+      if (!updatedOrder.orderNumber) {
+        updatedOrder.orderNumber =
+          (patch as any)?.orderNumber ||
+          (patch as any)?.orderCode ||
+          currentOrder.orderNumber ||
+          `#${orderId.slice(-6).toUpperCase()}`;
+      }
       updatedOrder.updatedAt = patch?.updatedAt || new Date().toISOString();
 
       state.orders.data[index] = updatedOrder;

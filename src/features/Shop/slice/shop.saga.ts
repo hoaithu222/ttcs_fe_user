@@ -217,9 +217,31 @@ function* getOrdersWorker(action: GetOrdersAction): Generator {
     const response: any = yield call([OrderService, OrderService.getOrders], action.payload);
 
     if (response.success && response.data) {
+      // Normalize orders to ensure orderNumber is always present
+      const normalizedOrders = response.data.map((order: any) => {
+        // Derive orderNumber with fallback logic
+        let orderNumber = order.orderNumber;
+        if (!orderNumber) {
+          // Try orderCode as fallback
+          orderNumber = order.orderCode;
+        }
+        if (!orderNumber && order._id) {
+          // Generate from _id as last resort
+          orderNumber = `#${String(order._id).slice(-6).toUpperCase()}`;
+        }
+        if (!orderNumber) {
+          orderNumber = "#UNKNOWN";
+        }
+
+        return {
+          ...order,
+          orderNumber,
+        };
+      });
+
       yield put(
         getOrdersSuccess({
-          orders: response.data,
+          orders: normalizedOrders,
           pagination: response.meta || {
             page,
             limit,
