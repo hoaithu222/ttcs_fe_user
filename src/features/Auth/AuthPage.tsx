@@ -2,10 +2,12 @@ import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import ForgotPassword from "./components/ForgotPassword";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { selectIsAuthenticated } from "./components/slice/auth.selector";
 import { useAppSelector } from "@/app/store";
 import { useState, useEffect } from "react";
+import Button from "@/foundation/components/buttons/Button";
+import { Home } from "lucide-react";
 
 const AuthPage = () => {
   // Sử dụng selector từ auth slice

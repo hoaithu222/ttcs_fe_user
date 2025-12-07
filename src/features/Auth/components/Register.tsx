@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import logo from "@/assets/image/logo.png";
 import Button from "@/foundation/components/buttons/Button";
-import { User, Lock, Sparkles, Mail, UserPlus } from "lucide-react";
+import { User, Lock, Sparkles, Mail, UserPlus, Home } from "lucide-react";
 import FloatingInput from "@/foundation/components/input/FloatingInput";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -39,6 +39,10 @@ const Register = () => {
     navigate(NAVIGATION_CONFIG.login.path);
   };
 
+  const handleGoHome = () => {
+    navigate(NAVIGATION_CONFIG.home.path);
+  };
+
   // Khi đăng ký thành công chỉ reset trạng thái, còn OTP modal sẽ tự bật
   useEffect(() => {
     if (registerStatus === ReduxStateType.SUCCESS) {
@@ -62,7 +66,19 @@ const Register = () => {
     data.password === data.confirmPassword;
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+    <div className="flex justify-center items-center h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 relative">
+      {/* Back to home button */}
+      <div className="absolute top-4 left-4 z-50">
+        <Button
+          variant="ghost"
+          size="md"
+          onClick={handleGoHome}
+          icon={<Home className="w-5 h-5" />}
+          className="bg-white/80 backdrop-blur-sm hover:bg-white/90 text-gray-700 hover:text-green-600 border border-gray-200/50 shadow-sm"
+        >
+          Trang chủ
+        </Button>
+      </div>
       {/* Background decorative elements */}
       <div className="overflow-hidden absolute inset-0 pointer-events-none">
         <div className="absolute -top-4 -right-4 w-72 h-72 bg-gradient-to-br rounded-full blur-3xl from-green-200/30 to-emerald-200/30"></div>
