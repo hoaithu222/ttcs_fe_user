@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { Card } from "@/foundation/components/info/Card";
 import Input from "@/foundation/components/input/Input";
 import TextArea from "@/foundation/components/input/TextArea";
@@ -6,6 +6,7 @@ import ImageIconUpload from "@/foundation/components/input/upload/ImageIconUploa
 import ImageBannerUpdate from "@/foundation/components/input/upload/ImageBannerUpload";
 import AddressSelector, { AddressSelectorValue } from "@/shared/components/AddressSelector";
 import { formatAddressFromCodes } from "@/shared/common/data-address/address.utils";
+import { slugify } from "@/shared/utils/slugify";
 import * as Form from "@radix-ui/react-form";
 
 export interface Step2Data {
@@ -37,6 +38,19 @@ const Step2ShopDetails = ({
     [data.address]
   );
 
+  // Tự động generate slug từ shopName mỗi khi shopName thay đổi
+  useEffect(() => {
+    if (data.shopName) {
+      const generatedSlug = slugify(data.shopName);
+      if (generatedSlug && generatedSlug !== data.shopSlug) {
+        onChange({ shopSlug: generatedSlug });
+      }
+    } else if (!data.shopName && data.shopSlug) {
+      // Xóa slug nếu shopName bị xóa
+      onChange({ shopSlug: "" });
+    }
+  }, [data.shopName]); // Chỉ phụ thuộc vào shopName
+
   return (
     <Card className="space-y-4">
       <div className="space-y-1">
@@ -60,15 +74,18 @@ const Step2ShopDetails = ({
         <Form.Field name="shopSlug">
           <Input
             name="shopSlug"
-            label="Đường dẫn Shop (slug, bắt buộc, duy nhất)"
+            label="Đường dẫn Shop (slug, tự động tạo)"
             placeholder="ten-gian-hang"
-            required
-            autoStripDiacritics
-            blockSpecialChars
+            readOnly
+            disabled
             value={data.shopSlug}
             onChange={(e) => onChange({ shopSlug: e.target.value })}
             error={errors?.shopSlug}
+            inputCustomClass="bg-neutral-1 cursor-not-allowed"
           />
+          <p className="mt-1 text-xs text-neutral-6">
+            Đường dẫn sẽ được tạo tự động từ tên gian hàng
+          </p>
         </Form.Field>
         <div className="md:col-span-2">
           <Form.Field name="shopDescription">

@@ -7,6 +7,7 @@ import { selectProfile } from "@/features/Profile/slice/profile.selector";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AlertMessage from "@/foundation/components/info/AlertMessage";
+import { slugify } from "@/shared/utils/slugify";
 import Step1AccountContact, { Step1Data } from "../components/register/Step1AccountContact";
 import Step2ShopDetails, { Step2Data } from "../components/register/Step2ShopDetails";
 import Step3LegalFinance, { Step3Data } from "../components/register/Step3LegalFinance";
@@ -268,9 +269,8 @@ const RegisterShopPage = () => {
     if (!formData.step2.shopName?.trim()) {
       stepErrors.shopName = "Tên gian hàng là bắt buộc";
     }
-    if (!formData.step2.shopSlug?.trim()) {
-      stepErrors.shopSlug = "Đường dẫn shop là bắt buộc";
-    }
+    // Slug được tự động generate, không cần validation bắt buộc
+    // Nếu shopName có thì slug sẽ được generate tự động
     if (!formData.step2.shopDescription?.trim()) {
       stepErrors.shopDescription = "Mô tả shop là bắt buộc";
     }
@@ -442,9 +442,13 @@ const RegisterShopPage = () => {
     }
 
     // Chuẩn bị payload để gửi lên backend
+    // Đảm bảo slug được generate nếu chưa có
+    const shopName = formData.step2.shopName.trim();
+    const shopSlug = formData.step2.shopSlug.trim() || slugify(shopName);
+    
     const payload = {
-      name: formData.step2.shopName.trim(),
-      slug: formData.step2.shopSlug.trim(),
+      name: shopName,
+      slug: shopSlug,
       description: formData.step2.shopDescription.trim(),
       // Ưu tiên url để hiển thị được, nếu không có thì dùng publicId
       logo: formData.step2.logo?.url || formData.step2.logo?.publicId || "",
