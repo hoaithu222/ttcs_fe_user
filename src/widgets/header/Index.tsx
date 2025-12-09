@@ -363,7 +363,7 @@ const Header = () => {
                     <p className="text-sm font-medium text-neutral-9">
                       {user?.name || "User"}
                     </p>
-                    <p className="text-xs text-neutral-5">{user?.role || ""}</p>
+                    {/* <p className="text-xs text-neutral-5">{user?.role || ""}</p> */}
                   </div>
                   <div className="flex justify-center items-center w-8 h-8 lg:w-12 lg:h-12 bg-background-2 rounded-full">
                    <img src={user?.avatar || "https://ui-avatars.com/api/?name=" + user?.name} alt="avatar" className="w-8 h-8 lg:w-12 lg:h-12 rounded-full object-cover" />

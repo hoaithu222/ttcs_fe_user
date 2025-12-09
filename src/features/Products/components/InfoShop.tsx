@@ -3,8 +3,10 @@ import { Store, Star, Package, MessageCircle, UserPlus, UserCheck } from "lucide
 import Button from "@/foundation/components/buttons/Button";
 import { Product } from "@/core/api/products/type";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector } from "@/app/store";
+import { useAppSelector, useAppDispatch } from "@/app/store";
 import { selectProfile } from "@/features/Profile/slice/profile.selector";
+import { selectUser } from "@/features/Auth/components/slice/auth.selector";
+import { addToast } from "@/app/store/slices/toast";
 import { useShopFollowing } from "@/features/Profile/hooks/useShopFollowing";
 import ShopChatModal from "@/features/Chat/components/ShopChatModal";
 
@@ -14,7 +16,9 @@ interface InfoShopProps {
 
 const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const profile = useAppSelector(selectProfile);
+  const user = useAppSelector(selectUser) as any;
   const {
     isFollowing: checkIsFollowing,
     getFollowersCount,
@@ -25,6 +29,7 @@ const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
 
   const isOwnShop = Boolean(profile?.shop?.id && shop?._id && profile.shop.id === shop._id);
+  const isLoggedIn = Boolean(user?._id && profile?._id);
 
   // Get follow status from Redux state
   const isFollowing = useMemo(() => {
@@ -57,6 +62,19 @@ const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
   const handleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!shop?._id || followLoading) return;
+    
+    // Check if user is logged in
+    if (!isLoggedIn) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: "Vui lòng đăng nhập để theo dõi cửa hàng",
+        })
+      );
+      navigate("/login");
+      return;
+    }
+    
     setFollowLoading(true);
     try {
       await toggleFollowShop(shop._id);
@@ -69,6 +87,19 @@ const InfoShop: React.FC<InfoShopProps> = ({ shop }) => {
 
   const handleChat = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Check if user is logged in
+    if (!isLoggedIn) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: "Vui lòng đăng nhập để chat với cửa hàng",
+        })
+      );
+      navigate("/login");
+      return;
+    }
+    
     setIsChatModalOpen(true);
   };
 

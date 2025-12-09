@@ -47,13 +47,14 @@ const ShopDetailPage: React.FC = () => {
         setLoading(true);
         setError(null);
         const response = await userShopsApi.getShop(id);
-        // Backend returns Shop directly, not ShopDetailResponse
-        const shopData = (response.data as any)?.shop || (response.data as any);
+        // Backend returns { success: true, data: Shop }
+        const shopData = (response.data as any)?.data || (response.data as any);
         if (shopData && shopData._id) {
           setShop(shopData as Shop);
-          // Check following status if not own shop
+          // Check following status if user is logged in and not own shop
           const isOwn = profile?.shop?.id && shopData._id === profile.shop.id;
-          if (!isOwn) {
+          const isLoggedIn = !!profile?.id; // Check if user is authenticated
+          if (isLoggedIn && !isOwn) {
             checkFollowingStatus(shopData._id);
           }
         } else {
@@ -68,7 +69,7 @@ const ShopDetailPage: React.FC = () => {
     };
 
     fetchShopDetail();
-  }, [id, profile?.shop?.id, checkFollowingStatus]);
+  }, [id, profile?.shop?.id, profile?.id, checkFollowingStatus]);
 
 
   if (loading) {

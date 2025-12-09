@@ -12,11 +12,14 @@ import {
   Store,
   MessageCircle,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Button from "@/foundation/components/buttons/Button";
 import { Product, ProductVariant } from "@/core/api/products/type";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
-import { useAppDispatch } from "@/app/store";
+import { useAppDispatch, useAppSelector } from "@/app/store";
 import { addToast } from "@/app/store/slices/toast";
+import { selectProfile } from "@/features/Profile/slice/profile.selector";
+import { selectUser } from "@/features/Auth/components/slice/auth.selector";
 import ShopChatModal from "@/features/Chat/components/ShopChatModal";
 
 interface DetailProductProps {
@@ -49,6 +52,9 @@ const DetailProduct: React.FC<DetailProductProps> = ({
   totalReviews,
 }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const profile = useAppSelector(selectProfile);
+  const user = useAppSelector(selectUser) as any;
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [localSelectedVariant, setLocalSelectedVariant] = useState<ProductVariant | null>(
     selectedVariant || null
@@ -56,6 +62,9 @@ const DetailProduct: React.FC<DetailProductProps> = ({
   const [variantError, setVariantError] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const requiresVariantSelection = Boolean(product.variants && product.variants.length > 0);
+  
+  // Check if user is logged in
+  const isLoggedIn = Boolean(user?._id && profile?._id);
 
   // Format attribute name and value to user-friendly text
   const formatAttributeLabel = (key: string) => {
@@ -422,6 +431,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                 onClick={onToggleWishlist}
                 disabled={isWishlistLoading}
                 icon={<Heart className={`w-5 h-5 ${isWishlist ? "fill-current" : ""}`} />}
+                title={!isLoggedIn ? "Vui lòng đăng nhập để thêm vào yêu thích" : undefined}
               />
              {!isOwnShopProduct && (
               <Button
@@ -429,7 +439,20 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                 variant="outline"
                 size="lg"
                 icon={<MessageCircle className="w-5 h-5" />}
-                onClick={() => setIsChatModalOpen(true)}
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    dispatch(
+                      addToast({
+                        type: "error",
+                        message: "Vui lòng đăng nhập để chat với cửa hàng",
+                      })
+                    );
+                    navigate("/login");
+                    return;
+                  }
+                  setIsChatModalOpen(true);
+                }}
+                title={!isLoggedIn ? "Vui lòng đăng nhập để chat" : undefined}
               />
              )}
             </div>
