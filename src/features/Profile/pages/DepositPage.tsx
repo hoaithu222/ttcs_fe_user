@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Button from "@/foundation/components/buttons/Button";
 import Input from "@/foundation/components/input/Input";
 import Loading from "@/foundation/components/loading/Loading";
-import { ArrowLeft, Building2, Clock } from "lucide-react";
+import { ArrowLeft, Building2, Clock, Sparkles, Wallet, Shield, Coins, Zap } from "lucide-react";
 import { userWalletApi } from "@/core/api/wallet";
 import { useAppDispatch } from "@/app/store";
 import { addToast } from "@/app/store/slices/toast";
@@ -167,9 +167,9 @@ const DepositPage = () => {
   return (
     <Page>
       <div className="px-4 min-h-[calc(100vh-80px)]">
-        <div className="px-4 py-8 container mx-auto space-y-6">
+        <div className="px-4 py-4 container mx-auto space-y-6">
           {/* Header */}
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-4 mb-3">
             <Button
               variant="ghost"
               size="sm"
@@ -182,32 +182,56 @@ const DepositPage = () => {
             <div className="flex items-center gap-3" />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Left column: thông tin số dư + số tiền muốn nạp */}
-            <div className="lg:col-span-1">
-              <Section className="relative overflow-hidden rounded-2xl border border-border-1 bg-gradient-to-br from-primary-6 to-primary-7 text-white shadow-md">
-                {/* Overlay gradient để mềm hơn */}
-                <div className="absolute inset-0 bg-black/5 pointer-events-none" />
-                <div className="relative p-5 space-y-4">
+                        {/* Left column: thông tin số dư + thống kê */}
+                        <div className="lg:col-span-1 space-y-6">
+              {/* Balance Card - Modern Bank Style */}
+              <Section className="relative overflow-hidden rounded-3xl border-0 bg-gradient-to-br from-primary-6 via-primary-7 to-primary-8 text-white shadow-2xl">
+                {/* Decorative elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24 blur-3xl" />
+                <Sparkles className="absolute top-4 right-4 w-6 h-6 text-white/20" />
+                
+                <div className="relative p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-white/10 backdrop-blur-sm">
+                        <Wallet className="w-5 h-5" />
+                      </div>
+                      <span className="text-sm opacity-90">Ví của tôi</span>
+                    </div>
+                    <Chip
+                      colorClass="bg-white/20 text-white border-none backdrop-blur-sm"
+                      rounded="full"
+                      size="sm"
+                    >
+                      <Shield className="w-3 h-3 mr-1" />
+                      Bảo mật
+                    </Chip>
+                  </div>
+
                   <div>
-                    <p className="text-xs opacity-80 mb-1">Số dư hiện tại</p>
-                    <p className="text-3xl font-bold leading-tight">
+                    <p className="text-xs opacity-80 mb-2 uppercase tracking-wider">Số dư hiện tại</p>
+                    <p className="text-4xl font-bold leading-tight mb-1">
                       {formatPriceVND(currentWallet?.balance || 0)}
                     </p>
+                    <p className="text-xs opacity-70">VNĐ</p>
                   </div>
 
                   {/* Thông tin số tiền muốn nạp & số dư dự kiến */}
                   {depositAmount && parseFloat(depositAmount) > 0 && (
-                    <div className="mt-2 rounded-xl bg-white/8 px-3 py-3 space-y-2 text-xs backdrop-blur-sm">
+                    <div className="mt-4 rounded-2xl bg-white/10 px-4 py-4 space-y-3 text-sm backdrop-blur-md border border-white/10">
                       <div className="flex items-center justify-between gap-2">
                         <span className="opacity-90">Số tiền muốn nạp</span>
-                        <span className="font-semibold">
+                        <span className="font-bold text-lg">
                           {formatPriceVND(parseFloat(depositAmount) || 0)}
                         </span>
                       </div>
+                      <div className="h-px bg-white/20" />
                       <div className="flex items-center justify-between gap-2">
-                        <span className="opacity-90">Số dư sau nạp (dự kiến)</span>
-                        <span className="font-semibold">
+                        <span className="opacity-90">Số dư sau nạp</span>
+                        <span className="font-bold text-lg">
                           {formatPriceVND(
                             (currentWallet?.balance || 0) + (parseFloat(depositAmount) || 0)
                           )}
@@ -216,65 +240,132 @@ const DepositPage = () => {
                     </div>
                   )}
 
-                  {/* Mã ví (ID rút gọn) nếu có */}
-                  {currentWallet?._id && (
-                    <div className="pt-2 border-t border-white/10 mt-2">
-                      <p className="text-[11px] opacity-80">
-                        Mã ví:{" "}
-                        <span className="font-mono tracking-wide">
-                          {String(currentWallet._id).slice(0, 8)}…
+                   {/* Thông tin ví */}
+                   <div className="bg-background-4 rounded-2xl p-4 border border-border-2 shadow-sm space-y-6">
+                    <div className="flex items-center justify-start">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-xl">
+                          <Wallet className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 text-start">
+                          <p className="text-sm font-semibold text-white">Mã ví</p>
+                          <p className="text-xs text-white">{String(currentWallet?._id).slice(-8).toUpperCase()}</p>
+                        </div>
+                      </div>
+                    </div>
+                   </div>
+                  </div>
+                </Section>
+              </div>
+
+            {/* Right column: form hoặc QR nạp tiền */}
+            <div className="lg:col-span-2 space-y-4">
+          {depositStatus === "form" && (
+            <Section className="bg-background-1 rounded-2xl p-4 border border-border-1 shadow-sm space-y-6">
+              {/* Amount Input Section - Modern Bank Style */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-primary-6 to-primary-7">
+                    <Coins className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <label className="block text-start text-base font-bold text-neutral-9">
+                      Nhập số tiền bạn muốn nạp
+                    </label>
+                    <p className="text-xs text-neutral-6 mt-0.5 text-start">Số tiền tối thiểu: 10,000 VNĐ</p>
+                  </div>
+                </div>
+
+                <Form.Root onSubmit={(e) => e.preventDefault()}>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <span className="text-lg font-semibold text-neutral-6">₫</span>
+                    </div>
+                    <Input
+                      name="amount"
+                      type="number"
+                      placeholder="0"
+                      value={depositAmount}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Chỉ cho phép số dương
+                        if (value === "" || (!isNaN(parseFloat(value)) && parseFloat(value) >= 0)) {
+                          setDepositAmount(value);
+                        }
+                      }}
+                      required
+                      className="text-xl font-bold pl-10 pr-4 py-4 h-16 border-2 focus:border-primary-6 transition-colors"
+                      min="10000"
+                      step="1000"
+                    />
+                    {depositAmount && parseFloat(depositAmount) > 0 && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <span className="text-sm font-medium text-neutral-5">VNĐ</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Amount Preview */}
+                  {depositAmount && parseFloat(depositAmount) >= 10000 && (
+                    <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-primary-1 to-primary-2 border border-primary-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-neutral-7">Số tiền sẽ nạp:</span>
+                        <span className="text-lg font-bold text-primary-7">
+                          {formatPriceVND(parseFloat(depositAmount))}
                         </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {depositAmount && parseFloat(depositAmount) > 0 && parseFloat(depositAmount) < 10000 && (
+                    <div className="mt-3 p-3 rounded-xl bg-error/10 border border-error/20">
+                      <p className="text-sm text-error flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span>Số tiền tối thiểu là 10,000 VNĐ</span>
                       </p>
                     </div>
                   )}
-                </div>
-              </Section>
-            </div>
-
-            {/* Right column: form hoặc QR nạp tiền */}
-            <div className="lg:col-span-2 space-y-6">
-          {depositStatus === "form" && (
-            <Section className="bg-background-1 rounded-2xl p-6 border border-border-1 shadow-sm space-y-6">
-              {/* Amount Input */}
-              <div>
-                <label className="block text-sm font-semibold text-neutral-9 mb-3">
-                  Nhập số tiền bạn muốn nạp (VNĐ) *
-                </label>
-                <Form.Root onSubmit={(e) => e.preventDefault()}>
-                  <Input
-                    name="amount"
-                    type="number"
-                    placeholder="Nhập số tiền muốn nạp"
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    required
-                    className="text-lg"
-                  />
                 </Form.Root>
               </div>
 
-              {/* Quick Amount Selection */}
-              <div>
-                <label className="block text-sm font-semibold text-neutral-9 mb-3">
-                  Chọn nhanh
-                </label>
+              {/* Quick Amount Selection - Modern Cards */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary-6" />
+                  <label className="text-sm font-semibold text-neutral-9">
+                    Chọn nhanh số tiền
+                  </label>
+                </div>
                 <div className="grid grid-cols-3 gap-3">
-                  {QUICK_AMOUNTS.map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      onClick={() => setDepositAmount(amount.toString())}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        depositAmount === amount.toString()
-                          ? "border-primary-6 bg-primary-1"
-                          : "border-border-1 bg-background-1 hover:border-primary-3"
-                      }`}
-                    >
-                      <span className="text-sm font-semibold text-primary-6">
-                        {formatPriceVND(amount)}
-                      </span>
-                    </button>
-                  ))}
+                  {QUICK_AMOUNTS.map((amount) => {
+                    const isSelected = depositAmount === amount.toString();
+                    return (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => setDepositAmount(amount.toString())}
+                        className={`group relative p-4 rounded-xl border-2 transition-all duration-200 ${
+                          isSelected
+                            ? "border-primary-6 bg-gradient-to-br from-primary-6 to-primary-7 text-white shadow-lg shadow-primary-6/30 scale-105"
+                            : "border-border-1 bg-background-1 hover:border-primary-4 hover:bg-primary-1 hover:shadow-md"
+                        }`}
+                      >
+                        <div className={`text-center ${isSelected ? "text-white" : ""}`}>
+                          <p className={`text-xs font-medium mb-1 ${isSelected ? "text-white/80" : "text-neutral-6"}`}>
+                            {amount >= 1000000 ? `${amount / 1000000}M` : amount >= 1000 ? `${amount / 1000}K` : amount}
+                          </p>
+                          <p className={`text-sm font-bold ${isSelected ? "text-white" : "text-primary-6"}`}>
+                            {formatPriceVND(amount)}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2">
+                            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -315,31 +406,14 @@ const DepositPage = () => {
           )}
 
           {depositStatus === "processing" && depositData && (
-            <Section className="bg-background-1 rounded-2xl p-6 border border-border-1 shadow-sm space-y-6">
+            <Section className="bg-background-1 rounded-2xl p-4 border border-border-1 shadow-sm space-y-6">
               {/* Processing Status */}
-              <div className="text-center space-y-3">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-warning/10">
-                  <Clock className="w-8 h-8 text-warning animate-spin" />
-                </div>
-                <h2 className="text-xl font-bold text-neutral-9">
-                  Yêu cầu nạp tiền đang được xử lý
-                </h2>
-                <p className="text-sm text-neutral-6 max-w-xl mx-auto">
-                  Vui lòng quét mã QR hoặc chuyển khoản theo thông tin phía dưới. Hệ thống sẽ tự động
-                  cập nhật số dư sau khi nhận được chuyển khoản qua Sepay.
-                </p>
-                <Chip
-                  colorClass="bg-warning text-white border-none"
-                  className="shadow-sm"
-                  rounded="full"
-                  size="sm"
-                >
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>Đang chờ xử lý</span>
-                  </span>
-                </Chip>
-              </div>
+              {/* <AlertMessage
+                type="warning"
+                title="Yêu cầu nạp tiền đang được xử lý"
+                message="Vui lòng quét mã QR hoặc chuyển khoản theo thông tin phía dưới. Hệ thống sẽ tự động cập nhật số dư sau khi nhận được chuyển khoản qua Sepay."
+                icon={<Clock className="w-5 h-5 animate-spin" />}
+              /> */}
 
               {/* QR + Thông tin tài khoản - dùng lại UI giống PaymentPage */}
               <QRCodeDisplay

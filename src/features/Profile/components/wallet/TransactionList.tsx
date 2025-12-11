@@ -191,13 +191,13 @@ const TransactionList: React.FC<TransactionListProps> = ({
         <h3 className="text-lg font-bold text-neutral-10">Lịch sử giao dịch</h3>
         {onRefresh && (
           <Button
-            variant="ghost"
+            variant="primary"
             size="sm"
             onClick={onRefresh}
             disabled={isLoading}
             className="gap-2"
+            icon={<RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
             Làm mới
           </Button>
         )}

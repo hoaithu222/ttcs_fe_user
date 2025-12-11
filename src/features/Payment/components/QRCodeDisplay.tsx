@@ -96,17 +96,17 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   };
 
   return (
-    <Section className="bg-background-1 rounded-2xl p-6 border border-border-1 shadow-sm">
+    <Section className="bg-background-1 rounded-2xl p-4 border border-border-1 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <SectionTitle className="mb-1">Thông tin thanh toán</SectionTitle>
-          <p className="text-xs text-neutral-6">
+          <SectionTitle className="mb-1 text-start">Thông tin thanh toán</SectionTitle>
+          <p className="text-xs text-start text-neutral-6">
             Quét mã QR hoặc chuyển khoản thủ công theo thông tin bên cạnh.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         {/* QR Code */}
         {qrCode && (
           <div className="flex flex-col items-center lg:items-start">
