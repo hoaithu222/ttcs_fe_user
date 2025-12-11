@@ -70,7 +70,7 @@ const Login = () => {
 
         <div className="relative z-10">
           {/* Logo section */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-4">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl opacity-20 blur"></div>
               <img
@@ -85,7 +85,7 @@ const Login = () => {
           </div>
 
           {/* Header section */}
-          <div className="mb-10 space-y-4 text-center">
+          <div className="mb-4 space-y-4 text-center">
             <h2 className="text-3xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 lg:text-4xl">
               Chào mừng trở lại!
             </h2>

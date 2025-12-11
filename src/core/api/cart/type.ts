@@ -11,14 +11,17 @@ export interface CartVariantSnapshot {
 export interface CartItem {
   _id: string;
   cartId: string;
-  productId: string | {
-    _id: string;
-    name: string;
-    images: Array<{ url: string; publicId?: string }> | string[];
-    price: number;
-    discount?: number;
-    stock?: number;
-  };
+  productId:
+    | string
+    | {
+        _id: string;
+        name: string;
+        images: Array<{ url: string; publicId?: string }> | string[];
+        price: number;
+        discount?: number;
+        stock?: number;
+      }
+    | null;
   variantId?: string | ProductVariant;
   quantity: number;
   priceAtTime: number;

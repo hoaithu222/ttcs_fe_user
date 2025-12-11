@@ -14,7 +14,6 @@ const ShopStats: React.FC<ShopStatsProps> = ({ shop }) => {
     }
     return count.toString();
   };
-
   const formatDateJoined = (dateString?: string): string => {
     if (!dateString) return "Chưa rõ";
     try {
@@ -35,59 +34,59 @@ const ShopStats: React.FC<ShopStatsProps> = ({ shop }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
       {/* Products Count */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col items-center justify-center gap-1 p-3 bg-background-1 border border-border-1 rounded-xl shadow-xs">
         <div className="flex items-center gap-2 text-neutral-6">
           <Package className="w-4 h-4" />
-          <span className="text-sm">Sản Phẩm</span>
+          <span className="text-sm font-semibold text-neutral-7">Sản phẩm</span>
         </div>
-        <span className="text-lg font-bold text-neutral-9">
-          {shop.productsCount !== undefined ? shop.productsCount : shop.productCount || 0}
+        <span className="text-xl font-bold text-neutral-9">
+          {shop.productsCount || 0}
         </span>
       </div>
 
       {/* Following Count */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col items-center justify-center gap-1 p-2 bg-background-1 border border-border-1 rounded-xl shadow-xs">
         <div className="flex items-center gap-2 text-neutral-6">
           <UserPlus className="w-4 h-4" />
-          <span className="text-sm">Đang Theo</span>
+          <span className="text-sm font-semibold text-neutral-7">Đang theo</span>
         </div>
-        <span className="text-lg font-bold text-neutral-9">-</span>
+        <span className="text-xl font-bold text-neutral-9">-</span>
       </div>
 
       {/* Chat Response Rate */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col items-center justify-center gap-1 p-3 bg-background-1 border border-border-1 rounded-xl shadow-xs">
         <div className="flex items-center gap-2 text-neutral-6">
           <MessageCircle className="w-4 h-4" />
-          <span className="text-sm">Tỉ Lệ Phản Hồi Chat</span>
+          <span className="text-sm font-semibold text-neutral-7">Tỉ lệ phản hồi</span>
         </div>
-        <span className="text-lg font-bold text-success">99%</span>
-        <span className="text-xs text-neutral-5">(Trong Vài Giờ)</span>
+        <span className="text-xl font-bold text-success">99%</span>
+        <span className="text-xs text-neutral-5">(Trong vài giờ)</span>
       </div>
 
       {/* Followers Count */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col items-center justify-center gap-1 p-3 bg-background-1 border border-border-1 rounded-xl shadow-xs">
         <div className="flex items-center gap-2 text-neutral-6">
           <UserPlus className="w-4 h-4" />
-          <span className="text-sm">Người Theo Dõi</span>
+          <span className="text-sm font-semibold text-neutral-7">Người theo dõi</span>
         </div>
-        <span className="text-lg font-bold text-neutral-9">
+        <span className="text-xl font-bold text-neutral-9">
           {formatFollowersCount(shop.followersCount || (shop as any).followCount || 0)}
         </span>
       </div>
 
       {/* Rating */}
       {shop.rating !== undefined && shop.rating > 0 && (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 p-3 bg-background-1 border border-border-1 rounded-xl shadow-xs">
           <div className="flex items-center gap-2 text-neutral-6">
             <Star className="w-4 h-4 fill-warning text-warning" />
-            <span className="text-sm">Đánh Giá</span>
+            <span className="text-sm font-semibold text-neutral-7">Đánh giá</span>
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-lg font-bold text-neutral-9">{shop.rating.toFixed(1)}</span>
+            <span className="text-xl font-bold text-neutral-9">{shop.rating.toFixed(1)}</span>
             <span className="text-xs text-neutral-5">
-              ({formatFollowersCount(shop.reviewCount)} Đánh Giá)
+              ({formatFollowersCount(shop.reviewCount)} đánh giá)
             </span>
           </div>
         </div>
@@ -95,12 +94,12 @@ const ShopStats: React.FC<ShopStatsProps> = ({ shop }) => {
 
       {/* Joined Date */}
       {shop.createdAt && (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 p-3 bg-background-1 border border-border-1 rounded-xl shadow-xs">
           <div className="flex items-center gap-2 text-neutral-6">
             <Calendar className="w-4 h-4" />
-            <span className="text-sm">Tham Gia</span>
+            <span className="text-sm font-semibold text-neutral-7">Tham gia</span>
           </div>
-          <span className="text-lg font-bold text-neutral-9">{formatDateJoined(shop.createdAt)}</span>
+          <span className="text-xl font-bold text-neutral-9">{formatDateJoined(shop.createdAt)}</span>
         </div>
       )}
     </div>

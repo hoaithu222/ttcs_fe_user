@@ -323,8 +323,8 @@ const FloatingChatBubble: React.FC = () => {
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-6 px-4 py-3 text-sm font-medium text-white transition hover:bg-primary-7 disabled:cursor-not-allowed disabled:opacity-70 mb-2"
               disabled={isProcessing}
             >
-              <Headphones className="w-4 h-4" />
-              <span>Chat với CSKH</span>
+              <Headphones className="w-4 h-4 text-neutral-10" />
+              <span className="text-neutral-10">Chat với CSKH</span>
             </button>
 
             <button
@@ -333,8 +333,8 @@ const FloatingChatBubble: React.FC = () => {
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-6 to-purple-7 px-4 py-3 text-sm font-medium text-white transition hover:from-purple-7 hover:to-purple-8 disabled:cursor-not-allowed disabled:opacity-70 mb-2"
               disabled={isProcessing}
             >
-              <Bot className="w-4 h-4" />
-              <span>Chat với AI</span>
+              <Bot className="w-4 h-4 text-neutral-10" />
+              <span className="text-neutral-10">Chat với AI</span>
             </button>
 
             <button
@@ -343,7 +343,7 @@ const FloatingChatBubble: React.FC = () => {
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-2 px-4 py-3 text-sm font-medium text-neutral-10 transition hover:bg-neutral-3"
             >
               <X className="w-4 h-4" />
-              <span>Đóng</span>
+              <span className="text-neutral-10">Đóng</span>
             </button>
           </div>
           )}

@@ -2,7 +2,6 @@ import { ReactNode, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import Modal from "@/foundation/components/modal/Modal";
 import IconCircleWrapper from "@/foundation/components/icons/IconCircleWrapper";
-import AlertMessage from "@/foundation/components/info/AlertMessage";
 import PinInput from "@/widgets/otp-modal/PinInput";
 import { Mail } from "lucide-react";
 
@@ -29,7 +28,6 @@ const VerifyEmailOtpModal = ({
   onSubmit,
   onResend,
   title = "Xác minh email",
-  description = "Nhập mã OTP 6 số đã được gửi đến email của bạn",
   infoMessage,
   confirmText = "Xác nhận",
 }: VerifyEmailOtpModalProps) => {
@@ -72,9 +70,10 @@ const VerifyEmailOtpModal = ({
         }
       }}
       size="lg"
+      contentClassName="bg-background-1 border-border-1"
       customTitle={
         <div className="flex gap-3 items-center">
-          <IconCircleWrapper size="md" color="info">
+          <IconCircleWrapper size="md" extraBorder={true} color="info" borderWidth="border-2">
             <Mail className="text-primary-7 dark:text-white" />
           </IconCircleWrapper>
           <div>
@@ -92,19 +91,33 @@ const VerifyEmailOtpModal = ({
       headerPadding="pb-6"
     >
       <div className="space-y-4">
-        <AlertMessage
-          type="info"
-          title="Mã OTP đã được gửi"
-          message={
-            infoMessage ?? (
-              <>
-                Mã OTP 6 số đã được gửi đến{" "}
-                <strong className="text-primary-7">{email ?? "email của bạn"}</strong>. Vui lòng kiểm tra hộp thư
-                và nhập mã để xác minh. Mã có hiệu lực trong <strong>10 phút</strong>.
-              </>
-            )
-          }
-        />
+        <div className="rounded-lg border border-primary-3 bg-primary-1 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 rounded-full bg-background-1 p-1">
+              <div className="text-primary-7">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm text-primary-7 mb-1">Mã OTP đã được gửi</div>
+              <div className="text-sm text-neutral-7">
+                {infoMessage ?? (
+                  <>
+                    Mã OTP 6 số đã được gửi đến{" "}
+                    <strong className="text-primary-7">{email ?? "email của bạn"}</strong>. Vui lòng kiểm tra hộp thư
+                    và nhập mã để xác minh. Mã có hiệu lực trong <strong>10 phút</strong>.
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
 
         <Controller
           name="otp"

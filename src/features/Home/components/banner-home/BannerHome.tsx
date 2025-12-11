@@ -155,16 +155,15 @@ const HomeBanner = () => {
 
   return (
     <div className="py-4 overflow-x-hidden">
-      <div className="bg-gradient-to-br from-background-base to-background-2 overflow-hidden rounded-3xl p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className=" overflow-hidden rounded-xl ">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Main Carousel */}
           <div
-            className="relative h-[400px] lg:h-[500px] overflow-hidden rounded-3xl shadow-2xl"
+            className="relative h-[400px] lg:h-[500px] overflow-hidden rounded-xl shadow-md"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            {/* Decorative Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary-8/10 via-transparent to-primary-6/10 pointer-events-none z-[5]" />
+           
 
             {/* Navigation Buttons */}
             <div
@@ -207,7 +206,7 @@ const HomeBanner = () => {
                       alt={banner.title || `Slide ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-overlay" />
+                   
                   </div>
                 ))
               ) : (
@@ -219,14 +218,14 @@ const HomeBanner = () => {
 
             {/* Enhanced Dots Indicator */}
             {settings.showDots && mainBanners.length > 0 && (
-              <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-3 z-20 bg-background-1/20 backdrop-blur-md px-6 py-3 rounded-full border border-background-1/30">
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 flex gap-3 z-20 bg-background-1/20 backdrop-blur-md px-6 py-3 rounded-full border border-background-1/30">
                 {mainBanners.map((_, index) => (
                   <button
                     key={`dot-${index}`}
                     onClick={() => setCurrentImage(index)}
                     className={`transition-all duration-300 ${
                       currentImage === index
-                        ? "w-12 h-3 bg-gradient-to-r from-primary-8 to-primary-6 rounded-full shadow-lg"
+                        ? "w-12 h-3 bg-primary-8 rounded-full shadow-lg"
                         : "w-3 h-3 bg-background-1/60 rounded-full hover:bg-background-1"
                     }`}
                     aria-label={`Go to slide ${index + 1}`}
@@ -244,14 +243,14 @@ const HomeBanner = () => {
           </div>
 
           {/* Side Images - Từ danh mục */}
-          <div className="flex-col gap-6 hidden lg:flex">
+          <div className="flex-col gap-4 hidden lg:flex">
             {sideBanners.length > 0 ? (
               sideBanners.slice(0, 2).map((banner, index) => {
                 const bannerImage = banner.image?.url;
                 return (
                   <div
                     key={banner._id || `side-${index}`}
-                    className="relative h-[235px] overflow-hidden rounded-3xl shadow-xl group cursor-pointer"
+                    className="relative h-[240px] overflow-hidden rounded-xl shadow-md group cursor-pointer"
                     onClick={() => banner.categoryId && handleSideBannerClick(banner.categoryId)}
                   >
                     {bannerImage ? (
@@ -266,13 +265,12 @@ const HomeBanner = () => {
                       </div>
                     )}
 
-                    {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-overlay via-overlay/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+                  
 
                     {/* Hover Content */}
                     <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
                       <div className="text-neutral-0">
-                        <p className="text-sm text-primary-8 font-medium opacity-80">
+                        <p className="text-sm text-neutral-5 font-medium opacity-80">
                           {banner.category?.name || "Khám phá thêm"}
                         </p>
                       </div>

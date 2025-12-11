@@ -237,7 +237,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                   )}`}
                 >
                   {getAmountPrefix(transaction.type)}
-                  {formatPriceVND(transaction.amount)}
+                  {formatPriceVND(transaction.metadata?.originalAmount)}
                 </p>
                 {transaction.status === WalletTransactionStatus.PENDING && (
                   <p className="text-xs text-warning mt-1">Đang xử lý...</p>

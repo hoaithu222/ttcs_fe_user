@@ -31,7 +31,7 @@
   --color-background-3: #EBEEF3;
   --color-background-input: #FFFFFF;
   --color-background-nav: #FFFFFF;
-  --color-background-dialog: #FFFFFF;
+  --color-background-dialog: #F9FBFF;
   --color-header: #FFFFFF;
   --color-footer: #F8F8F8;
   --color-divider-1: #E5E5E5;
@@ -64,8 +64,8 @@
   --color-icon-rounded-first: #F0F4FF;
   --color-icon-rounded-second: #E5E9F2;
   --color-modal-bg: #FFFFFF;
-  --color-modal-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
-  --color-modal-overlay: rgba(0, 0, 0, 0.5);
+  --color-modal-shadow: 0px 22px 64px rgba(15, 52, 96, 0.18);
+  --color-modal-overlay: rgba(15, 52, 96, 0.5);
   --color-input-bg: #FFFFFF;
   --color-input-bg-disabled: #F5F5F5;
   --color-input-border: #D4D4D4;
@@ -134,7 +134,7 @@
   --color-background-4: #3F444E;
   --color-background-input: #1E232B;
   --color-background-nav: #121418;
-  --color-background-dialog: #1A1E24;
+  --color-background-dialog: #232A36;
   --color-header: #1A1E24;
   --color-footer: #121418;
   --color-divider-1: #2E3238;
@@ -166,9 +166,9 @@
   --color-card-gradient-2: #2E343E;
   --color-icon-rounded-first: #1E232B;
   --color-icon-rounded-second: #252A33;
-  --color-modal-bg: #1A1E24;
-  --color-modal-shadow: 0px 10px 30px rgba(0, 0, 0, 0.5);
-  --color-modal-overlay: rgba(0, 0, 0, 0.8);
+  --color-modal-bg: #232A36;
+  --color-modal-shadow: 0px 18px 48px rgba(0, 0, 0, 0.55);
+  --color-modal-overlay: rgba(0, 0, 0, 0.7);
   --color-input-bg: #1E232B;
   --color-input-bg-disabled: #262626;
   --color-input-border: #3F444E;

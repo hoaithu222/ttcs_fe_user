@@ -126,9 +126,14 @@ export class CartService {
 
     const cartItems = cartData.cartItems || cartData.items || [];
     const mappedItems = cartItems.map((item: any) => {
-      const product = typeof item.productId === "object" ? item.productId : null;
+      const product = typeof item.productId === "object" && item.productId !== null ? item.productId : null;
       const shop = typeof item.shopId === "object" ? item.shopId : null;
       const variantSnapshot = item.variantSnapshot || null;
+
+      const productIdValue =
+        typeof item.productId === "string"
+          ? item.productId
+          : item.productId?._id || item.productId?.toString?.();
 
       const variantIdValue = item.variantId
         ? typeof item.variantId === "string"
@@ -173,7 +178,7 @@ export class CartService {
       return {
         _id: item._id,
         cartId: item.cartId || cartData._id,
-        productId: typeof item.productId === "string" ? item.productId : item.productId._id,
+        productId: productIdValue ?? null,
         variantId: variantIdValue,
         quantity: item.quantity,
         priceAtTime: item.priceAtTime ?? basePrice,
@@ -181,7 +186,7 @@ export class CartService {
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         // Computed fields
-        productName: product?.name || "",
+        productName: product?.name || variantSnapshot?.sku || "",
         productImage,
         productPrice: basePrice,
         finalPrice,

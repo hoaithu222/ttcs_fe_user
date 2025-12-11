@@ -83,7 +83,7 @@ function* markAllAsReadWorker(_action: MarkAllAsReadAction): Generator {
 
     if (response.success) {
       yield put(markAllAsReadSuccess());
-      yield put(addToast({ type: "success", message: "Đã đánh dấu tất cả là đã đọc" }));
+      // yield put(addToast({ type: "success", message: "Đã đánh dấu tất cả là đã đọc" }));
     } else {
       const errorMessage = "Không thể đánh dấu tất cả là đã đọc";
       yield put(markAllAsReadFailure(errorMessage));

@@ -213,7 +213,7 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     };
 
     const classOverlay = clsx(
-      "bg-base-black/50 fixed inset-0 z-40 backdrop-blur-sm transition-opacity",
+      "bg-overlay fixed inset-0 z-40 backdrop-blur-sm transition-opacity",
       "data-[state=open]:animate-in data-[state=open]:fade-in",
       "data-[state=closed]:animate-out data-[state=closed]:fade-out"
     );

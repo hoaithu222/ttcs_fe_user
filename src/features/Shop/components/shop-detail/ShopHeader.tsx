@@ -9,9 +9,10 @@ import ShopChatModal from "@/features/Chat/components/ShopChatModal";
 interface ShopHeaderProps {
   shop: Shop;
   isOwnShop?: boolean;
+  onRefresh?: () => void;
 }
 
-const ShopHeader: React.FC<ShopHeaderProps> = ({ shop, isOwnShop = false }) => {
+const ShopHeader: React.FC<ShopHeaderProps> = ({ shop, isOwnShop = false, onRefresh }) => {
   const navigate = useNavigate();
   const { isFollowing, toggleFollowShop } = useShopFollowing();
   const [followLoading, setFollowLoading] = useState(false);
@@ -24,6 +25,7 @@ const ShopHeader: React.FC<ShopHeaderProps> = ({ shop, isOwnShop = false }) => {
     setFollowLoading(true);
     try {
       await toggleFollowShop(shop._id);
+      onRefresh?.();
     } catch (error) {
       // Error handling is done in useShopFollowing hook
     } finally {
@@ -36,7 +38,7 @@ const ShopHeader: React.FC<ShopHeaderProps> = ({ shop, isOwnShop = false }) => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+    <div className="flex flex-col md:flex-row gap-6 items-start md:items-center bg-background-1 border border-border-1 rounded-2xl p-5 shadow-sm">
       {/* Shop Logo & Name */}
       <div className="flex gap-4 items-center flex-1">
         <div className="relative flex-shrink-0">
@@ -61,13 +63,13 @@ const ShopHeader: React.FC<ShopHeaderProps> = ({ shop, isOwnShop = false }) => {
           <div className="flex flex-wrap gap-2 items-center mb-2">
             <h1 className="text-2xl md:text-3xl font-bold text-neutral-9 truncate">{shop.name}</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-success/10 rounded-md">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-success/10 rounded-full border border-success/20">
               <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-              <span className="text-xs text-success font-medium">Đang hoạt động</span>
+              <span className="text-xs text-success font-semibold">Đang hoạt động</span>
             </div>
             {shop.rating !== undefined && shop.rating > 0 && (
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-warning/10 rounded-md">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-warning/10 rounded-full border border-warning/30">
                 <Star className="w-3.5 h-3.5 fill-warning text-warning" />
                 <span className="text-xs font-semibold text-neutral-9">{shop.rating.toFixed(1)}</span>
                 <span className="text-xs text-neutral-6">

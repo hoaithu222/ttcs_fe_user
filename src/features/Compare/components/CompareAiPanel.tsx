@@ -166,9 +166,13 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
   const renderProductSnapshot = useCallback(
     (product: Product, label: string) => (
       <Card className="bg-background-1 border border-border-1 rounded-2xl shadow-sm h-full p-4">
-        <div className="text-xs font-semibold text-neutral-5 mb-3 uppercase tracking-wide">{label}</div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm font-semibold text-neutral-6 uppercase tracking-wide">
+            {label}
+          </div>
+        </div>
         <div className="flex items-start gap-3">
-          <div className="w-20 h-20 rounded-xl bg-neutral-2 overflow-hidden flex items-center justify-center flex-shrink-0">
+          <div className="w-20 h-20 rounded-xl bg-neutral-2 overflow-hidden flex items-center justify-center flex-shrink-0 border border-border-1">
             {getImageUrl(product) ? (
               <img src={getImageUrl(product)} alt={product.name} className="object-cover w-full h-full" />
             ) : (
@@ -176,18 +180,20 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
             )}
           </div>
           <div className="flex-1 min-w-0 space-y-1.5">
-            <p className="text-sm font-semibold text-neutral-9 line-clamp-2 leading-snug">{product.name}</p>
-            <p className="text-base text-primary-7 font-bold">
+            <p className="text-sm text-start font-semibold text-neutral-9 line-clamp-2 leading-snug">
+              {product.name}
+            </p>
+            <p className="text-lg text-start text-primary-7 font-bold">
               {formatCurrency(product.finalPrice ?? product.price)}
             </p>
             {product.rating ? (
-              <div className="flex items-center gap-1 text-xs text-neutral-6">
+              <div className="flex items-center justify-start gap-1 text-xs text-neutral-6">
                 <span className="text-yellow-500">★</span>
                 <span className="font-medium">{product.rating.toFixed(1)}</span>
                 <span className="text-neutral-5">({product.reviewCount || 0})</span>
               </div>
             ) : (
-              <p className="text-xs text-neutral-5">Chưa có đánh giá</p>
+              <p className="text-xs text-start text-neutral-5">Chưa có đánh giá</p>
             )}
           </div>
         </div>
@@ -228,8 +234,8 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
               </p>
               <ul className="space-y-0.5 text-xs text-neutral-7 list-disc pl-4">
                 {prosCons.pros?.length
-                  ? prosCons.pros.map((item, index) => <li key={index} className="leading-snug">{item}</li>)
-                  : <li>Đang cập nhật...</li>}
+                  ? prosCons.pros.map((item, index) => <li className="text-start leading-snug" key={index} >{item}</li>)
+                  : <li className="text-start">Đang cập nhật...</li>}
               </ul>
             </div>
             <div>
@@ -238,8 +244,8 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
               </p>
               <ul className="space-y-0.5 text-xs text-neutral-7 list-disc pl-4">
                 {prosCons.cons?.length
-                  ? prosCons.cons.map((item, index) => <li key={index} className="leading-snug">{item}</li>)
-                  : <li>Đang cập nhật...</li>}
+                  ? prosCons.cons.map((item, index) => <li key={index} className="text-start leading-snug">{item}</li>)
+                  : <li className="text-start">Đang cập nhật...</li>}
               </ul>
             </div>
           </div>
@@ -249,19 +255,22 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
   }, [comparison?.productAId, comparison?.productBId, comparison?.products, comparison?.prosCons, dict.sectionConsTitle, dict.sectionProsTitle]);
 
   return (
-    <Section className="bg-background-2 border border-border-1 rounded-2xl p-5 lg:p-6 shadow-sm mb-12">
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 mb-5">
+    <Section className="bg-gradient-to-b from-background-2 via-background-1 to-background-2 border border-border-1 rounded-3xl p-2 lg:p-4 shadow-md mb-6">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 ">
         <div className="flex-1">
-          <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-9 h-9 rounded-xl bg-primary-6/10 flex items-center justify-center flex-shrink-0">
-              <Scale className="w-5 h-5 text-primary-7" />
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-16 h-16 rounded-2xl bg-background-2 flex items-center justify-center flex-shrink-0 shadow-sm">
+              <Scale className="w-10 h-10 text-primary-7" />
             </div>
-            <SectionTitle className="!mb-0 !text-lg">{dict.title}</SectionTitle>
+            <div className="flex flex-col gap-1 justify-start items-start">
+              <SectionTitle className="!mb-0 !text-2xl ">{dict.title}</SectionTitle>
+              <p className="text-sm text-neutral-6 text-start max-w-2xl leading-relaxed">{dict.subtitle}</p>
+            </div>
           </div>
-          <p className="text-xs text-neutral-6 max-w-2xl leading-relaxed">{dict.subtitle}</p>
+         
         </div>
         {comparison?.provider && (
-          <div className="flex items-center gap-1.5 text-xs text-neutral-6 bg-background-1 px-3 py-1.5 rounded-full border border-border-1">
+          <div className="flex items-center gap-1.5 text-xs text-neutral-6 bg-background-1 px-3 py-1.5 rounded-full border border-border-1 shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-primary-6" />
             <span>
               <strong className="text-neutral-8">{comparison.provider}</strong>
@@ -277,7 +286,7 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
           {secondaryProduct ? (
             renderProductSnapshot(secondaryProduct, dict.secondaryLabel)
           ) : (
-            <Card className="bg-background-1 border border-dashed border-border-2 rounded-2xl shadow-sm h-full flex items-center justify-center p-6">
+            <Card className="bg-background-1 border border-dashed border-primary-3 rounded-2xl shadow-sm h-full flex items-center justify-center p-6">
               <div className="text-center">
                 <Search className="w-12 h-12 text-neutral-4 mx-auto mb-3" />
                 <p className="text-sm font-semibold text-neutral-7">{dict.secondaryLabel}</p>
@@ -289,7 +298,7 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
 
         {/* Search & Action Row */}
         <div className="grid gap-4 lg:grid-cols-[1fr,auto]">
-          <div className="bg-background-1 border border-border-2 rounded-2xl p-4 space-y-3">
+          <div className="bg-background-1 border border-border-2 rounded-2xl p-4 space-y-3 shadow-sm">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-neutral-8">{dict.inputPlaceholder}</p>
               {isSearching && <Loader2 className="w-4 h-4 animate-spin text-neutral-5" />}
@@ -304,14 +313,14 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
               />
             </Form.Root>
             {helperMessage && (
-              <p className="text-xs text-warning flex items-center gap-1">
+              <p className="text-xs text-warning flex items-center gap-1 bg-warning/10 border border-warning/30 rounded-lg px-2 py-1">
                 <Info className="w-3 h-3" />
                 {helperMessage}
               </p>
             )}
             <div className="space-y-2">
               <p className="text-xs text-neutral-5">{dict.helperSuggestion}</p>
-              <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto">
+              <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
                 {suggestions.length === 0 ? (
                   <span className="text-xs text-neutral-5">Không có gợi ý phù hợp</span>
                 ) : (
@@ -319,11 +328,11 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
                     <button
                       key={item._id}
                       onClick={() => handleSelectProduct(item)}
-                      className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap ${
+                      className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors ${
                         secondaryProduct?._id === item._id
-                          ? "border-primary-6 bg-primary-6/10 text-primary-8"
-                          : "border-border-2 text-neutral-7 hover:border-primary-4"
-                      } transition-colors`}
+                          ? "border-primary-6 bg-primary-6/10 text-primary-8 shadow-xs"
+                          : "border-border-2 text-neutral-7 hover:border-primary-4 hover:bg-primary-1/60"
+                      }`}
                     >
                       {item.name}
                     </button>
@@ -342,7 +351,7 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
               icon={isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               disabled={!canCompare}
               onClick={handleCompare}
-              className="w-full justify-center h-full lg:h-auto"
+              className="w-full justify-center h-full lg:h-auto shadow"
             >
               {isLoading ? dict.buttonLoading : isStale && comparison ? dict.buttonRefresh : dict.buttonIdle}
             </Button>
@@ -367,7 +376,7 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
       {comparison?.summary && (
         <div className="mt-6 space-y-4">
           {/* AI Summary - Compact */}
-          <div className="bg-gradient-to-br from-primary-10/60 via-primary-9/30 to-background-1 border border-primary-6/20 rounded-2xl p-4">
+          <div className="bg-gradient-to-br from-primary-10/50 via-primary-9/20 to-background-1 border border-primary-6/25 rounded-2xl p-4 shadow-sm">
             <p className="text-xs font-semibold text-primary-8 uppercase tracking-wide mb-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
               {dict.sectionSummaryTitle}
@@ -412,12 +421,12 @@ const CompareAiPanel: React.FC<CompareAiPanelProps> = ({ primaryProduct, related
 
             {comparison.tips && comparison.tips.length > 0 && (
               <div className="p-4 border border-dashed border-primary-6/40 rounded-2xl bg-primary-10/10 space-y-2">
-                <p className="text-xs font-semibold text-primary-7 uppercase tracking-wide">
+                <p className="text-xs text-start font-semibold text-primary-7 uppercase tracking-wide">
                   {dict.sectionTipsTitle}
                 </p>
                 <ul className="list-disc pl-4 text-xs text-neutral-8 space-y-1">
                   {comparison.tips.map((tip, index) => (
-                    <li key={index}>{tip}</li>
+                    <li key={index} className="text-start">{tip}</li>
                   ))}
                 </ul>
               </div>

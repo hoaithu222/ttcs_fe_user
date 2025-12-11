@@ -5,7 +5,7 @@ import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import Image from "@/foundation/components/icons/Image";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import type { Category as BaseCategory } from "@/core/api/categories/type";
 
 // Extend base Category to reflect actual backend payload used by Home
@@ -93,7 +93,7 @@ const ListCategory: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Section className="py-6">
+      <Section className="py-8">
         <SectionTitle className="text-center mb-4 text-2xl font-bold text-primary-6">
           Danh mục sản phẩm
         </SectionTitle>
@@ -106,13 +106,28 @@ const ListCategory: React.FC = () => {
     return null;
   }
 
-
   return (
-    <Section className="py-6">
-      <SectionTitle className="text-center mb-2 text-2xl font-bold text-primary-6">
-        Danh mục sản phẩm
-      </SectionTitle>
-    
+    <Section className="py-8">
+      <div className="flex flex-col items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-primary-1 via-primary-2 to-primary-1 border border-primary-2/60 shadow-md backdrop-blur">
+          <Sparkles
+            className="w-5 h-5 text-warning fill-warning animate-bounce"
+            style={{ animationDuration: "3s" }}
+          />
+          <div className="flex flex-col items-center gap-1">
+            <SectionTitle className="text-2xl md:text-3xl font-bold text-neutral-9">
+              Khám phá danh mục
+            </SectionTitle>
+           
+          </div>
+          <Sparkles
+            className="w-5 h-5 text-warning fill-warning animate-bounce"
+            style={{ animationDuration: "3s", animationDelay: "1.5s" }}
+          />
+        </div>
+        <div className="h-0.5 w-20 rounded-full bg-gradient-to-r from-transparent via-primary-5 to-transparent" />
+      </div>
+
       <p className="sr-only" aria-live="polite">
         Trang {page} hiển thị danh mục {displayFrom}-{displayTo} trên tổng{" "}
         {total || categories.length}
@@ -124,12 +139,12 @@ const ListCategory: React.FC = () => {
               key={category._id}
               onClick={() => navigate(`/categories/${category._id}`)}
               className={clsx(
-                "flex flex-col gap-2 items-center p-4 rounded-lg",
-                "cursor-pointer bg-background-3 hover:bg-background-2",
-                "transition-all duration-200 hover:shadow-md"
+                "flex flex-col gap-2 items-center p-4 rounded-xl border border-border-1 bg-background-1",
+                "cursor-pointer transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5",
+                "hover:border-primary-4/70"
               )}
             >
-              <div className="flex overflow-hidden justify-center items-center w-16 h-16 rounded-full bg-neutral-2">
+              <div className="flex overflow-hidden justify-center items-center w-16 h-16 rounded-full bg-primary-1 ring-1 ring-border-2">
                 {category.image ? (
                   <Image
                     src={category.image_Icon?.url || ""}
@@ -143,7 +158,7 @@ const ListCategory: React.FC = () => {
                   </div>
                 )}
               </div>
-              <span className="text-xs font-medium text-center text-neutral-8 line-clamp-2">
+              <span className="text-xs font-semibold text-center text-neutral-9 line-clamp-2">
                 {category.name}
               </span>
             </div>
@@ -155,10 +170,10 @@ const ListCategory: React.FC = () => {
             onClick={handlePrev}
             disabled={disablePrev}
             className={clsx(
-              "pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-neutral-9/90 text-white shadow-lg transition-all",
+              "pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-border-2 bg-background-1/90 text-neutral-8 shadow-md transition-all backdrop-blur-sm",
               disablePrev
-                ? "cursor-not-allowed opacity-30"
-                : "hover:-translate-x-1 hover:border-primary-5 hover:text-primary-5"
+                ? "cursor-not-allowed opacity-40"
+                : "hover:-translate-x-1 hover:border-primary-5 hover:text-primary-6"
             )}
             aria-label="Trang trước"
           >
@@ -169,10 +184,10 @@ const ListCategory: React.FC = () => {
             onClick={handleNext}
             disabled={disableNext}
             className={clsx(
-              "pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-neutral-9/90 text-white shadow-lg transition-all",
+              "pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-border-2 bg-background-1/90 text-neutral-8 shadow-md transition-all backdrop-blur-sm",
               disableNext
-                ? "cursor-not-allowed opacity-30"
-                : "hover:translate-x-1 hover:border-primary-5 hover:text-primary-5"
+                ? "cursor-not-allowed opacity-40"
+                : "hover:translate-x-1 hover:border-primary-5 hover:text-primary-6"
             )}
             aria-label="Trang tiếp theo"
           >

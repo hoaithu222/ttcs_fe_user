@@ -31,7 +31,7 @@
     "background-3": "#EBEEF3",
     "background-input": "#FFFFFF",
     "background-nav": "#FFFFFF",
-    "background-dialog": "#FFFFFF",
+    "background-dialog": "#F9FBFF",
 
     "header": "#FFFFFF",
     "footer": "#F8F8F8",
@@ -40,7 +40,7 @@
     "border-1": "#E5E5E5",
     "border-2": "#D1D5DB",
 
-    "overlay": "rgba(0,0,0,0.4)",
+    "overlay": "rgba(0,0,0,0.6)",
     "success": "#00AB56",
     "error": "#FF424E",
     "warning": "#E4B343",
@@ -76,8 +76,8 @@
     
 
     "modal-bg": "#FFFFFF",
-    "modal-shadow": "0px 10px 30px rgba(0, 0, 0, 0.1)",
-    "modal-overlay": "rgba(0, 0, 0, 0.5)",
+    "modal-shadow": "0px 22px 64px rgba(15, 52, 96, 0.18)",
+    "modal-overlay": "rgba(15, 52, 96, 0.5)",
 
 
     "input-bg": "#FFFFFF",
@@ -157,7 +157,7 @@
     "background-4": "#3F444E",
     "background-input": "#1E232B",
     "background-nav": "#121418",
-    "background-dialog": "#1A1E24",
+    "background-dialog": "#232A36",
 
     "header": "#1A1E24",
     "footer": "#121418",
@@ -200,9 +200,9 @@
 
     
 
-    "modal-bg": "#1A1E24",
-    "modal-shadow": "0px 10px 30px rgba(0, 0, 0, 0.5)",
-    "modal-overlay": "rgba(0, 0, 0, 0.8)",
+    "modal-bg": "#232A36",
+    "modal-shadow": "0px 18px 48px rgba(0, 0, 0, 0.55)",
+    "modal-overlay": "rgba(0, 0, 0, 0.7)",
 
 
     "input-bg": "#1E232B",

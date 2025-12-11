@@ -148,7 +148,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
   console.log("product.variants",product.variants)
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-2">
       {/* Image Gallery */}
       <div className="space-y-4">
         {/* Main Image */}
@@ -251,7 +251,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
       <div className="space-y-6">
         {/* Product Name */}
         <div className="flex items-start flex-col justify-start gap-2">
-          <h1 className="text-3xl font-bold text-neutral-9 mb-2">{product.name}</h1>
+          <h1 className="text-2xl text-start font-bold text-neutral-9 ">{product.name}</h1>
          
         </div>
 
@@ -277,7 +277,8 @@ const DetailProduct: React.FC<DetailProductProps> = ({
         )}
 
         {/* Price */}
-        <div className="p-4 bg-primary-10/30 rounded-lg border border-primary-6/20">
+        <div className="p-4  rounded-lg border border-primary-2">
+        <p className="text-sm  text-start mb-2 text-neutral-9 font-medium">Giá sản phẩm</p>
           <div className="flex gap-3 items-baseline">
             <span className="text-3xl font-bold text-primary-6">{formatPriceVND(finalPrice)}</span>
             {hasDiscount && (
@@ -346,7 +347,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
 
             {/* Display selected variant info */}
             {localSelectedVariant && (
-              <div className="p-3 bg-primary-10/30 rounded-lg border border-primary-6/20">
+              <div className="p-3 bg-background-2 rounded-lg border border-border-1">
                 <div className="flex gap-2 items-center text-sm">
                   <span className="font-medium text-neutral-9">Đã chọn:</span>
                   <span className="text-neutral-7">
@@ -479,7 +480,7 @@ const DetailProduct: React.FC<DetailProductProps> = ({
         </div>
 
         {/* Features */}
-        <div className="grid grid-cols-1 gap-3 pt-4 border-t border-border-1">
+        <div className="grid grid-cols-1 gap-3 pt-4 bg-background-2 rounded-lg p-4">
           <div className="flex gap-3 items-center text-sm">
             <Truck className="w-5 h-5 text-primary-6" />
             <span className="text-neutral-7">Miễn phí vận chuyển cho đơn hàng trên 500k</span>

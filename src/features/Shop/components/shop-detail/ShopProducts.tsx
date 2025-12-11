@@ -126,10 +126,15 @@ const ShopProducts: React.FC<ShopProductsProps> = ({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-background-1 border border-border-1 rounded-2xl p-5 shadow-sm">
       {/* Section Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-neutral-9">Sản phẩm của cửa hàng</h2>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex flex-col">
+          <h2 className="text-2xl font-bold text-neutral-9">Sản phẩm của cửa hàng</h2>
+          <p className="text-sm text-neutral-6 text-nowrap text-start">
+            {products.length > 0 ? `${products.length} sản phẩm đang hiển thị` : "Đang cập nhật sản phẩm"}
+          </p>
+        </div>
         <Button
           color="gray"
           variant="ghost"
@@ -149,7 +154,7 @@ const ShopProducts: React.FC<ShopProductsProps> = ({
             key={tab.id}
             onClick={() => onTabChange?.(tab.id)}
             className={clsx(
-              "px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2",
+              "px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 rounded-t-md",
               activeTab === tab.id
                 ? "border-primary-6 text-primary-6"
                 : "border-transparent text-neutral-6 hover:text-neutral-9"
