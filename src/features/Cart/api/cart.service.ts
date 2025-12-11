@@ -125,9 +125,11 @@ export class CartService {
     if (!cartData) return cartData;
 
     const cartItems = cartData.cartItems || cartData.items || [];
-    const mappedItems = cartItems.map((item: any) => {
+    const mappedItems = cartItems
+      .filter((item: any) => item && item._id) // Filter out null/undefined items
+      .map((item: any) => {
       const product = typeof item.productId === "object" && item.productId !== null ? item.productId : null;
-      const shop = typeof item.shopId === "object" ? item.shopId : null;
+      const shop = typeof item.shopId === "object" && item.shopId !== null ? item.shopId : null;
       const variantSnapshot = item.variantSnapshot || null;
 
       const productIdValue =
@@ -175,6 +177,16 @@ export class CartService {
           }
         : undefined;
 
+      // Safely get shopId
+      let shopIdValue: string | null = null;
+      if (item.shopId) {
+        if (typeof item.shopId === "string") {
+          shopIdValue = item.shopId;
+        } else if (typeof item.shopId === "object" && item.shopId._id) {
+          shopIdValue = item.shopId._id;
+        }
+      }
+
       return {
         _id: item._id,
         cartId: item.cartId || cartData._id,
@@ -182,7 +194,7 @@ export class CartService {
         variantId: variantIdValue,
         quantity: item.quantity,
         priceAtTime: item.priceAtTime ?? basePrice,
-        shopId: typeof item.shopId === "string" ? item.shopId : item.shopId._id,
+        shopId: shopIdValue || "",
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         // Computed fields
@@ -200,7 +212,11 @@ export class CartService {
 
     // Calculate totals
     const subtotal = mappedItems.reduce((sum: number, item: CartItem) => sum + (item.totalPrice || 0), 0);
-    const uniqueShops = new Set(mappedItems.map((item: CartItem) => item.shopId));
+    const uniqueShops = new Set(
+      mappedItems
+        .map((item: CartItem) => item.shopId)
+        .filter((shopId): shopId is string => Boolean(shopId))
+    );
     const shopCount = uniqueShops.size;
     const itemCount = mappedItems.reduce((sum: number, item: CartItem) => sum + item.quantity, 0);
 
