@@ -162,6 +162,11 @@ const ProductDetailPage: React.FC = () => {
         ? product.shopId
         : (product.shopId as any)?._id || product.shop?._id || "";
 
+    // Get product image (use variant image if available, otherwise first product image)
+    const productImage = selectedVariant?.images?.[0] 
+      || product.images?.[0]?.url 
+      || (product.images?.[0] ? `https://res.cloudinary.com/dor0kslle/image/upload/${product.images[0]}` : "");
+
     // Navigate to checkout with buy now data (single product, not from cart)
     navigate("/checkout", {
       state: {
@@ -172,6 +177,9 @@ const ProductDetailPage: React.FC = () => {
           quantity,
           price: finalPrice,
           shopId: productShopId,
+          productName: product.name,
+          productImage: productImage,
+          shopName: typeof product.shop === "object" ? product.shop?.name : "",
         },
       },
     });

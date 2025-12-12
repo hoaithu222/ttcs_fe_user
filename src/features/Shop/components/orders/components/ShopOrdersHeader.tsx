@@ -13,8 +13,8 @@ const ShopOrdersHeader = ({ totalOrders, pendingOrders }: ShopOrdersHeaderProps)
         <Package className="h-6 w-6 text-info" />
       </IconCircleWrapper>
       <div className="flex-1 min-w-[220px]">
-        <h1 className="text-xl font-semibold text-neutral-9">Quản lý đơn hàng</h1>
-        <p className="text-sm text-neutral-6">Theo dõi và xử lý quy trình fulfillment cho shop</p>
+        <h1 className="text-xl text-start font-semibold text-neutral-9">Quản lý đơn hàng</h1>
+        <p className="text-sm text-start text-neutral-6">Theo dõi và xử lý quy trình đơn hàng cho shop</p>
         <div className="mt-3 flex flex-wrap gap-4 text-sm text-neutral-6">
           <span>
             Tổng đơn: <span className="font-semibold text-neutral-9">{totalOrders}</span>

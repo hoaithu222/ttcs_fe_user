@@ -79,9 +79,9 @@ const CartItem: React.FC<CartItemProps> = ({
 
   return (
     <div
-      className={`flex flex-col sm:flex-row items-start gap-3 p-3 sm:p-4 transition-colors rounded-xl border ${
+      className={`flex flex-col sm:flex-row mb-2 items-start gap-3 p-3 sm:p-4 transition-colors rounded-xl  ${
         isSelected
-          ? "bg-primary-1/40 border-primary-3/60 hover:bg-primary-1/70"
+          ? "bg-primary-1/40  hover:bg-primary-1/70"
           : "bg-transparent border-transparent hover:bg-background-3"
       }`}
     >

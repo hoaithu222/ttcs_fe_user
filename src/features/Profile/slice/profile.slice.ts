@@ -289,7 +289,8 @@ const { slice: profileSlice, reducer: profileReducer } = createResettableSlice({
     },
     createAddressSuccess: (state, action: PayloadAction<Address>) => {
       state.address.createAddress.status = ReduxStateType.SUCCESS;
-      state.address.data.unshift(action.payload);
+      // Không thêm địa chỉ vào state ở đây vì đã được reload từ fetchAddressesSuccess rồi
+      // Chỉ đánh dấu status thành công
       state.address.createAddress.error = null;
       state.address.createAddress.message = null;
     },
@@ -310,9 +311,26 @@ const { slice: profileSlice, reducer: profileReducer } = createResettableSlice({
     },
     updateAddressSuccess: (state, action: PayloadAction<Address>) => {
       state.address.updateAddress.status = ReduxStateType.SUCCESS;
-      state.address.data = state.address.data.map((addr) =>
-        addr._id === action.payload._id ? action.payload : addr
-      );
+      // Nếu địa chỉ được update là mặc định, hủy mặc định của các địa chỉ khác
+      if (action.payload.isDefault) {
+        state.address.defaultAddress = action.payload;
+        state.address.data = state.address.data.map((addr) => {
+          if (addr._id === action.payload._id) {
+            return action.payload;
+          }
+          return { ...addr, isDefault: false };
+        });
+      } else {
+        // Nếu địa chỉ được update không phải mặc định, chỉ cập nhật địa chỉ đó
+        state.address.data = state.address.data.map((addr) =>
+          addr._id === action.payload._id ? action.payload : addr
+        );
+        // Nếu địa chỉ được update là defaultAddress hiện tại và không còn là mặc định, tìm địa chỉ mặc định khác
+        if (state.address.defaultAddress?._id === action.payload._id) {
+          const newDefault = state.address.data.find((addr) => addr.isDefault);
+          state.address.defaultAddress = newDefault || null;
+        }
+      }
       state.address.updateAddress.error = null;
       state.address.updateAddress.message = null;
     },

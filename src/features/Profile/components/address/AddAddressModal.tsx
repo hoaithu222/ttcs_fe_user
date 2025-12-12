@@ -21,7 +21,7 @@ interface AddAddressModalProps {
 const DEFAULT_MAP_CENTER: MapCoordinates = [20.9706, 105.7968];
 
 const AddAddressModal = ({ onClose }: AddAddressModalProps) => {
-  const { createAddress } = useProfileAddresses();
+  const { createAddress, addresses } = useProfileAddresses();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [name, setName] = useState("");
@@ -31,7 +31,10 @@ const AddAddressModal = ({ onClose }: AddAddressModalProps) => {
   const [wardCode, setWardCode] = useState<number | "">("");
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
-  const [isDefault, setIsDefault] = useState(false);
+  // Tự động tick mặc định nếu đây là địa chỉ đầu tiên
+  const [isDefault, setIsDefault] = useState(() => {
+    return !addresses || addresses.length === 0;
+  });
   const [mapPosition, setMapPosition] = useState<MapCoordinates | null>(null);
 
   const provinces = addressData as AddressProvince[];
@@ -54,6 +57,13 @@ const AddAddressModal = ({ onClose }: AddAddressModalProps) => {
   useEffect(() => {
     setWardCode("");
   }, [districtCode]);
+
+  // Tự động tick mặc định nếu không có địa chỉ nào
+  useEffect(() => {
+    if (!addresses || addresses.length === 0) {
+      setIsDefault(true);
+    }
+  }, [addresses]);
 
   const handleClose = () => {
     if (isSubmitting) return;

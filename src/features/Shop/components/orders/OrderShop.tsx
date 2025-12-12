@@ -29,13 +29,13 @@ import ShopOrdersTabs from "./components/ShopOrdersTabs";
 import ShopOrderCard from "./components/ShopOrderCard";
 import { shopManagementApi } from "@/core/api/shop-management";
 
-// Định nghĩa các tab và trạng thái
+// Định nghĩa các tab và trạng thái - giống với user
 const ORDER_TABS = [
   { value: "all", label: "Tất cả", icon: ShoppingCart },
-  { value: "pending", label: "Chờ xử lý", icon: Clock },
+  { value: "pending", label: "Chờ xác nhận", icon: Clock },
   { value: "processing", label: "Đang xử lý", icon: Package },
-  { value: "shipped", label: "Đã giao hàng", icon: Truck },
-  { value: "delivered", label: "Đã nhận hàng", icon: CheckCircle },
+  { value: "shipped", label: "Đang vận chuyển", icon: Truck },
+  { value: "delivered", label: "Đã giao", icon: CheckCircle },
   { value: "cancelled", label: "Đã hủy", icon: XCircle },
 ] as const;
 
@@ -167,15 +167,16 @@ const OrderShop: React.FC = () => {
     );
   }, [dispatch, currentPage, activeTab]);
 
+  // Cập nhật statusTotals từ pagination.total khi load thành công
+  // Chỉ cập nhật tab hiện tại để không làm mất số của các tab khác
   useEffect(() => {
     if (ordersStatus === ReduxStateType.SUCCESS && pagination?.total !== undefined) {
       setStatusTotals((prev) => ({
         ...prev,
         [activeTab]: pagination.total,
-        ...(activeTab === "all" ? { all: pagination.total } : {}),
       }));
     }
-  }, [ordersStatus, pagination, activeTab]);
+  }, [ordersStatus, pagination?.total, activeTab]);
 
   const dispatchStatusUpdate = useCallback(
     (orderId: string, data: { orderStatus: string; trackingNumber?: string; notes?: string }) => {
@@ -348,7 +349,7 @@ const OrderShop: React.FC = () => {
             />
             Chọn tất cả ({selectedOrderIds.length} đơn)
           </label>
-          <div className="flex flex-wrap gap-2">
+          {/* <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -365,7 +366,7 @@ const OrderShop: React.FC = () => {
             >
               In vận đơn
             </Button>
-          </div>
+          </div> */}
         </div>
 
         {isLoading && !updatingOrderId ? (

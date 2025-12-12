@@ -84,8 +84,8 @@ const Button = ({
   const colorVariants = {
     blue: {
       solid: "bg-primary-6 text-button-text hover:bg-primary-7 focus:ring-primary-6",
-      outline: "border-2 border-primary-6 text-primary-6 hover:bg-primary-10 focus:ring-primary-6",
-      ghost: "text-primary-6 hover:bg-primary-10 focus:ring-primary-6",
+      outline: "border-2 border-primary-6 text-primary-6 hover:bg-transparent focus:ring-primary-6",
+      ghost: "text-primary-8 hover:bg-primary-1 focus:ring-primary-6",
     },
     red: {
       solid: "bg-error text-button-text hover:bg-error/90 focus:ring-error",

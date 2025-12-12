@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Minus, Send, X, Image as ImageIcon, Smile } from "lucide-react";
+import { Minus, Send, X, Image as ImageIcon, Smile, Package } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
 import { useAppDispatch, useAppSelector } from "@/app/store";
 import {
@@ -38,6 +38,7 @@ interface ShopChatModalProps {
   productName?: string;
   productImage?: string;
   productPrice?: number;
+  orderId?: string;
 }
 
 const ShopChatModal: React.FC<ShopChatModalProps> = ({
@@ -50,6 +51,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
   productName,
   productImage,
   productPrice,
+  orderId,
 }) => {
   const dispatch = useAppDispatch();
   const currentConversation = useAppSelector(selectCurrentConversation);
@@ -147,6 +149,11 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
         shopId,
         shopName,
       };
+      
+      // Thêm orderId vào metadata nếu có
+      if (orderId) {
+        metadata.orderId = orderId;
+      }
 
       dispatch(
         createConversationStart({
@@ -160,7 +167,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
 
       hasCreatedConversationRef.current = true;
     }
-  }, [isOpen, shopId, shopName, productId, productName, productImage, productPrice, currentConversation, conversations, dispatch]);
+  }, [isOpen, shopId, shopName, productId, productName, productImage, productPrice, orderId, currentConversation, conversations, dispatch]);
 
   // Load messages and join socket room when current conversation is set for this shop
   useEffect(() => {
@@ -567,6 +574,59 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
     }, 0);
   };
 
+  const handleSendOrderInfo = () => {
+    if (!currentConversation || !orderId) return;
+
+    const channel = (currentConversation.channel as "admin" | "shop" | "ai") || "shop";
+    let socketClient;
+
+    switch (channel) {
+      case "admin":
+        socketClient = socketClients.adminChat;
+        break;
+      case "shop":
+        socketClient = socketClients.shopChat;
+        break;
+      case "ai":
+        socketClient = socketClients.aiChat;
+        break;
+      default:
+        socketClient = socketClients.shopChat;
+    }
+
+    if (!socketClient) {
+      console.error("Socket client not available");
+      return;
+    }
+
+    const socket = socketClient.connect();
+    if (!socket || !socket.connected) {
+      console.error("Socket not connected");
+      return;
+    }
+
+    // Gửi thông tin đơn hàng với metadata
+    socket.emit(SOCKET_EVENTS.CHAT_MESSAGE_SEND, {
+      conversationId: currentConversation._id,
+      message: `Tôi muốn tra cứu thông tin đơn hàng #${orderId.slice(-6)}`,
+      type: "text",
+      conversationType: "shop",
+      targetId: shopId,
+      metadata: {
+        orderId,
+        shopId,
+        shopName,
+      },
+    });
+
+    // Scroll to bottom
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
+  };
+
   if (!isOpen) return null;
 
   const isConnected = true; // TODO: Get from socket status
@@ -762,6 +822,22 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
                   </div>
                 </div>
               )}
+              {/* Order info button - chỉ hiển thị khi có orderId */}
+              {orderId && currentConversation && (
+                <div className="mb-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSendOrderInfo}
+                    disabled={!currentConversation || status === "LOADING"}
+                    className="w-full justify-start"
+                    icon={<Package className="w-4 h-4" />}
+                  >
+                    Gửi thông tin đơn hàng
+                  </Button>
+                </div>
+              )}
               <div className="flex items-end gap-2">
                 <input
                   ref={fileInputRef}
@@ -830,7 +906,7 @@ const ShopChatModal: React.FC<ShopChatModalProps> = ({
                   size="md"
                   rounded="full"
                   icon={<Send className="w-4 h-4" />}
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 text-neutral-1"
                 >
                   Gửi
                 </Button>

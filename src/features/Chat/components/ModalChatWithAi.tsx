@@ -637,7 +637,7 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                   icon={ <Send className="w-4 h-4 text-white" />}
                   className="flex-shrink-0"
                 >
-                  <span className="text-sm text-neutral-6">Gửi</span>
+                  <span className="text-neutral-1">Gửi</span>
                 </Button>
               </div>
             </Form.Root>

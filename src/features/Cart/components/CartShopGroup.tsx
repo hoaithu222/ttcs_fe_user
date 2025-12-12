@@ -123,7 +123,7 @@ const CartShopGroup: React.FC<CartShopGroupProps> = ({
       {/* Shop Items */}
       <div className="divide-y divide-border-1">
         {items.map((item) => (
-          <div key={item._id} className="bg-background-2">
+          <div key={item._id} className="bg-background-2 space-y-2">
             <CartItem
               item={item}
               onQuantityChange={onQuantityChange}

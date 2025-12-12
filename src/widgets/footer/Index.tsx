@@ -5,27 +5,27 @@ const Index = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative border-t border-divider-1 bg-footer overflow-x-hidden">
+    <footer className="relative border-t border-border-1 bg-background-2 overflow-x-hidden">
       {/* Decorative gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary-10/5 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background-1 via-background-2 to-background-1 pointer-events-none opacity-50" />
 
       {/* Main Footer Content */}
-      <div className="relative px-6 py-12 md:py-16">
+      <div className="relative px-6 py-12 md:py-16 lg:py-20">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {/* Company Info */}
-            <div className="space-y-5 animate-fade-in">
-              <div className="transform transition-transform w-32 h-32 rounded-lg overflow-hidden relative duration-300 hover:scale-105">
+            <div className="space-y-6 animate-fade-in">
+              <div className="transform transition-transform w-32 h-32 rounded-xl overflow-hidden relative duration-300 hover:scale-105 shadow-lg hover:shadow-xl">
                 <Image name="logo" alt="Logo" className="w-full h-full object-cover" />
               </div>
-              <p className="text-sm leading-relaxed text-neutral-6 max-w-xs">
+              <p className="text-sm leading-relaxed text-neutral-7 max-w-xs">
                 Cửa hàng điện tử hiện đại với hàng ngàn sản phẩm chất lượng cao. Cam kết giao hàng
                 nhanh, giá tốt nhất thị trường.
               </p>
               <div className="flex space-x-3 pt-2">
                 <a
                   href="#"
-                  className="group relative w-10 h-10 flex items-center justify-center rounded-full bg-neutral-2 hover:bg-primary-8 text-neutral-6 hover:text-neutral-0 transition-all duration-300 transform hover:scale-110 hover:rotate-3 hover:shadow-lg"
+                  className="group relative w-11 h-11 flex items-center justify-center rounded-xl bg-background-1 border border-border-1 hover:bg-primary-6 text-neutral-6 hover:text-white transition-all duration-300 transform hover:scale-110 hover:rotate-3 hover:shadow-lg hover:shadow-primary-6/30"
                   aria-label="Facebook"
                 >
                   <svg
@@ -38,7 +38,7 @@ const Index = () => {
                 </a>
                 <a
                   href="#"
-                  className="group relative w-10 h-10 flex items-center justify-center rounded-full bg-neutral-2 hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-600 text-neutral-6 hover:text-neutral-0 transition-all duration-300 transform hover:scale-110 hover:rotate-3 hover:shadow-lg"
+                  className="group relative w-11 h-11 flex items-center justify-center rounded-xl bg-background-1 border border-border-1 hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-600 text-neutral-6 hover:text-white transition-all duration-300 transform hover:scale-110 hover:rotate-3 hover:shadow-lg hover:shadow-pink-500/30"
                   aria-label="Instagram"
                 >
                   <svg
@@ -51,7 +51,7 @@ const Index = () => {
                 </a>
                 <a
                   href="#"
-                  className="group relative w-10 h-10 flex items-center justify-center rounded-full bg-neutral-2 hover:bg-primary-8 text-neutral-6 hover:text-neutral-0 transition-all duration-300 transform hover:scale-110 hover:rotate-3 hover:shadow-lg"
+                  className="group relative w-11 h-11 flex items-center justify-center rounded-xl bg-background-1 border border-border-1 hover:bg-primary-6 text-neutral-6 hover:text-white transition-all duration-300 transform hover:scale-110 hover:rotate-3 hover:shadow-lg hover:shadow-primary-6/30"
                   aria-label="Twitter"
                 >
                   <svg
@@ -64,7 +64,7 @@ const Index = () => {
                 </a>
                 <a
                   href="#"
-                  className="group relative w-10 h-10 flex items-center justify-center rounded-full bg-neutral-2 hover:bg-red-600 text-neutral-6 hover:text-neutral-0 transition-all duration-300 transform hover:scale-110 hover:rotate-3 hover:shadow-lg"
+                  className="group relative w-11 h-11 flex items-center justify-center rounded-xl bg-background-1 border border-border-1 hover:bg-red-600 text-neutral-6 hover:text-white transition-all duration-300 transform hover:scale-110 hover:rotate-3 hover:shadow-lg hover:shadow-red-600/30"
                   aria-label="YouTube"
                 >
                   <svg
@@ -80,11 +80,11 @@ const Index = () => {
 
             {/* Về Chúng Tôi */}
             <div className="animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              <h3 className="font-semibold text-neutral-9 mb-5 text-base relative inline-block">
+              <h3 className="font-bold text-neutral-9 mb-2 text-lg relative inline-block">
                 Về Chúng Tôi
-                <span className="absolute bottom-0 left-0 w-12 h-0.5 bg-gradient-to-r from-primary-8 to-primary-6 rounded-full" />
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary-6 via-primary-5 to-primary-6 rounded-full" />
               </h3>
-              <ul className="space-y-3 mt-6">
+              <ul className="space-y-3.5 mt-6">
                 {[
                   "Giới thiệu",
                   "Tuyển dụng",
@@ -95,10 +95,13 @@ const Index = () => {
                   <li key={index}>
                     <a
                       href="#"
-                      className="group relative text-sm text-neutral-6 hover:text-link transition-colors duration-300 inline-block"
+                      className="group relative text-sm text-neutral-7 hover:text-primary-6 transition-colors duration-300 inline-block font-medium"
                     >
-                      <span className="relative z-10">{item}</span>
-                      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-link-hover transition-all duration-300 group-hover:w-full" />
+                      <span className="relative z-10 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        {item}
+                      </span>
+                      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-6 transition-all duration-300 group-hover:w-full rounded-full" />
                     </a>
                   </li>
                 ))}
@@ -107,11 +110,11 @@ const Index = () => {
 
             {/* Hỗ Trợ Khách Hàng */}
             <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              <h3 className="font-semibold text-neutral-9 mb-5 text-base relative inline-block">
+              <h3 className="font-bold text-neutral-9 mb-2 text-lg relative inline-block">
                 Hỗ Trợ Khách Hàng
-                <span className="absolute bottom-0 left-0 w-12 h-0.5 bg-gradient-to-r from-primary-8 to-primary-6 rounded-full" />
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary-6 via-primary-5 to-primary-6 rounded-full" />
               </h3>
-              <ul className="space-y-3 mt-6">
+              <ul className="space-y-3.5 mt-6">
                 {[
                   "Trung tâm trợ giúp",
                   "Hướng dẫn mua hàng",
@@ -122,10 +125,13 @@ const Index = () => {
                   <li key={index}>
                     <a
                       href="#"
-                      className="group relative text-sm text-neutral-6 hover:text-link transition-colors duration-300 inline-block"
+                      className="group relative text-sm text-neutral-7 hover:text-primary-6 transition-colors duration-300 inline-block font-medium"
                     >
-                      <span className="relative z-10">{item}</span>
-                      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-link-hover transition-all duration-300 group-hover:w-full" />
+                      <span className="relative z-10 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        {item}
+                      </span>
+                      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-6 transition-all duration-300 group-hover:w-full rounded-full" />
                     </a>
                   </li>
                 ))}
@@ -134,13 +140,13 @@ const Index = () => {
 
             {/* Liên Hệ */}
             <div className="animate-fade-in" style={{ animationDelay: "0.3s" }}>
-              <h3 className="font-semibold text-neutral-9 mb-5 text-base relative inline-block">
+              <h3 className="font-bold text-neutral-9 mb-2 text-lg relative inline-block">
                 Liên Hệ
-                <span className="absolute bottom-0 left-0 w-12 h-0.5 bg-gradient-to-r from-primary-8 to-primary-6 rounded-full" />
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary-6 via-primary-5 to-primary-6 rounded-full" />
               </h3>
               <ul className="space-y-4 mt-6">
                 <li className="flex items-start space-x-3 group">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-10 flex items-center justify-center text-primary-8 transition-all duration-300 group-hover:bg-primary-8 group-hover:text-neutral-0 group-hover:scale-110 group-hover:rotate-3">
+                  <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary-1 border border-primary-3 flex items-center justify-center text-primary-6 transition-all duration-300 group-hover:bg-primary-6 group-hover:text-white group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-primary-6/30">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
@@ -156,12 +162,12 @@ const Index = () => {
                       />
                     </svg>
                   </div>
-                  <span className="text-sm text-neutral-6 group-hover:text-link transition-colors duration-300 flex-1">
+                  <span className="text-sm text-neutral-7 group-hover:text-primary-6 transition-colors duration-300 flex-1 font-medium">
                     Học Viện Kỹ Thuật Mật Mã, Hà Nội
                   </span>
                 </li>
                 <li className="flex items-center space-x-3 group">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-10 flex items-center justify-center text-primary-8 transition-all duration-300 group-hover:bg-primary-8 group-hover:text-neutral-0 group-hover:scale-110 group-hover:rotate-3">
+                  <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary-1 border border-primary-3 flex items-center justify-center text-primary-6 transition-all duration-300 group-hover:bg-primary-6 group-hover:text-white group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-primary-6/30">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
@@ -173,13 +179,13 @@ const Index = () => {
                   </div>
                   <a
                     href="tel:1900xxxx"
-                    className="text-sm text-neutral-6 hover:text-link transition-colors duration-300"
+                    className="text-sm text-neutral-7 hover:text-primary-6 transition-colors duration-300 font-medium"
                   >
                     1900 xxxx
                   </a>
                 </li>
                 <li className="flex items-center space-x-3 group">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-10 flex items-center justify-center text-primary-8 transition-all duration-300 group-hover:bg-primary-8 group-hover:text-neutral-0 group-hover:scale-110 group-hover:rotate-3">
+                  <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary-1 border border-primary-3 flex items-center justify-center text-primary-6 transition-all duration-300 group-hover:bg-primary-6 group-hover:text-white group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-primary-6/30">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
@@ -191,13 +197,13 @@ const Index = () => {
                   </div>
                   <a
                     href="mailto:support@shop.com"
-                    className="text-sm text-neutral-6 hover:text-link transition-colors duration-300"
+                    className="text-sm text-neutral-7 hover:text-primary-6 transition-colors duration-300 font-medium"
                   >
                     support@shop.com
                   </a>
                 </li>
                 <li className="flex items-center space-x-3 group">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-10 flex items-center justify-center text-primary-8 transition-all duration-300 group-hover:bg-primary-8 group-hover:text-neutral-0 group-hover:scale-110 group-hover:rotate-3">
+                  <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary-1 border border-primary-3 flex items-center justify-center text-primary-6 transition-all duration-300 group-hover:bg-primary-6 group-hover:text-white group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-primary-6/30">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
@@ -207,7 +213,7 @@ const Index = () => {
                       />
                     </svg>
                   </div>
-                  <span className="text-sm text-neutral-6 group-hover:text-link transition-colors duration-300">
+                  <span className="text-sm text-neutral-7 group-hover:text-primary-6 transition-colors duration-300 font-medium">
                     8:00 - 22:00 hàng ngày
                   </span>
                 </li>
@@ -218,33 +224,32 @@ const Index = () => {
       </div>
 
       {/* Bottom Bar */}
-      <div className="relative border-t border-divider-1 bg-neutral-1">
-        <div className="px-6 py-5">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0">
-            <p className="text-sm text-neutral-6">
+      <div className="relative border-t border-border-1 bg-background-1">
+        <div className="px-6 py-6">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <p className="text-sm text-neutral-7">
               © {currentYear}{" "}
-              <span className="font-semibold text-primary-8">Cửa hàng Điện Tử</span>. All rights
+              <span className="font-bold text-primary-6">Cửa hàng Điện Tử</span>. All rights
               reserved.
             </p>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-neutral-6 hidden sm:inline">
+              <span className="text-sm text-neutral-7 font-medium hidden sm:inline">
                 Phương thức thanh toán:
               </span>
               <div className="flex space-x-2">
                 {[
-                  { label: "COD", desc: "Thanh toán khi nhận hàng" },
-                  { label: "Sepay", desc: "Chuyển khoản ngân hàng" },
-                  { label: "Ví", desc: "Thanh toán bằng ví" },
+                  { label: "COD", desc: "Thanh toán khi nhận hàng", color: "from-green-500 to-green-600" },
+                  { label: "Sepay", desc: "Chuyển khoản ngân hàng", color: "from-blue-500 to-blue-600" },
+                  { label: "Ví", desc: "Thanh toán bằng ví", color: "from-primary-6 to-primary-7" },
                 ].map((method, index) => (
                   <div
                     key={index}
-                    className="group relative px-3 h-7 bg-gradient-to-br from-neutral-2 to-neutral-3 hover:from-primary-8 hover:to-primary-6 rounded-md flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-110 hover:-translate-y-0.5 cursor-default"
+                    className="group relative px-4 h-8 bg-background-2 border border-border-1 hover:bg-gradient-to-br hover:from-primary-6 hover:to-primary-7 rounded-lg flex items-center justify-center shadow-sm hover:shadow-lg transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 cursor-default"
+                    title={method.desc}
                   >
-                    <div className="flex flex-col items-center">
-                    <span className="text-xs font-bold text-neutral-7 group-hover:text-neutral-0 transition-colors duration-300">
-                        {method.label}
+                    <span className="text-xs font-bold text-neutral-7 group-hover:text-white transition-colors duration-300">
+                      {method.label}
                     </span>
-                    </div>
                   </div>
                 ))}
               </div>

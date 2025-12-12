@@ -50,14 +50,14 @@ const AddressesPanel = () => {
                     {addr.district ? `, ${addr.district}` : ""}
                     {addr.city ? `, ${addr.city}` : ""}
                   </div>
-                  {defaultAddress?._id === addr._id && (
+                  {addr.isDefault && (
                     <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-primary-10 text-primary-6">
                       Mặc định
                     </span>
                   )}
                 </div>
                 <div className="flex gap-2 items-center">
-                  {defaultAddress?._id !== addr._id && (
+                  {!addr.isDefault && (
                     <Button size="sm" onClick={() => setDefaultAddress(addr._id)}>
                       Đặt mặc định
                     </Button>

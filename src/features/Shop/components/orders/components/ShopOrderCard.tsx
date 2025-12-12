@@ -14,10 +14,8 @@ import {
   Phone,
   CreditCard,
   Copy,
-  MessageCircle,
   NotebookPen,
   History,
-  Printer,
 } from "lucide-react";
 import { useAppDispatch } from "@/app/store";
 import { addToast } from "@/app/store/slices/toast";
@@ -49,12 +47,21 @@ interface ShopOrderCardProps {
   onPrintShipping?: () => void;
 }
 
+// Mapping phương thức thanh toán
+const paymentMethodMap: Record<string, string> = {
+  cod: "Thanh toán khi nhận hàng",
+  bank_transfer: "Chuyển khoản ngân hàng",
+  credit_card: "Thẻ tín dụng",
+  paypal: "PayPal",
+  wallet: "Ví điện tử",
+};
+
 const statusConfig: Record<
   string,
   { label: string; badgeClass: string; icon: ReactNode }
 > = {
   pending: {
-    label: "Chờ xử lý",
+    label: "Chờ xác nhận",
     badgeClass: "bg-warning/15 text-warning",
     icon: <Clock className="h-4 w-4" />,
   },
@@ -64,12 +71,12 @@ const statusConfig: Record<
     icon: <Package className="h-4 w-4" />,
   },
   shipped: {
-    label: "Đã giao hàng",
+    label: "Đang vận chuyển",
     badgeClass: "bg-blue-100 text-blue-600",
     icon: <Truck className="h-4 w-4" />,
   },
   delivered: {
-    label: "Đã nhận hàng",
+    label: "Đã giao",
     badgeClass: "bg-success/10 text-success",
     icon: <CheckCircle className="h-4 w-4" />,
   },
@@ -230,15 +237,22 @@ const ShopOrderCard = ({
 
   const statusLabelText = (value: string) => {
     const map: Record<string, string> = {
-      pending: "Chờ xử lý",
-      processing: "Đang xử lý",
-      shipped: "Đang giao",
-      delivered: "Đã giao",
+      pending: "Đang chờ xác nhận",
+      processing: "Đang chuẩn bị",
+      shipped: "Đang vận chuyển",
+      delivered: "Đã giao thành công",
       cancelled: "Đã hủy",
       confirmed: "Đã xác nhận",
     };
-    return map[value] || value;
+    return map[value?.toLowerCase()] || value;
   };
+
+  // Lấy phương thức thanh toán đã map
+  const paymentMethod = useMemo(() => {
+    if (!order?.paymentMethod) return "--";
+    const method = order.paymentMethod.toLowerCase();
+    return paymentMethodMap[method] || order.paymentMethod || "--";
+  }, [order]);
 
 
   return (
@@ -325,7 +339,9 @@ const ShopOrderCard = ({
             </div>
             <div className="flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-neutral-5" />
-              <span>Thanh toán: {order.paymentMethod?.toUpperCase()}</span>
+              <span>
+                Thanh toán: <span className="font-medium text-neutral-9">{paymentMethod}</span>
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <Truck className="h-4 w-4 text-neutral-5" />
@@ -416,7 +432,7 @@ const ShopOrderCard = ({
             ) : (
               <span className="text-xs text-neutral-5 italic">Không có thao tác</span>
             )}
-            <Button size="sm" variant="ghost" icon={<MessageCircle className="h-4 w-4" />} onClick={onChat}>
+            {/* <Button size="sm" variant="ghost" icon={<MessageCircle className="h-4 w-4" />} onClick={onChat}>
               Chat khách
             </Button>
             <Button
@@ -434,7 +450,7 @@ const ShopOrderCard = ({
               onClick={onPrintShipping}
             >
               In vận đơn
-            </Button>
+            </Button> */}
             <Button
               size="sm"
               variant="ghost"
@@ -455,59 +471,114 @@ const ShopOrderCard = ({
         </div>
 
         {showTimeline && (
-          <div className="space-y-2 rounded-xl border border-border-2 bg-background-2 p-3">
+          <div className="rounded-xl border border-border-2 bg-background-2 p-4">
+            <div className="mb-4 flex items-center gap-2 border-b border-border-1 pb-2">
+              <History className="h-5 w-5 text-primary-6" />
+              <h3 className="text-sm font-semibold text-neutral-9">Lịch sử đơn hàng</h3>
+            </div>
             {timelineEntries.length > 0 ? (
-              timelineEntries.map((entry: any, index: number) => (
-                <div key={`${entry._id || entry.status}-${index}`} className="flex items-center justify-between text-sm text-neutral-7">
-                  <div>
-                    <p className="font-medium text-neutral-9">
-                      {entry.description || statusLabelText(entry.status)}
-                    </p>
-                    <p className="text-xs text-neutral-5">
-                      {entry.createdAt ? new Date(entry.createdAt).toLocaleString("vi-VN") : "--"}
-                    </p>
-                  </div>
-                  <span className="text-xs uppercase tracking-wide text-neutral-5">
-                    {statusLabelText(entry.status)}
-                  </span>
-                </div>
-              ))
+              <div className="relative space-y-4">
+                {timelineEntries.map((entry: any, index: number) => {
+                  const isLatest = index === timelineEntries.length - 1;
+                  const statusIcon = statusConfig[entry.status?.toLowerCase()]?.icon || <Clock className="h-3 w-3" />;
+                  return (
+                    <div key={`${entry._id || entry.status}-${index}`} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                            isLatest
+                              ? "border-primary-6 bg-primary-6 text-white"
+                              : "border-border-2 text-neutral-5"
+                          }`}
+                        >
+                          {statusIcon}
+                        </div>
+                        {index < timelineEntries.length - 1 && (
+                          <div className={`mt-1 h-full w-0.5 ${isLatest ? "bg-primary63" : "bg-border-2"}`} />
+                        )}
+                      </div>
+                      <div className="flex-1 pb-4">
+                        <p className={`text-sm font-semibold ${isLatest ? "text-primary-6" : "text-neutral-9"}`}>
+                          {entry.description || statusLabelText(entry.status)}
+                        </p>
+                        <p className="text-xs text-neutral-5 mt-1">
+                          {entry.createdAt ? new Date(entry.createdAt).toLocaleString("vi-VN") : "--"}
+                        </p>
+                        {entry.status && (
+                          <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs ${
+                            isLatest 
+                              ? "bg-primary-1 text-primary-6" 
+                              : "bg-neutral-2 text-neutral-6"
+                          }`}>
+                            {statusLabelText(entry.status)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
-              <p className="text-sm text-neutral-6">Chưa có lịch sử chi tiết</p>
+              <div className="flex items-center justify-center py-8">
+                <p className="text-sm text-neutral-6">Chưa có lịch sử chi tiết</p>
+              </div>
             )}
           </div>
         )}
 
         {showNotes && (
-          <div className="space-y-3 rounded-xl border border-border-2 bg-background-2 p-3">
-            <div className="flex flex-wrap gap-2">
+          <div className="rounded-xl border border-border-2 bg-background-2 p-4">
+            <div className="mb-4 flex items-center gap-2 border-b border-border-1 pb-2">
+              <NotebookPen className="h-5 w-5 text-primary-6" />
+              <h3 className="text-sm font-semibold text-neutral-9">Ghi chú nội bộ</h3>
+            </div>
+            <div className="mb-4 flex flex-wrap gap-2 rounded-lg border border-border-1 bg-background-1 p-3">
               <input
                 type="text"
                 value={noteInput}
                 onChange={(event) => setNoteInput(event.target.value)}
-                placeholder="Thêm ghi chú nội bộ..."
-                className="flex-1 rounded-lg border border-border-2 bg-background-1 px-3 py-2 text-sm text-neutral-9"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && noteInput.trim()) {
+                    handleAddNote();
+                  }
+                }}
+                placeholder="Nhập ghi chú nội bộ..."
+                className="flex-1 rounded-lg border border-border-2 bg-white px-3 py-2 text-sm text-neutral-9 placeholder:text-neutral-5 focus:border-primary-4 focus:outline-none focus:ring-2 focus:ring-primary-4/20"
               />
-              <Button size="sm" onClick={handleAddNote}>
-                Lưu
+              <Button 
+                size="sm" 
+                onClick={handleAddNote}
+                disabled={!noteInput.trim()}
+              >
+                Thêm
               </Button>
             </div>
-            <div className="space-y-2 text-sm text-neutral-6">
+            <div className="space-y-2">
               {loadingNotes ? (
-                <p className="text-sm text-neutral-5 italic">Đang tải...</p>
+                <div className="flex items-center justify-center py-6">
+                  <p className="text-sm text-neutral-5 italic">Đang tải...</p>
+                </div>
               ) : internalNotes.length > 0 ? (
-                internalNotes.map((note, index) => (
-                  <div key={note._id || `note-${index}`} className="rounded-lg bg-background-1 px-3 py-2">
-                    <p className="text-neutral-9">{note.note}</p>
-                    {note.createdAt && (
-                      <p className="text-xs text-neutral-5 mt-1">
-                        {new Date(note.createdAt).toLocaleString("vi-VN")}
-                      </p>
-                    )}
-                  </div>
-                ))
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {internalNotes.map((note, index) => (
+                    <div
+                      key={note._id || `note-${index}`}
+                      className="group rounded-lg border border-border-1 bg-background-1 px-4 py-3 transition hover:border-primary-3 hover:bg-primary-1/30"
+                    >
+                      <p className="text-sm text-neutral-9 leading-relaxed">{note.note}</p>
+                      {note.createdAt && (
+                        <p className="mt-2 text-xs text-neutral-5 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(note.createdAt).toLocaleString("vi-VN")}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <p className="text-sm text-neutral-5 italic">Chưa có ghi chú nội bộ</p>
+                <div className="flex items-center justify-center py-8">
+                  <p className="text-sm text-neutral-5 italic">Chưa có ghi chú nội bộ</p>
+                </div>
               )}
             </div>
           </div>

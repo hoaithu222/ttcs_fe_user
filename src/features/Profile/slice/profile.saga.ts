@@ -174,8 +174,29 @@ function* createAddressWorker(
   try {
     const response = yield call([userAddressesApi, userAddressesApi.createAddress], action.payload);
     if (response.data) {
+      // Reload danh sách địa chỉ để đồng bộ với backend (đặc biệt khi địa chỉ mới là mặc định)
+      const addressesResponse = yield call([userAddressesApi, userAddressesApi.getAddresses]);
+      if (addressesResponse.data) {
+        const addresses = addressesResponse.data.addresses || addressesResponse.data || [];
+        const defaultAddress = Array.isArray(addresses)
+          ? addresses.find((a: any) => a.isDefault)
+          : null;
+        yield put(
+          fetchAddressesSuccess({
+            addresses: Array.isArray(addresses) ? addresses : [],
+            defaultAddress: defaultAddress || null,
+            pagination: addressesResponse.meta || {
+              page: 1,
+              limit: 10,
+              total: addresses.length || 0,
+              totalPages: 1,
+            },
+          })
+        );
+      }
+      // Đánh dấu create address thành công (không thêm địa chỉ vào state vì đã reload rồi)
       yield put(createAddressSuccess(response.data));
-      yield put(addToast({ type: "success", message: response.message || "Address created" }));
+      yield put(addToast({ type: "success", message: response.message || "Đã thêm địa chỉ thành công" }));
     }
   } catch (error: unknown) {
     const message = getErrorMessage(error, "Failed to create address");
@@ -191,8 +212,28 @@ function* updateAddressWorker(
     const { id, data } = action.payload;
     const response = yield call([userAddressesApi, userAddressesApi.updateAddress], id, data);
     if (response.data) {
+      // Reload danh sách địa chỉ để đồng bộ với backend (đặc biệt khi địa chỉ được update là mặc định)
+      const addressesResponse = yield call([userAddressesApi, userAddressesApi.getAddresses]);
+      if (addressesResponse.data) {
+        const addresses = addressesResponse.data.addresses || addressesResponse.data || [];
+        const defaultAddress = Array.isArray(addresses)
+          ? addresses.find((a: any) => a.isDefault)
+          : null;
+        yield put(
+          fetchAddressesSuccess({
+            addresses: Array.isArray(addresses) ? addresses : [],
+            defaultAddress: defaultAddress || null,
+            pagination: addressesResponse.meta || {
+              page: 1,
+              limit: 10,
+              total: addresses.length || 0,
+              totalPages: 1,
+            },
+          })
+        );
+      }
       yield put(updateAddressSuccess(response.data));
-      yield put(addToast({ type: "success", message: response.message || "Address updated" }));
+      yield put(addToast({ type: "success", message: response.message || "Đã cập nhật địa chỉ thành công" }));
     }
   } catch (error: unknown) {
     const message = getErrorMessage(error, "Failed to update address");
@@ -223,9 +264,23 @@ function* setDefaultAddressWorker(
     const { id } = action.payload;
     const response = yield call([userAddressesApi, userAddressesApi.setDefaultAddress], id);
     if (response.data) {
-      yield put(setDefaultAddressSuccess(response.data));
+      // Backend trả về mảng items, cần xử lý như fetchAddressesSuccess
+      const addresses = Array.isArray(response.data) ? response.data : [];
+      const defaultAddress = addresses.find((a: any) => a.isDefault) || null;
       yield put(
-        addToast({ type: "success", message: response.message || "Default address updated" })
+        fetchAddressesSuccess({
+          addresses,
+          defaultAddress,
+          pagination: response.meta || {
+            page: 1,
+            limit: 10,
+            total: addresses.length || 0,
+            totalPages: 1,
+          },
+        })
+      );
+      yield put(
+        addToast({ type: "success", message: response.message || "Đã đặt địa chỉ mặc định thành công" })
       );
     }
   } catch (error: unknown) {

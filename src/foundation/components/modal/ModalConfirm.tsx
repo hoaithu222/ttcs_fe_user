@@ -5,10 +5,10 @@ import clsx from "clsx";
 import { useNSTranslate } from "@/shared/hooks";
 
 import Button, { ButtonSize } from "../buttons/Button";
-import Icon from "../icons/Icon";
 import { Info, AlertTriangle, XCircle, CheckCircle, X } from "lucide-react";
 import Checkbox from "../input/Checkbox";
 import Modal from "./Modal";
+import AlertMessage, { AlertType } from "../info/AlertMessage";
 
 type IconType = "info" | "warning" | "error" | "success" | "none" | "infoXl";
 
@@ -64,6 +64,8 @@ interface ConfirmModalProps {
   showRowCheckbox?: boolean;
   /** Content checkbox */
   contentCheckbox?: string;
+  /** Whether to use AlertMessage for content display */
+  useAlertMessage?: boolean;
 }
 
 // Enhanced icon mapping with larger sizes
@@ -74,6 +76,23 @@ const ICON_MAP: Record<IconType, React.ReactNode> = {
   error: <XCircle className="text-error w-12 h-12" strokeWidth={1.5} />,
   success: <CheckCircle className="text-success w-12 h-12" strokeWidth={1.5} />,
   none: null,
+};
+
+// Map IconType to AlertType
+const mapIconTypeToAlertType = (iconType: IconType): AlertType => {
+  switch (iconType) {
+    case "warning":
+      return "warning";
+    case "error":
+      return "error";
+    case "success":
+      return "success";
+    case "info":
+    case "infoXl":
+    case "none":
+    default:
+      return "info";
+  }
 };
 
 // Default footer component
@@ -98,7 +117,7 @@ const DefaultFooter: React.FC<{
   fullWidth,
   size = "md",
 }) => (
-  <div className={clsx("flex w-full justify-center gap-3", className)}>
+  <div className={clsx("flex w-full justify-center gap-3 py-3", className)}>
     <div className={clsx(fullWidth && "flex-1 min-w-[140px]")}>
       <Button
         variant="outlined"
@@ -152,6 +171,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   contentCheckbox,
   showDecorIcon = true,
   decorClasses,
+  useAlertMessage = true,
 }) => {
   const t = useNSTranslate();
 
@@ -160,12 +180,14 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   // Determine which icon to render
   const iconNode = customIcon ?? ICON_MAP[iconType];
 
+  // Map iconType to AlertType for AlertMessage
+  const alertType = mapIconTypeToAlertType(iconType);
+
   // Build header: either fully custom or default layout
   const headerNode =
     customHeader ??
     (() => {
       const hasClose = showCloseIcon;
-      const closeIconColor = "text-neutral-7 hover:text-neutral-9 transition-colors cursor-pointer";
       const hasIcon = showIcon && iconNode;
 
       // Decorative classes per iconType using theme colors from colors.json
@@ -214,13 +236,13 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             </div>
           )}
           {title && (
-            <div className="px-6 leading-tight text-2xl md:text-3xl font-semibold text-neutral-10">
+            <div className="px-6 py-2 leading-tight text-2xl md:text-3xl font-semibold text-neutral-10">
               {title}
             </div>
           )}
           {hasClose && (
             <div className="absolute right-0 top-0 p-1 rounded-full hover:bg-neutral-2 transition-colors">
-              <X className="text-neutral-6 dark:text-neutral-0 w-6 h-6"   onClick={onCancel} />
+              <X className="text-neutral-6  w-6 h-6"   onClick={onCancel} />
             </div>
           )}
         </div>
@@ -260,14 +282,26 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       hideFooter={hideFooter}
       disabled={disabled}
     >
-      <div
-        className={clsx(
-          "text-body-14 text-neutral-7 text-center leading-relaxed px-2",
-          contentClassName
-        )}
-      >
-        {content}
-      </div>
+      {useAlertMessage && content ? (
+        <div className={clsx("px-2 py-2", contentClassName)}>
+          <AlertMessage
+            type={alertType}
+            message={content}
+            compact={false}
+            dismissible={false}
+            className="w-full"
+          />
+        </div>
+      ) : (
+        <div
+          className={clsx(
+            "text-body-14 text-neutral-7 text-center leading-relaxed px-2",
+            contentClassName
+          )}
+        >
+          {content}
+        </div>
+      )}
       {showRowCheckbox && (
         <div className="flex items-center justify-center gap-2 mt-4 p-3 rounded-lg bg-background-1 border border-divider-1">
           <Checkbox checked={checked} onCheckedChange={(val) => setChecked(val === true)} />

@@ -46,7 +46,7 @@ const BestSelling: React.FC = () => {
             <SectionTitle className="text-xl md:text-2xl font-bold text-neutral-9">
               Sản phẩm bán chạy
             </SectionTitle>
-            <span className="text-xs text-primary-7 font-semibold">
+            <span className="text-xs text-start text-primary-7 font-semibold">
               Lượt mua cao trong tuần
             </span>
           </div>

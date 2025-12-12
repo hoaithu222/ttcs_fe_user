@@ -663,9 +663,9 @@ const ModalChatSupport: React.FC<ModalChatSupportProps> = ({ open, onOpenChange 
                   size="md"
                   rounded="full"
                   icon={<Send className="w-4 h-4" />}
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 text-neutral-1"
                 >
-                  Gửi
+                  <span className="text-neutral-1">Gửi</span>
                 </Button>
               </div>
             </Form.Root>

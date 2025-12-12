@@ -23,6 +23,7 @@ import OrderCard from "./components/OrderCard";
 import OrderDrawer from "./components/OrderDrawer";
 import OrdersFilters, { OrdersTabKey } from "./components/OrdersFilters";
 import OrdersSkeleton from "./components/OrdersSkeleton";
+import ShopChatModal from "@/features/Chat/components/ShopChatModal";
 
 const OrdersPanel = () => {
   const navigate = useNavigate();
@@ -63,6 +64,13 @@ const OrdersPanel = () => {
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [isTrackingLoading, setIsTrackingLoading] = useState(false);
   const trackingCacheRef = useRef<Record<string, OrderTracking[]>>({});
+  
+  // Chat modal state
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatShopId, setChatShopId] = useState<string | undefined>();
+  const [chatShopName, setChatShopName] = useState<string | undefined>();
+  const [chatShopAvatar, setChatShopAvatar] = useState<string | undefined>();
+  const [chatOrderId, setChatOrderId] = useState<string | undefined>();
 
   useEffect(() => {
     loadOrders(1, 10);
@@ -415,12 +423,36 @@ const OrdersPanel = () => {
       );
       return;
     }
-    dispatch(
-      addToast({
-        type: "info",
-        message: `Vui lòng liên hệ hỗ trợ để tra cứu đơn ${selectedOrder?.orderNumber || selectedOrder?._id}.`,
-      })
-    );
+    
+    // Lấy thông tin shop từ order
+    const shopId = typeof selectedOrder.shopId === "string" 
+      ? selectedOrder.shopId 
+      : selectedOrder.shopId?._id;
+    const shopName = typeof selectedOrder.shopId === "object" 
+      ? selectedOrder.shopId.name 
+      : "Cửa hàng";
+    const shopAvatar = typeof selectedOrder.shopId === "object" 
+      ? selectedOrder.shopId.logo 
+      : undefined;
+    
+    if (!shopId) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: "Không tìm thấy thông tin cửa hàng.",
+        })
+      );
+      return;
+    }
+    
+    // Mở chat modal với thông tin shop và order
+    setChatShopId(shopId);
+    setChatShopName(shopName);
+    setChatShopAvatar(shopAvatar);
+    setChatOrderId(selectedOrder._id);
+    setIsChatOpen(true);
+    // Đóng drawer khi mở chat
+    setIsDrawerOpen(false);
   }, [dispatch, selectedOrder]);
 
   return (
@@ -506,7 +538,6 @@ const OrdersPanel = () => {
         trackingHistory={trackingHistory}
         trackingError={trackingError}
         isLoading={isTrackingLoading}
-        onContactSupport={handleContactSupport}
       />
 
       {/* Payment Method Selection Modal */}
@@ -679,6 +710,22 @@ const OrdersPanel = () => {
           </div>
         )}
       </Modal>
+
+      {/* Shop Chat Modal */}
+      <ShopChatModal
+        isOpen={isChatOpen}
+        onClose={() => {
+          setIsChatOpen(false);
+          setChatShopId(undefined);
+          setChatShopName(undefined);
+          setChatShopAvatar(undefined);
+          setChatOrderId(undefined);
+        }}
+        shopId={chatShopId}
+        shopName={chatShopName}
+        shopAvatar={chatShopAvatar}
+        orderId={chatOrderId}
+      />
     </Section>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { ShoppingBag, CreditCard, Package, Store, Wallet, Building2, Truck, Tag } from "lucide-react";
+import { ShoppingBag, CreditCard, Package, Store, Wallet, Building2, Truck, Tag, AlertCircle, ArrowRight } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
 import Page from "@/foundation/components/layout/Page";
 import Section from "@/foundation/components/sections/Section";
@@ -27,6 +27,7 @@ import { userWalletApi } from "@/core/api/wallet";
 import { addToast } from "@/app/store/slices/toast";
 import { formatPriceVND } from "@/shared/utils/formatPriceVND";
 import { getCartItemVariantInfo } from "@/features/Cart/utils/cartVariant.helpers";
+import IconCircleWrapper from "@/foundation/components/icons/IconCircleWrapper";
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -58,7 +59,9 @@ const CheckoutPage: React.FC = () => {
           productPrice: buyNowData.price,
           totalPrice: buyNowData.price * buyNowData.quantity,
           shopId: buyNowData.shopId,
-          shopName: "",
+          shopName: buyNowData.shopName || "",
+          productName: buyNowData.productName || "Sản phẩm",
+          productImage: buyNowData.productImage || "",
         } as any,
       ];
     }
@@ -145,14 +148,14 @@ const CheckoutPage: React.FC = () => {
     loadWalletBalance();
   }, [dispatch, getPaymentMethods]);
 
-  // Don't redirect to cart if we're in the process of creating an order
+  // Don't redirect to cart if we're in the process of creating an order or using buyNow
   // Backend removes cart items after order creation, which would trigger this redirect
   useEffect(() => {
-    if (isEmpty && !isCreatingOrder && !createdOrderId) {
+    if (isEmpty && !isCreatingOrder && !createdOrderId && !buyNowData) {
       console.log("[CheckoutPage] Cart is empty and not creating order, redirecting to /cart");
       navigate("/cart");
     }
-  }, [isEmpty, navigate, isCreatingOrder, createdOrderId]);
+  }, [isEmpty, navigate, isCreatingOrder, createdOrderId, buyNowData]);
 
   // Debug: Log checkoutData changes
   useEffect(() => {
@@ -213,7 +216,13 @@ const CheckoutPage: React.FC = () => {
   // Handle checkout
   const handleCheckout = async () => {
     if (!validateForm()) return;
-    if (!cart || !cartItems.length) {
+    // For buyNow, cart can be empty/null, so only check cartItems
+    if (!cartItems.length) {
+      dispatch(addToast({ type: "error", message: buyNowData ? "Không có sản phẩm để thanh toán" : "Giỏ hàng trống" }));
+      return;
+    }
+    // Only check cart if not using buyNow
+    if (!buyNowData && (!cart || isEmpty)) {
       dispatch(addToast({ type: "error", message: "Giỏ hàng trống" }));
       return;
     }
@@ -483,14 +492,14 @@ const CheckoutPage: React.FC = () => {
     <Page>
       <div className="min-h-screen bg-background-1">
         <div className="container mx-auto px-4 py-8 lg:py-12">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="flex justify-center items-center w-12 h-12 rounded-lg bg-primary-6">
-              <ShoppingBag className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-4 mb-10">
+            <div className="flex justify-center items-center w-14 h-14 rounded-xl bg-primary-6 shadow-lg shadow-primary-6/20">
+              <ShoppingBag className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-neutral-9">Thanh toán</h1>
+              <h1 className="text-3xl font-bold text-neutral-9 mb-1">Thanh toán</h1>
               <p className="text-sm text-neutral-6">
-                {cart?.itemCount || 0} sản phẩm trong giỏ hàng
+                {cart?.itemCount || cartItems.length || 0} sản phẩm trong giỏ hàng
               </p>
             </div>
           </div>
@@ -504,19 +513,21 @@ const CheckoutPage: React.FC = () => {
               />
 
               {/* Order Summary */}
-              <Section className="bg-background-2 rounded-2xl p-6 border border-border-1">
-                <div className="flex items-center gap-3 mb-6">
-                  <ShoppingBag className="w-5 h-5 text-primary-6" />
-                  <SectionTitle>Thông tin đơn hàng</SectionTitle>
+              <Section className="bg-background-2 rounded-2xl p-8 border border-border-1 shadow-sm">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-1">
+                    <ShoppingBag className="w-5 h-5 text-primary-6" />
+                  </div>
+                  <SectionTitle className="text-xl">Thông tin đơn hàng</SectionTitle>
                 </div>
 
                 {/* Shop and Products Section */}
-                <div className="mb-6">
-                  <h3 className="text-sm text-start font-semibold text-neutral-9 mb-3 flex items-center gap-2">
-                    <Store className="w-4 h-4" />
+                <div className="mb-8">
+                  <h3 className="text-base text-start font-semibold text-neutral-9 mb-4 flex items-center gap-2">
+                    <Store className="w-5 h-5 text-primary-6" />
                     Sản phẩm đang thanh toán
                   </h3>
-                  <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                  <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
                     {(() => {
                       // Group items by shop
                       const shopGroups = cartItems.reduce<
@@ -542,12 +553,20 @@ const CheckoutPage: React.FC = () => {
                       }, {});
 
                       return Object.entries(shopGroups).map(([shopId, group]) => (
-                        <div key={shopId} className="border border-border-1 rounded-lg p-3 bg-background-1">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Store className="w-4 h-4 text-primary-6" />
+                        <div 
+                          key={shopId} 
+                          className="border border-border-1 rounded-xl p-5 bg-background-1 shadow-sm hover:shadow-md transition-shadow duration-200"
+                        >
+                          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border-1">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-1">
+                              <Store className="w-4 h-4 text-primary-6" />
+                            </div>
                             <span className="text-sm font-semibold text-neutral-9">{group.shopName}</span>
+                            <span className="ml-auto text-xs text-neutral-6">
+                              {group.items.length} sản phẩm
+                            </span>
                           </div>
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             {group.items.map((item) => {
                               const variantInfo = getCartItemVariantInfo(item);
                               const productImage = variantInfo.image || item.productImage || "";
@@ -562,29 +581,29 @@ const CheckoutPage: React.FC = () => {
                               return (
                                 <div
                                   key={item._id}
-                                  className="flex gap-3 p-3 bg-background-2 rounded-lg border border-border-1"
+                                  className="flex gap-4 p-4 bg-background-2 rounded-xl border border-border-1 hover:border-primary-3 transition-all duration-200"
                                 >
                                   <div className="flex-shrink-0">
                                     {productImage ? (
                                       <img
                                         src={productImage}
                                         alt={productName}
-                                        className="w-14 h-14 rounded-lg object-cover border border-border-1"
+                                        className="w-20 h-20 rounded-xl object-cover border border-border-1 shadow-sm"
                                       />
                                     ) : (
-                                      <div className="flex justify-center items-center w-14 h-14 rounded-lg bg-neutral-2 border border-border-1">
-                                        <Package className="w-5 h-5 text-neutral-4" />
+                                      <div className="flex justify-center items-center w-20 h-20 rounded-xl bg-neutral-2 border border-border-1">
+                                        <Package className="w-6 h-6 text-neutral-4" />
                                       </div>
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-start font-semibold text-neutral-9 line-clamp-2">
+                                    <p className="text-sm text-start font-semibold text-neutral-9 line-clamp-2 mb-2 leading-snug">
                                       {productName}
                                     </p>
                                     {(variantInfo.sku || variantAttributes) && (
-                                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                      <div className="flex flex-wrap items-center gap-1.5 mb-3">
                                         {variantInfo.sku && (
-                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-1 text-primary-7 text-[11px] font-semibold border border-primary-3">
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary-1 text-primary-7 text-[11px] font-medium border border-primary-3">
                                             <Tag className="w-3 h-3" />
                                             {variantInfo.sku}
                                           </span>
@@ -593,17 +612,23 @@ const CheckoutPage: React.FC = () => {
                                           Object.entries(variantAttributes).map(([key, value]) => (
                                             <span
                                               key={key}
-                                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-1 text-neutral-7 text-[11px] border border-border-1"
+                                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-neutral-1 text-neutral-7 text-[11px] border border-border-1"
                                             >
                                               <span className="font-medium text-neutral-8">{key}:</span> {value}
                                             </span>
                                           ))}
                                       </div>
                                     )}
-                                    <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs text-neutral-6">
-                                      <span>SL: <span className="font-semibold text-neutral-8">{item.quantity}</span></span>
-                                      <span>Đơn giá: <span className="font-semibold text-neutral-8">{formatPriceVND(finalPrice)}</span></span>
-                                      <span className="text-primary-6 font-semibold">
+                                    <div className="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-border-1">
+                                      <div className="flex items-center gap-4 text-xs text-neutral-6">
+                                        <span>
+                                          SL: <span className="font-semibold text-neutral-9 ml-1">{item.quantity}</span>
+                                        </span>
+                                        <span>
+                                          Đơn giá: <span className="font-semibold text-neutral-9 ml-1">{formatPriceVND(finalPrice)}</span>
+                                        </span>
+                                      </div>
+                                      <span className="text-base font-bold text-primary-6">
                                         {formatPriceVND(itemTotal)}
                                       </span>
                                     </div>
@@ -618,16 +643,19 @@ const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="h-px bg-border-1 my-6" />
+                <div className="h-px bg-border-1 my-8" />
 
                 {/* Notes Section */}
-                <div className="mb-6">
-                  <SectionTitle className="mb-3 text-sm">Ghi chú đơn hàng</SectionTitle>
+                <div className="mb-8">
+                  <SectionTitle className="mb-4 text-base flex items-center gap-2">
+                    <Package className="w-4 h-4 text-primary-6" />
+                    Ghi chú đơn hàng
+                  </SectionTitle>
                   <Form.Root onSubmit={(e) => e.preventDefault()}>
                     <Input
                       name="notes"
                       label=""
-                      placeholder="Ghi chú cho người bán..."
+                      placeholder="Ghi chú cho người bán (tùy chọn)..."
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       className="text-sm"
@@ -635,12 +663,12 @@ const CheckoutPage: React.FC = () => {
                   </Form.Root>
                 </div>
 
-                <div className="h-px bg-border-1 my-6" />
+                <div className="h-px bg-border-1 my-8" />
 
                 {/* Payment Method Section */}
-                <div className="mb-6">
-                  <SectionTitle className="mb-4 text-sm flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
+                <div className="mb-8">
+                  <SectionTitle className="mb-5 text-base flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-primary-6" />
                     Phương thức thanh toán
                   </SectionTitle>
                   {isPaymentMethodsLoading ? (
@@ -655,7 +683,7 @@ const CheckoutPage: React.FC = () => {
                   ) : paymentMethods.filter((m) => m.isActive).length === 0 ? (
                     <p className="text-sm text-neutral-6">Không có phương thức thanh toán nào khả dụng</p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {paymentMethods
                         .filter((method) => method.isActive)
                         .map((method) => {
@@ -694,10 +722,10 @@ const CheckoutPage: React.FC = () => {
                               key={method.id}
                               type="button"
                               onClick={() => setSelectedPaymentMethod(method.id)}
-                              className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
                                 selectedPaymentMethod === method.id
-                                  ? "border-primary-6 bg-primary-1"
-                                  : "border-border-1 bg-background-1 hover:border-primary-3"
+                                  ? "border-primary-6 bg-primary-1 shadow-sm"
+                                  : "border-border-1 bg-background-1 hover:border-primary-3 hover:shadow-sm"
                               }`}
                             >
                               <div className="flex items-center gap-2">
@@ -745,10 +773,10 @@ const CheckoutPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="h-px bg-border-1 my-6" />
+                <div className="h-px bg-border-1 my-8" />
 
                 {/* Order Summary Pricing */}
-                <div className="space-y-4 mb-6">
+                <div className="space-y-4 mb-8">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-neutral-6">Tạm tính</span>
                     <span className="text-base font-semibold text-neutral-9">
@@ -829,11 +857,12 @@ const CheckoutPage: React.FC = () => {
                   onClick={handleCheckout}
                   disabled={isCreatingOrder || isCheckoutLoading || !selectedPaymentMethod || !selectedAddress}
                   loading={isCreatingOrder || isCheckoutLoading}
+                  className="mt-2"
                 >
                   Xác nhận đặt hàng
                 </Button>
 
-                <p className="mt-4 text-xs text-center text-neutral-6">
+                <p className="mt-6 text-xs text-center text-neutral-6">
                   Bằng cách đặt hàng, bạn đồng ý với{" "}
                   <a href="/terms" className="text-primary-6 hover:underline">
                     Điều khoản sử dụng
@@ -898,23 +927,72 @@ const CheckoutPage: React.FC = () => {
       <Modal
         open={isDepositModalOpen}
         onOpenChange={setIsDepositModalOpen}
-        title="Nạp tiền vào ví"
+        title={
+          <div className="flex items-center gap-3">
+            <IconCircleWrapper
+              color="warning"
+              size="md"
+              classNameIcon="text-warning"
+            >
+              <Wallet className="w-5 h-5" />
+            </IconCircleWrapper>
+            <span className="text-xl font-semibold text-neutral-9">Nạp tiền vào ví</span>
+          </div>
+        }
         size="md"
       >
-        <div className="space-y-4">
-          <p className="text-sm text-neutral-6">
-            Số dư hiện tại: <span className="font-semibold text-neutral-9">{formatPriceVND(walletBalance || 0)}</span>
-          </p>
-          <p className="text-sm text-neutral-6">
-            Số tiền cần thanh toán: <span className="font-semibold text-primary-6">{formatPriceVND(totalAmount)}</span>
-          </p>
-          <p className="text-sm text-neutral-6">
-            Cần nạp thêm: <span className="font-semibold text-error">{formatPriceVND(Math.max(0, totalAmount - (walletBalance || 0)))}</span>
-          </p>
-          <div className="flex gap-2">
+        <div className="space-y-6">
+          <AlertMessage
+            type="warning"
+            title="Số dư ví không đủ"
+            message="Bạn cần nạp thêm tiền vào ví để tiếp tục thanh toán đơn hàng này."
+            compact={false}
+            dismissible={false}
+          />
+
+          <div className="space-y-4 rounded-xl border border-border-1 bg-background-1 p-5">
+            <div className="flex items-center justify-between py-2 border-b border-border-1">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-neutral-1">
+                  <Wallet className="w-4 h-4 text-neutral-6" />
+                </div>
+                <span className="text-sm font-medium text-neutral-7">Số dư hiện tại</span>
+              </div>
+              <span className="text-base font-bold text-neutral-9">
+                {formatPriceVND(walletBalance || 0)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between py-2 border-b border-border-1">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-1">
+                  <ShoppingBag className="w-4 h-4 text-primary-6" />
+                </div>
+                <span className="text-sm font-medium text-neutral-7">Số tiền cần thanh toán</span>
+              </div>
+              <span className="text-base font-bold text-primary-6">
+                {formatPriceVND(totalAmount)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-error/10">
+                  <AlertCircle className="w-4 h-4 text-error" />
+                </div>
+                <span className="text-sm font-medium text-neutral-7">Cần nạp thêm</span>
+              </div>
+              <span className="text-lg font-bold text-error">
+                {formatPriceVND(Math.max(0, totalAmount - (walletBalance || 0)))}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
             <Button
               variant="outline"
               onClick={() => setIsDepositModalOpen(false)}
+              className="flex-1"
             >
               Hủy
             </Button>
@@ -924,6 +1002,8 @@ const CheckoutPage: React.FC = () => {
                 setIsDepositModalOpen(false);
                 navigate(`/wallet/deposit?walletType=user&returnUrl=${encodeURIComponent("/checkout")}`);
               }}
+             
+              className="flex-1 flex items-center justify-center gap-2"
             >
               Đi đến nạp tiền
             </Button>
