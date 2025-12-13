@@ -7,6 +7,8 @@ import Empty from "@/foundation/components/empty/Empty";
 import { shopManagementApi } from "@/core/api/shop-management";
 import { TrendingUp, DollarSign, Package, ShoppingCart } from "lucide-react";
 
+import { RevenueData, WalletTransactionData, OrderStatusData } from "./charts";
+
 interface AnalyticsData {
   revenue: number;
   totalOrders: number;
@@ -18,6 +20,20 @@ interface AnalyticsData {
     totalSold: number;
     totalRevenue: number;
   }>;
+  // New analytics data
+  revenueVsProfit?: RevenueData[];
+  walletTransactions?: WalletTransactionData[];
+  orderStatusWithColors?: OrderStatusData[];
+  inventory?: {
+    totalStock: number;
+    lowStockCount: number;
+    outOfStockCount: number;
+    productsWithVariants: number;
+  };
+  topCustomers?: Array<any>;
+  revenueByDate?: Array<any>;
+  revenueByMonth?: Array<any>;
+  productsByCategory?: Array<any>;
 }
 
 const Analytic: React.FC = () => {

@@ -204,7 +204,7 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           {showCloseIcon && (
             <div className={clsx(closeIconWrapperClassName)}>
               <Dialog.Close asChild>
-                <X className="text-neutral-10" />
+                <X className="text-neutral-10 cursor-pointer " />
               </Dialog.Close>
             </div>
           )}

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import Section from "@/foundation/components/sections/Section";
-import SectionTitle from "@/foundation/components/sections/SectionTitle";
 import { Card } from "@/foundation/components/info/Card";
 import Button from "@/foundation/components/buttons/Button";
 import Loading from "@/foundation/components/loading/Loading";
@@ -27,7 +26,17 @@ import { ReduxStateType } from "@/app/store/types";
 import { ShopInfo } from "@/core/api/shop-management/type";
 import { ShopStatus } from "@/features/Shop/slice/shop.type";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
-import { Store, Package, ShoppingCart, TrendingUp, Settings, Plus } from "lucide-react";
+import { Store, Package, ShoppingCart, Settings, Users, DollarSign } from "lucide-react";
+import { shopManagementApi } from "@/core/api/shop-management";
+import {
+  RevenueChart,
+  InventoryChart,
+  TopProductsChart,
+  CustomerChart,
+  RevenueProfitChart,
+  WalletTransactionsChart,
+  OrderStatusChart,
+} from "@/features/Shop/components/analytics/charts";
 
 const ShopDashboardPage: React.FC = () => {
   const dispatch = useDispatch();
@@ -41,16 +50,9 @@ const ShopDashboardPage: React.FC = () => {
   const ordersStatus = useSelector(selectOrdersStatus);
   const currentStatus = useSelector(selectShopCurrentStatus);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
-
-  // Helper function to get image URL from various formats
-  const getImageUrl = (images: any[] | string | undefined): string => {
-    if (!images) return "";
-    if (typeof images === "string") return images;
-    if (!Array.isArray(images) || images.length === 0) return "";
-    const firstImage = images[0];
-    if (typeof firstImage === "string") return firstImage;
-    return (firstImage as any)?.url || "";
-  };
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
   const handleImageError = (id: string) => {
     setImageErrors((prev) => new Set(prev).add(id));
@@ -60,14 +62,64 @@ const ShopDashboardPage: React.FC = () => {
     dispatch(getShopInfoStart());
     dispatch(getProductsStart({ page: 1, limit: 5 }));
     dispatch(getOrdersStart({ page: 1, limit: 5 }));
+
+    // Fetch analytics
+    const fetchAnalytics = async () => {
+      try {
+        setAnalyticsLoading(true);
+        setAnalyticsError(null);
+        const response = await shopManagementApi.getAnalytics({});
+        if (response.success && response.data) {
+          setAnalytics(response.data);
+        } else {
+          setAnalytics(null);
+          setAnalyticsError(response.message || "Không thể tải dữ liệu thống kê");
+        }
+      } catch (error) {
+        console.error("Failed to fetch analytics:", error);
+        setAnalytics(null);
+        setAnalyticsError("Lỗi kết nối khi tải dữ liệu thống kê");
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
+
+    fetchAnalytics();
   }, [dispatch]);
+
+  // Refetch analytics when shop status changes to active/approved
+  useEffect(() => {
+    if (canEdit && !analyticsLoading) {
+      const fetchAnalytics = async () => {
+        try {
+          setAnalyticsLoading(true);
+          setAnalyticsError(null);
+          const response = await shopManagementApi.getAnalytics({});
+          if (response.success && response.data) {
+            setAnalytics(response.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch analytics:", error);
+          setAnalytics(null);
+          setAnalyticsError("Lỗi kết nối khi tải dữ liệu thống kê");
+        } finally {
+          setAnalyticsLoading(false);
+        }
+      };
+
+      // Only fetch if we don't have analytics data yet
+      if (!analytics && !analyticsError) {
+        fetchAnalytics();
+      }
+    }
+  }, [analyticsLoading, analytics, analyticsError]);
 
   const isLoading =
     shopInfoStatus === ReduxStateType.LOADING ||
     productsStatus === ReduxStateType.LOADING ||
     ordersStatus === ReduxStateType.LOADING;
 
-  const canEdit = currentStatus === ShopStatus.ACTIVE || currentStatus === ShopStatus.APPROVED;
+  const canEdit = true
 
   if (isLoading) {
     return (
@@ -89,7 +141,7 @@ const ShopDashboardPage: React.FC = () => {
     <ShopManagerLayout>
       <div className="space-y-6">
         {/* Shop Info Header */}
-        {shopInfo && (
+        {/* {shopInfo && (
           <Card className="mb-6">
             <div className="flex flex-col gap-6 items-start md:flex-row md:items-center">
               <div className="flex flex-1 gap-4 items-center">
@@ -144,217 +196,197 @@ const ShopDashboardPage: React.FC = () => {
               </div>
             </div>
           </Card>
-        )}
+        )} */}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="p-6">
+          <Card className="p-6 transition-all hover:shadow-lg">
             <div className="flex gap-4 items-center">
-              <div className="flex justify-center items-center w-12 h-12 rounded-lg bg-primary-6/20 text-primary-6">
+              <div className="flex justify-center items-center w-12 h-12 rounded-lg bg-gradient-to-br from-primary-6 to-primary-8 text-white shadow-md">
+                <DollarSign className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="mb-1 text-sm text-neutral-6">Tổng doanh thu</p>
+                <p className="text-2xl font-bold text-neutral-9">
+                  {analytics?.revenue
+                    ? new Intl.NumberFormat("vi-VN", {
+                        style: "currency",
+                        currency: "VND",
+                        notation: "compact",
+                      }).format(analytics.revenue)
+                    : "0đ"}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 transition-all hover:shadow-lg">
+            <div className="flex gap-4 items-center">
+              <div className="flex justify-center items-center w-12 h-12 rounded-lg bg-gradient-to-br from-success to-success/80 text-white shadow-md">
+                <ShoppingCart className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="mb-1 text-sm text-neutral-6">Tổng đơn hàng</p>
+                <p className="text-2xl font-bold text-neutral-9">
+                  {analytics?.totalOrders || orders?.length || 0}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 transition-all hover:shadow-lg">
+            <div className="flex gap-4 items-center">
+              <div className="flex justify-center items-center w-12 h-12 rounded-lg bg-gradient-to-br from-brand to-brand/80 text-white shadow-md">
                 <Package className="w-6 h-6" />
               </div>
               <div>
                 <p className="mb-1 text-sm text-neutral-6">Tổng sản phẩm</p>
                 <p className="text-2xl font-bold text-neutral-9">
-                  {products?.length || shopInfo?.productsCount || 0}
+                  {analytics?.productsCount || products?.length || shopInfo?.productsCount || 0}
                 </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 transition-all hover:shadow-lg">
             <div className="flex gap-4 items-center">
-              <div className="flex justify-center items-center w-12 h-12 rounded-lg bg-success/20 text-success">
-                <ShoppingCart className="w-6 h-6" />
+              <div className="flex justify-center items-center w-12 h-12 rounded-lg bg-gradient-to-br from-primary-8 to-primary-6 text-white shadow-md">
+                <Users className="w-6 h-6" />
               </div>
               <div>
-                <p className="mb-1 text-sm text-neutral-6">Tổng đơn hàng</p>
-                <p className="text-2xl font-bold text-neutral-9">{orders?.length || 0}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex gap-4 items-center">
-              <div className="flex justify-center items-center w-12 h-12 rounded-lg bg-warning/20 text-warning">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="mb-1 text-sm text-neutral-6">Đánh giá trung bình</p>
+                <p className="mb-1 text-sm text-neutral-6">Khách hàng thân thiết</p>
                 <p className="text-2xl font-bold text-neutral-9">
-                  {shopInfo?.rating ? shopInfo.rating.toFixed(1) : "0.0"}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex gap-4 items-center">
-              <div className="flex justify-center items-center w-12 h-12 rounded-lg bg-brand/20 text-brand">
-                <Store className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="mb-1 text-sm text-neutral-6">Trạng thái</p>
-                <p className="text-lg font-bold text-neutral-9">
-                  {currentStatus === ShopStatus.ACTIVE
-                    ? "Đang hoạt động"
-                    : currentStatus === ShopStatus.PENDING_REVIEW
-                      ? "Chờ duyệt"
-                      : currentStatus === ShopStatus.APPROVED
-                        ? "Đã duyệt"
-                        : "Khác"}
+                  {analytics?.topCustomers?.length || 0}
                 </p>
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <Section>
-          <SectionTitle>Thao tác nhanh</SectionTitle>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {canEdit && (
-              <>
-                <Button
-                  color="blue"
-                  variant="outline"
-                  size="lg"
-                  fullWidth
-                  icon={<Plus className="w-5 h-5" />}
-                  onClick={() => navigate(NAVIGATION_CONFIG.addProduct.path)}
-                >
-                  Thêm sản phẩm mới
-                </Button>
-                <Button
-                  color="blue"
-                  variant="outline"
-                  size="lg"
-                  fullWidth
-                  icon={<Package className="w-5 h-5" />}
-                  onClick={() => navigate(NAVIGATION_CONFIG.listProduct.path)}
-                >
-                  Quản lý sản phẩm
-                </Button>
-                <Button
-                  color="blue"
-                  variant="outline"
-                  size="lg"
-                  fullWidth
-                  icon={<ShoppingCart className="w-5 h-5" />}
-                  onClick={() => navigate(NAVIGATION_CONFIG.ordersShopManager.path)}
-                >
-                  Quản lý đơn hàng
-                </Button>
-              </>
-            )}
-            {!canEdit && (
-              <Card className="col-span-full p-6">
-                <div className="text-center">
-                  <p className="mb-2 text-lg font-semibold text-neutral-9">
-                    Cửa hàng chưa được kích hoạt
-                  </p>
-                  <p className="text-sm text-neutral-6">
-                    {currentStatus === ShopStatus.PENDING_REVIEW
-                      ? "Cửa hàng của bạn đang chờ được xét duyệt. Vui lòng đợi quản trị viên phê duyệt."
-                      : currentStatus === ShopStatus.REJECTED
-                        ? "Đơn đăng ký cửa hàng của bạn đã bị từ chối. Vui lòng liên hệ quản trị viên để biết thêm chi tiết."
-                        : "Vui lòng hoàn tất đăng ký cửa hàng để sử dụng các tính năng quản lý."}
-                  </p>
+        {/* Analytics Section */}
+        {canEdit && (
+          <>
+            {/* Analytics Loading State */}
+            {analyticsLoading && (
+              <Card className="p-8">
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <Loading size="md" />
+                  <p className="text-sm text-neutral-6">Đang tải dữ liệu thống kê...</p>
                 </div>
               </Card>
             )}
-          </div>
-        </Section>
 
-        {/* Recent Products */}
-        {canEdit && products && products.length > 0 && (
-          <Section>
-            <div className="flex justify-between items-center mb-4">
-              <SectionTitle>Sản phẩm gần đây</SectionTitle>
-              <Button
-                color="blue"
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(NAVIGATION_CONFIG.listProduct.path)}
-              >
-                Xem tất cả
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-              {products.slice(0, 5).map((product) => {
-                const imageUrl = getImageUrl(product.images);
-                const hasImageError = imageErrors.has(`product-${product._id}`);
-                return (
-                  <Card key={product._id} className="p-4 transition-shadow hover:shadow-lg">
-                    <div className="overflow-hidden mb-3 rounded-lg aspect-square bg-neutral-2 group">
-                      {imageUrl && !hasImageError ? (
-                        <img
-                          src={imageUrl}
-                          alt={product.name}
-                          className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
-                          onError={() => handleImageError(`product-${product._id}`)}
-                        />
-                      ) : (
-                        <div className="flex justify-center items-center w-full h-full">
-                          <Package className="w-8 h-8 text-neutral-4" />
-                        </div>
+            {/* Analytics Error State */}
+            {analyticsError && !analyticsLoading && (
+              <Card className="p-8">
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <Empty
+                    variant="default"
+                    title="Không thể tải dữ liệu thống kê"
+                    description={analyticsError}
+                    icon="warning"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        setAnalyticsLoading(true);
+                        setAnalyticsError(null);
+                        const response = await shopManagementApi.getAnalytics({});
+                        if (response.success && response.data) {
+                          setAnalytics(response.data);
+                        } else {
+                          setAnalyticsError(response.message || "Không thể tải dữ liệu thống kê");
+                        }
+                      } catch (error) {
+                        setAnalyticsError("Lỗi kết nối khi tải dữ liệu thống kê");
+                      } finally {
+                        setAnalyticsLoading(false);
+                      }
+                    }}
+                  >
+                    Thử lại
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* Analytics Charts */}
+            {!analyticsLoading && !analyticsError && analytics && (
+              <>
+                {/* Check if we have any chart data */}
+                {(
+                  (analytics.revenueVsProfit && Array.isArray(analytics.revenueVsProfit) && analytics.revenueVsProfit.length > 0) ||
+                  (analytics.walletTransactions && Array.isArray(analytics.walletTransactions) && analytics.walletTransactions.length > 0) ||
+                  (analytics.revenueByDate && Array.isArray(analytics.revenueByDate) && analytics.revenueByDate.length > 0) ||
+                  (analytics.orderStatusWithColors && Array.isArray(analytics.orderStatusWithColors) && analytics.orderStatusWithColors.length > 0) ||
+                  (analytics.inventory && typeof analytics.inventory === 'object') ||
+                  (analytics.topProducts && Array.isArray(analytics.topProducts) && analytics.topProducts.length > 0) ||
+                  (analytics.topCustomers && Array.isArray(analytics.topCustomers) && analytics.topCustomers.length > 0)
+                ) ? (
+                  <>
+                    {/* New Charts Row */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                      {analytics?.revenueVsProfit && Array.isArray(analytics.revenueVsProfit) && analytics.revenueVsProfit.length > 0 && (
+                        <RevenueProfitChart data={analytics.revenueVsProfit} />
+                      )}
+                      {analytics?.walletTransactions && Array.isArray(analytics.walletTransactions) && analytics.walletTransactions.length > 0 && (
+                        <WalletTransactionsChart data={analytics.walletTransactions} />
                       )}
                     </div>
-                    <h3 className="mb-1 text-sm font-semibold text-neutral-9 line-clamp-2 hover:text-primary-6 transition-colors">
-                      {product.name}
-                    </h3>
-                    <p className="text-sm font-bold text-primary-6">
-                      {new Intl.NumberFormat("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      }).format(product.price)}
-                    </p>
+
+                    {/* Second Row */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                      {analytics?.revenueByDate && Array.isArray(analytics.revenueByDate) && analytics.revenueByDate.length > 0 && (
+                        <RevenueChart data={analytics.revenueByDate} type="day" />
+                      )}
+                      {analytics?.orderStatusWithColors && Array.isArray(analytics.orderStatusWithColors) && analytics.orderStatusWithColors.length > 0 && (
+                        <OrderStatusChart data={analytics.orderStatusWithColors} />
+                      )}
+                    </div>
+
+                    {/* Third Row */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                      {analytics?.inventory && typeof analytics.inventory === 'object' && (
+                        <InventoryChart
+                          totalStock={analytics.inventory.totalStock || 0}
+                          lowStockCount={analytics.inventory.lowStockCount || 0}
+                          outOfStockCount={analytics.inventory.outOfStockCount || 0}
+                          productsCount={analytics.productsCount || 0}
+                        />
+                      )}
+                      {/* Placeholder for future chart */}
+                      <div className="hidden lg:block"></div>
+                    </div>
+
+                    {analytics?.topProducts && Array.isArray(analytics.topProducts) && analytics.topProducts.length > 0 && (
+                      <Section>
+                        <TopProductsChart products={analytics.topProducts} />
+                      </Section>
+                    )}
+
+                    {analytics?.topCustomers && Array.isArray(analytics.topCustomers) && analytics.topCustomers.length > 0 && (
+                      <Section>
+                        <CustomerChart customers={analytics.topCustomers} />
+                      </Section>
+                    )}
+                  </>
+                ) : (
+                  <Card className="p-8">
+                    <Empty
+                      variant="default"
+                      title="Chưa có dữ liệu thống kê"
+                      description="Dữ liệu thống kê sẽ xuất hiện khi cửa hàng có hoạt động kinh doanh."
+                      icon="chart"
+                    />
                   </Card>
-                );
-              })}
-            </div>
-          </Section>
+                )}
+              </>
+            )}
+          </>
         )}
 
-        {/* Recent Orders */}
-        {canEdit && orders && orders.length > 0 && (
-          <Section>
-            <div className="flex justify-between items-center mb-4">
-              <SectionTitle>Đơn hàng gần đây</SectionTitle>
-              <Button
-                color="blue"
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(NAVIGATION_CONFIG.ordersShopManager.path)}
-              >
-                Xem tất cả
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {orders.slice(0, 5).map((order) => (
-                <Card key={order._id} className="p-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-semibold text-neutral-9">#{order.orderNumber}</p>
-                      <p className="text-sm text-neutral-6">
-                        {new Date(order.createdAt).toLocaleDateString("vi-VN")}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-primary-6">
-                        {new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        }).format(order.totalAmount)}
-                      </p>
-                      <p className="text-xs capitalize text-neutral-6">{order.orderStatus}</p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </Section>
-        )}
       </div>
     </ShopManagerLayout>
   );

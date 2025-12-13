@@ -336,9 +336,8 @@ export default function ProductVariantsManager({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-center">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-7">Quản lý biến thể sản phẩm</h3>
           <p className="text-sm text-neutral-5 mt-1">
             Tạo các biến thể với giá, số lượng và hình ảnh riêng cho mỗi tổ hợp thuộc tính
           </p>

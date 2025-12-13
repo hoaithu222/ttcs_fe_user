@@ -525,7 +525,33 @@ type ProductFormState = {
       </div>
 
       <Form.Root onSubmit={handleSubmit} className="space-y-6">
-        {/* AI Full Form Generator - Generate all fields at once */}
+
+
+        <Section>
+          <SectionTitle>Thông tin cơ bản</SectionTitle>
+          <div className="space-y-4">
+            <div className="space-y-4 border border-border-1 rounded-lg p-4">
+              <p className="text-sm font-semibold text-neutral-7">Hình ảnh sản phẩm</p>
+              <ImageUploadMulti
+                label="Upload nhiều ảnh sản phẩm (tối đa 10 ảnh)"
+                value={productImages}
+                onChange={(images) => {
+                  const normalized = images || [];
+                  setProductImages(normalized);
+                  setData((prev) => ({
+                    ...prev,
+                    images: normalized,
+                  }));
+                }}
+                onUpload={handleImageUpload}
+                maxFiles={10}
+                maxSizeInMB={5}
+              />
+              <p className="text-xs text-neutral-5">
+                💡 Ảnh đầu tiên sẽ được sử dụng làm ảnh đại diện của sản phẩm
+              </p>
+            </div>
+                    {/* AI Full Form Generator - Generate all fields at once */}
         {data.name && (
           <div className="p-4 bg-gradient-to-r from-primary-10/30 to-primary-6/10 rounded-xl border border-primary-6/20">
             <AiFullFormGenerator
@@ -554,31 +580,6 @@ type ProductFormState = {
             />
           </div>
         )}
-
-        <Section>
-          <SectionTitle>Thông tin cơ bản</SectionTitle>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-neutral-7">Hình ảnh sản phẩm</p>
-              <ImageUploadMulti
-                label="Upload nhiều ảnh sản phẩm (tối đa 10 ảnh)"
-                value={productImages}
-                onChange={(images) => {
-                  const normalized = images || [];
-                  setProductImages(normalized);
-                  setData((prev) => ({
-                    ...prev,
-                    images: normalized,
-                  }));
-                }}
-                onUpload={handleImageUpload}
-                maxFiles={10}
-                maxSizeInMB={5}
-              />
-              <p className="text-xs text-neutral-5">
-                💡 Ảnh đầu tiên sẽ được sử dụng làm ảnh đại diện của sản phẩm
-              </p>
-            </div>
 
             <Input
               name="name"
@@ -748,7 +749,7 @@ type ProductFormState = {
                   <label className="block text-sm font-semibold text-neutral-7">
                     Thông tin bảo hành
                   </label>
-                  <Button
+                  {/* <Button
                     type="button"
                     color="blue"
                     variant="ghost"
@@ -763,7 +764,7 @@ type ProductFormState = {
                     }}
                   >
                     AI
-                  </Button>
+                  </Button> */}
                 </div>
                 <Input
                   name="warrantyInfo"

@@ -354,7 +354,7 @@ const Header = () => {
               </div>
 
               {/* User Profile Dropdown */}
-              <div className="relative z-50" ref={dropdownRef}>
+              <div className="relative z-5" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center px-3 py-2 space-x-3 rounded-lg transition-colors hover:bg-background-2"

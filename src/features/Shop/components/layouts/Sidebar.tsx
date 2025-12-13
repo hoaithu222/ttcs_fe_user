@@ -44,9 +44,9 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full border-r shadow-lg  border-border-2">
+    <div className="flex flex-col h-full border-r shadow-xl bg-gradient-to-b from-background-1 to-background-2 border-border-2">
       {/* Navigation Menu */}
-      <nav className="overflow-y-auto flex-1 pr-4 py-6 space-y-1">
+      <nav className="overflow-y-auto flex-1 pr-4 py-6 space-y-2">
         {menuItems.map((item, index) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
