@@ -85,7 +85,31 @@ const DetailProduct: React.FC<DetailProductProps> = ({
     });
   };
 
-  const imageUrls = getImageUrls(product.images);
+  // Get variant image URL
+  const getVariantImageUrl = (image: ProductVariant["image"]): string | null => {
+    if (!image) return null;
+    if (typeof image === "string") return image;
+    if (typeof image === "object" && "url" in image) return image.url || null;
+    return null;
+  };
+
+  // Combine product images with selected variant image
+  const getDisplayImages = (): string[] => {
+    const productImages = getImageUrls(product.images);
+    
+    // If a variant is selected and has an image, show it first
+    if (localSelectedVariant) {
+      const variantImageUrl = getVariantImageUrl(localSelectedVariant.image);
+      if (variantImageUrl) {
+        // Add variant image at the beginning, followed by product images
+        return [variantImageUrl, ...productImages.filter(url => url !== variantImageUrl)];
+      }
+    }
+    
+    return productImages;
+  };
+
+  const imageUrls = getDisplayImages();
 
   // Use variant price if selected, otherwise use product price
   const currentPrice = localSelectedVariant?.price || product.price || 0;
@@ -107,9 +131,24 @@ const DetailProduct: React.FC<DetailProductProps> = ({
       setLocalSelectedVariant(selectedVariant);
       if (selectedVariant) {
         setVariantError(false);
+        // Switch to variant image if available
+        const variantImageUrl = getVariantImageUrl(selectedVariant.image);
+        if (variantImageUrl) {
+          setSelectedImageIndex(0); // Variant image is now at index 0
+        }
       }
     }
   }, [selectedVariant]);
+
+  // Update main image when variant changes
+  useEffect(() => {
+    if (localSelectedVariant) {
+      const variantImageUrl = getVariantImageUrl(localSelectedVariant.image);
+      if (variantImageUrl) {
+        setSelectedImageIndex(0); // Show variant image
+      }
+    }
+  }, [localSelectedVariant]);
 
   // Handle variant selection
   const handleVariantSelect = (variant: ProductVariant) => {
@@ -319,13 +358,14 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                       );
                       const isSelected = localSelectedVariant?.attributes[attrName] === value;
                       const isAvailable = variant && variant.stock > 0;
+                      const variantImageUrl = variant ? getVariantImageUrl(variant.image) : null;
 
                       return (
                         <button
                           key={value}
                           onClick={() => variant && handleVariantSelect(variant)}
                           disabled={!isAvailable}
-                          className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                          className={`group relative px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
                             isSelected
                               ? "border-primary-6 bg-primary-6/10 text-primary-6"
                               : isAvailable
@@ -333,10 +373,19 @@ const DetailProduct: React.FC<DetailProductProps> = ({
                                 : "border-border-1 text-neutral-4 cursor-not-allowed opacity-50"
                           }`}
                         >
-                          {formatAttributeValue(String(value))}
-                          {variant && variant.stock > 0 && (
-                            <span className="ml-1 text-xs">({variant.stock})</span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {variantImageUrl && (
+                              <img
+                                src={variantImageUrl}
+                                alt={formatAttributeValue(String(value))}
+                                className="w-8 h-8 rounded object-cover border border-border-1"
+                              />
+                            )}
+                            <span>{formatAttributeValue(String(value))}</span>
+                            {variant && variant.stock > 0 && (
+                              <span className="text-xs">({variant.stock})</span>
+                            )}
+                          </div>
                         </button>
                       );
                     })}
@@ -348,20 +397,31 @@ const DetailProduct: React.FC<DetailProductProps> = ({
             {/* Display selected variant info */}
             {localSelectedVariant && (
               <div className="p-3 bg-background-2 rounded-lg border border-border-1">
-                <div className="flex gap-2 items-center text-sm">
-                  <span className="font-medium text-neutral-9">Đã chọn:</span>
-                  <span className="text-neutral-7">
-                    {Object.entries(localSelectedVariant.attributes)
-                      .map(
-                        ([key, value]) =>
-                          `${formatAttributeLabel(key)}: ${formatAttributeValue(String(value))}`
-                      )
-                      .join(", ")}
-                  </span>
+                <div className="flex gap-3 items-center">
+                  {getVariantImageUrl(localSelectedVariant.image) && (
+                    <img
+                      src={getVariantImageUrl(localSelectedVariant.image)!}
+                      alt="Selected variant"
+                      className="w-16 h-16 rounded-lg object-cover border-2 border-primary-6"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex gap-2 items-center text-sm">
+                      <span className="font-medium text-neutral-9">Đã chọn:</span>
+                      <span className="text-neutral-7">
+                        {Object.entries(localSelectedVariant.attributes)
+                          .map(
+                            ([key, value]) =>
+                              `${formatAttributeLabel(key)}: ${formatAttributeValue(String(value))}`
+                          )
+                          .join(", ")}
+                      </span>
+                    </div>
+                    {localSelectedVariant.sku && (
+                      <div className="text-xs text-neutral-6 mt-1">SKU: {localSelectedVariant.sku}</div>
+                    )}
+                  </div>
                 </div>
-                {localSelectedVariant.sku && (
-                  <div className="text-xs text-neutral-6 mt-1">SKU: {localSelectedVariant.sku}</div>
-                )}
               </div>
             )}
 

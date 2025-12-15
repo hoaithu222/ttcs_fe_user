@@ -115,3 +115,5 @@ const TopProductsChart: React.FC<TopProductsChartProps> = ({ products }) => {
 
 export default TopProductsChart;
 
+
+

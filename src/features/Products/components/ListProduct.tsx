@@ -100,6 +100,14 @@ const ListProduct: React.FC<ListProductProps> = ({
   });
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
+  // Update local filters when initialFilters change
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      ...initialFilters,
+    }));
+  }, [initialFilters]);
+
   useEffect(() => {
     dispatch(getProductsStart(filters));
   }, [dispatch, filters]);
@@ -130,10 +138,10 @@ const ListProduct: React.FC<ListProductProps> = ({
         <div>
           <h2 className="text-2xl font-bold text-neutral-9">Danh sách sản phẩm</h2>
           {products && products.length > 0 && (
-            <p className="text-sm text-neutral-6 mt-1">Tìm thấy {products.length} sản phẩm</p>
+            <p className="text-sm text-neutral-6 mt-1 text-start">Tìm thấy {products.length} sản phẩm</p>
           )}
         </div>
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <Button
             color={viewMode === "grid" ? "blue" : "gray"}
             variant={viewMode === "grid" ? "solid" : "outline"}
@@ -152,7 +160,7 @@ const ListProduct: React.FC<ListProductProps> = ({
           >
             Danh sách
           </Button>
-        </div>
+        </div> */}
       </div>
 
       <div className="flex gap-6">

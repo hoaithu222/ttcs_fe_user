@@ -133,3 +133,5 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, type = "day" }) => {
 
 export default RevenueChart;
 
+
+

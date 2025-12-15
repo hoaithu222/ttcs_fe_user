@@ -94,3 +94,5 @@ const CustomerChart: React.FC<CustomerChartProps> = ({ customers }) => {
 
 export default CustomerChart;
 
+
+
