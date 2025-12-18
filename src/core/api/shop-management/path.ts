@@ -11,6 +11,7 @@ export const SHOP_MANAGEMENT_ENDPOINTS = {
   ORDERS: "/shops/my-shop/orders",
   ORDER_DETAIL: "/shops/my-shop/orders/:orderId",
   UPDATE_ORDER_STATUS: "/shops/my-shop/orders/:orderId/status",
+  ORDER_STATISTICS: "/shops/my-shop/orders/statistics",
   FOLLOWERS: "/shops/my-shop/followers",
   REVIEWS: "/shops/my-shop/reviews",
   ANALYTICS: "/shops/my-shop/analytics",

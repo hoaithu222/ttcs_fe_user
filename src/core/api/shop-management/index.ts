@@ -12,6 +12,7 @@ import type {
   ShopOrdersQuery,
   ShopProductsResponse,
   ShopOrdersResponse,
+  OrderStatistics,
   ApiSuccess,
 } from "./type";
 import { VpsHttpClient } from "@/core/base/http-client";
@@ -97,6 +98,12 @@ class ShopManagementApiService extends VpsHttpClient {
   ): Promise<ApiSuccess<ShopOrder>> {
     const endpoint = buildEndpoint(SHOP_MANAGEMENT_ENDPOINTS.UPDATE_ORDER_STATUS, { orderId });
     const response = await this.put(endpoint, data);
+    return response.data;
+  }
+
+  // Get order statistics (counts by status)
+  async getOrderStatistics(): Promise<ApiSuccess<OrderStatistics>> {
+    const response = await this.get(SHOP_MANAGEMENT_ENDPOINTS.ORDER_STATISTICS);
     return response.data;
   }
 

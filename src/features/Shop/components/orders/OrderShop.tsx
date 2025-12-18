@@ -127,21 +127,10 @@ const OrderShop: React.FC = () => {
 
   const fetchStatusTotals = useCallback(async () => {
     try {
-      const responses = await Promise.all(
-        ORDER_TABS.map((tab) =>
-          shopManagementApi.getOrders({
-            page: 1,
-            limit: 1,
-            orderStatus: tab.value === "all" ? undefined : tab.value,
-          })
-        )
-      );
-      const totals: Record<string, number> = {};
-      responses.forEach((response, index) => {
-        const key = ORDER_TABS[index].value;
-        totals[key] = response.data?.pagination?.total ?? 0;
-      });
-      setStatusTotals(totals);
+      const result = await shopManagementApi.getOrderStatistics();
+      if (result.success && result.data) {
+        setStatusTotals(result.data as Record<string, number>);
+      }
     } catch (error) {
       console.error("Failed to load order totals", error);
     }

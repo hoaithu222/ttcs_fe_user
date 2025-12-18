@@ -227,6 +227,17 @@ export interface ShopOrdersResponse {
   };
 }
 
+export interface OrderStatistics {
+  [key: string]: any;
+  all: number;
+  pending: number;
+  processing: number;
+  shipped: number;
+  delivered: number;
+  cancelled: number;
+  returned?: number;
+}
+
 // API response wrapper
 export interface ApiSuccess<T = any> {
   success: boolean;
