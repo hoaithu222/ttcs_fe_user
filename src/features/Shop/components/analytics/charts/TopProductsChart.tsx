@@ -11,6 +11,7 @@ import {
   Legend,
 } from "recharts";
 import { Trophy } from "lucide-react";
+import Empty from "@/foundation/components/empty/Empty";
 
 interface TopProduct {
   _id: string;
@@ -72,43 +73,53 @@ const TopProductsChart: React.FC<TopProductsChartProps> = ({ products }) => {
           <p className="text-sm text-neutral-6">Top {products.length} sản phẩm</p>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={350}>
-        <BarChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-          layout="vertical"
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis type="number" stroke="#6b7280" style={{ fontSize: "12px" }} />
-          <YAxis
-            dataKey="name"
-            type="category"
-            stroke="#6b7280"
-            style={{ fontSize: "12px" }}
-            width={150}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            formatter={(value) => {
-              if (value === "sold") return "Số lượng bán";
-              if (value === "revenue") return "Doanh thu";
-              return value;
-            }}
-          />
-          <Bar
-            dataKey="sold"
-            fill="#3b82f6"
-            radius={[0, 8, 8, 0]}
-            name="sold"
-          />
-          <Bar
-            dataKey="revenue"
-            fill="#10b981"
-            radius={[0, 8, 8, 0]}
-            name="revenue"
-          />
-        </BarChart>
-      </ResponsiveContainer>
+      
+      {products.length === 0 ? (
+        <Empty 
+          variant="data" 
+          size="small" 
+          title="Chưa có dữ liệu sản phẩm" 
+          description="Bán sản phẩm đầu tiên để xem thống kê tại đây" 
+        />
+      ) : (
+        <ResponsiveContainer width="100%" height={350}>
+          <BarChart
+            data={chartData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+            layout="vertical"
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis type="number" stroke="#6b7280" style={{ fontSize: "12px" }} />
+            <YAxis
+              dataKey="name"
+              type="category"
+              stroke="#6b7280"
+              style={{ fontSize: "12px" }}
+              width={150}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              formatter={(value) => {
+                if (value === "sold") return "Số lượng bán";
+                if (value === "revenue") return "Doanh thu";
+                return value;
+              }}
+            />
+            <Bar
+              dataKey="sold"
+              fill="#3b82f6"
+              radius={[0, 8, 8, 0]}
+              name="sold"
+            />
+            <Bar
+              dataKey="revenue"
+              fill="#10b981"
+              radius={[0, 8, 8, 0]}
+              name="revenue"
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </Card>
   );
 };

@@ -11,6 +11,7 @@ import {
   Legend,
 } from "recharts";
 import { TrendingUp } from "lucide-react";
+import Empty from "@/foundation/components/empty/Empty";
 
 interface RevenueChartProps {
   data: Array<{
@@ -73,60 +74,70 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, type = "day" }) => {
           <p className="text-sm text-neutral-6">Xu hướng doanh thu và đơn hàng</p>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis
-            dataKey={type === "month" ? "month" : "date"}
-            tickFormatter={formatDate}
-            stroke="#6b7280"
-            style={{ fontSize: "12px" }}
-          />
-          <YAxis
-            yAxisId="revenue"
-            orientation="left"
-            tickFormatter={formatCurrency}
-            stroke="#6b7280"
-            style={{ fontSize: "12px" }}
-          />
-          <YAxis
-            yAxisId="orders"
-            orientation="right"
-            stroke="#10b981"
-            style={{ fontSize: "12px" }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            wrapperStyle={{ paddingTop: "20px" }}
-            iconType="line"
-            formatter={(value) => {
-              if (value === "revenue") return "Doanh thu";
-              if (value === "orders") return "Đơn hàng";
-              return value;
-            }}
-          />
-          <Line
-            yAxisId="revenue"
-            type="monotone"
-            dataKey="revenue"
-            stroke="#3b82f6"
-            strokeWidth={3}
-            dot={{ fill: "#3b82f6", r: 4 }}
-            activeDot={{ r: 6 }}
-            name="revenue"
-          />
-          <Line
-            yAxisId="orders"
-            type="monotone"
-            dataKey="orders"
-            stroke="#10b981"
-            strokeWidth={2}
-            dot={{ fill: "#10b981", r: 4 }}
-            activeDot={{ r: 6 }}
-            name="orders"
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      
+      {!data || data.length === 0 ? (
+        <Empty 
+          variant="data" 
+          size="small" 
+          title="Chưa có dữ liệu doanh thu" 
+          description="Dữ liệu sẽ được cập nhật khi có đơn hàng hoàn tất" 
+        />
+      ) : (
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis
+              dataKey={type === "month" ? "month" : "date"}
+              tickFormatter={formatDate}
+              stroke="#6b7280"
+              style={{ fontSize: "12px" }}
+            />
+            <YAxis
+              yAxisId="revenue"
+              orientation="left"
+              tickFormatter={formatCurrency}
+              stroke="#6b7280"
+              style={{ fontSize: "12px" }}
+            />
+            <YAxis
+              yAxisId="orders"
+              orientation="right"
+              stroke="#10b981"
+              style={{ fontSize: "12px" }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              wrapperStyle={{ paddingTop: "20px" }}
+              iconType="line"
+              formatter={(value) => {
+                if (value === "revenue") return "Doanh thu";
+                if (value === "orders") return "Đơn hàng";
+                return value;
+              }}
+            />
+            <Line
+              yAxisId="revenue"
+              type="monotone"
+              dataKey="revenue"
+              stroke="#3b82f6"
+              strokeWidth={3}
+              dot={{ fill: "#3b82f6", r: 4 }}
+              activeDot={{ r: 6 }}
+              name="revenue"
+            />
+            <Line
+              yAxisId="orders"
+              type="monotone"
+              dataKey="orders"
+              stroke="#10b981"
+              strokeWidth={2}
+              dot={{ fill: "#10b981", r: 4 }}
+              activeDot={{ r: 6 }}
+              name="orders"
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </Card>
   );
 };

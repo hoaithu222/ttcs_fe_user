@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { Package } from "lucide-react";
 import { OrderStatusData, OrderStatus } from "./types";
+import Empty from "@/foundation/components/empty/Empty";
 
 interface OrderStatusChartProps {
   data: OrderStatusData[];
@@ -96,55 +97,67 @@ const OrderStatusChart: React.FC<OrderStatusChartProps> = ({ data }) => {
           <p className="text-sm text-neutral-6">Phân bố trạng thái đơn hàng</p>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={350}>
-        <PieChart>
-          <Pie
-            data={dataWithTotal}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            label={renderCustomizedLabel}
-            outerRadius={120}
-            innerRadius={60}
-            fill="#8884d8"
-            dataKey="count"
-          >
-            {dataWithTotal.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.fill} />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
+      
+      {!data || data.length === 0 ? (
+        <Empty 
+          variant="data" 
+          size="small" 
+          title="Chưa có dữ liệu đơn hàng" 
+          description="Trạng thái đơn hàng sẽ được thống kê tại đây" 
+        />
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={350}>
+            <PieChart>
+              <Pie
+                data={dataWithTotal}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={renderCustomizedLabel}
+                outerRadius={120}
+                innerRadius={60}
+                fill="#8884d8"
+                dataKey="count"
+              >
+                {dataWithTotal.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
           <Legend
             wrapperStyle={{ paddingTop: "20px" }}
-            formatter={(value, entry: any) => (
+            formatter={(_, entry: any) => (
               <span style={{ color: entry.color }}>
                 {getStatusDisplayName(entry.payload.status)}
               </span>
             )}
           />
-        </PieChart>
-      </ResponsiveContainer>
+            </PieChart>
+          </ResponsiveContainer>
 
-      {/* Status Summary */}
-      <div className="grid grid-cols-2 gap-3 mt-6 md:grid-cols-3">
-        {data.map((item, index) => (
-          <div
-            key={index}
-            className="flex items-center gap-2 p-2 rounded-lg bg-neutral-50"
-          >
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: item.fill }}
-            />
-            <div className="flex-1">
-              <p className="text-xs font-medium text-neutral-9">
-                {getStatusDisplayName(item.status)}
-              </p>
-              <p className="text-sm font-bold text-neutral-9">{item.count}</p>
-            </div>
+          {/* Status Summary */}
+          <div className="grid grid-cols-2 gap-3 mt-6 md:grid-cols-3">
+            {data.map((item, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 p-2 rounded-lg bg-neutral-50"
+              >
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: item.fill }}
+                />
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-neutral-9">
+                    {getStatusDisplayName(item.status)}
+                  </p>
+                  <p className="text-sm font-bold text-neutral-9">{item.count}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </Card>
   );
 };

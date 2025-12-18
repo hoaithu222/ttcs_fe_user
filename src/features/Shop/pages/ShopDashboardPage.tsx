@@ -314,75 +314,39 @@ const ShopDashboardPage: React.FC = () => {
 
             {/* Analytics Charts */}
             {!analyticsLoading && !analyticsError && analytics && (
-              <>
-                {/* Check if we have any chart data */}
-                {(
-                  (analytics.revenueVsProfit && Array.isArray(analytics.revenueVsProfit) && analytics.revenueVsProfit.length > 0) ||
-                  (analytics.walletTransactions && Array.isArray(analytics.walletTransactions) && analytics.walletTransactions.length > 0) ||
-                  (analytics.revenueByDate && Array.isArray(analytics.revenueByDate) && analytics.revenueByDate.length > 0) ||
-                  (analytics.orderStatusWithColors && Array.isArray(analytics.orderStatusWithColors) && analytics.orderStatusWithColors.length > 0) ||
-                  (analytics.inventory && typeof analytics.inventory === 'object') ||
-                  (analytics.topProducts && Array.isArray(analytics.topProducts) && analytics.topProducts.length > 0) ||
-                  (analytics.topCustomers && Array.isArray(analytics.topCustomers) && analytics.topCustomers.length > 0)
-                ) ? (
-                  <>
-                    {/* New Charts Row */}
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                      {analytics?.revenueVsProfit && Array.isArray(analytics.revenueVsProfit) && analytics.revenueVsProfit.length > 0 && (
-                        <RevenueProfitChart data={analytics.revenueVsProfit} />
-                      )}
-                      {analytics?.walletTransactions && Array.isArray(analytics.walletTransactions) && analytics.walletTransactions.length > 0 && (
-                        <WalletTransactionsChart data={analytics.walletTransactions} />
-                      )}
-                    </div>
+              <div className="space-y-6">
+                {/* New Charts Row */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <RevenueProfitChart data={analytics.revenueVsProfit || []} />
+                  <WalletTransactionsChart data={analytics.walletTransactions || []} />
+                </div>
 
-                    {/* Second Row */}
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                      {analytics?.revenueByDate && Array.isArray(analytics.revenueByDate) && analytics.revenueByDate.length > 0 && (
-                        <RevenueChart data={analytics.revenueByDate} type="day" />
-                      )}
-                      {analytics?.orderStatusWithColors && Array.isArray(analytics.orderStatusWithColors) && analytics.orderStatusWithColors.length > 0 && (
-                        <OrderStatusChart data={analytics.orderStatusWithColors} />
-                      )}
-                    </div>
+                {/* Second Row */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <RevenueChart data={analytics.revenueByDate || []} type="day" />
+                  <OrderStatusChart data={analytics.orderStatusWithColors || []} />
+                </div>
 
-                    {/* Third Row */}
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                      {analytics?.inventory && typeof analytics.inventory === 'object' && (
-                        <InventoryChart
-                          totalStock={analytics.inventory.totalStock || 0}
-                          lowStockCount={analytics.inventory.lowStockCount || 0}
-                          outOfStockCount={analytics.inventory.outOfStockCount || 0}
-                          productsCount={analytics.productsCount || 0}
-                        />
-                      )}
-                      {/* Placeholder for future chart */}
-                      <div className="hidden lg:block"></div>
-                    </div>
+                {/* Third Row */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <InventoryChart
+                    totalStock={analytics.inventory?.totalStock || 0}
+                    lowStockCount={analytics.inventory?.lowStockCount || 0}
+                    outOfStockCount={analytics.inventory?.outOfStockCount || 0}
+                    productsCount={analytics.productsCount || 0}
+                  />
+                  {/* Placeholder for future chart or spacing */}
+                  <div className="hidden lg:block"></div>
+                </div>
 
-                    {analytics?.topProducts && Array.isArray(analytics.topProducts) && analytics.topProducts.length > 0 && (
-                      <Section>
-                        <TopProductsChart products={analytics.topProducts} />
-                      </Section>
-                    )}
+                <Section>
+                  <TopProductsChart products={analytics.topProducts || []} />
+                </Section>
 
-                    {analytics?.topCustomers && Array.isArray(analytics.topCustomers) && analytics.topCustomers.length > 0 && (
-                      <Section>
-                        <CustomerChart customers={analytics.topCustomers} />
-                      </Section>
-                    )}
-                  </>
-                ) : (
-                  <Card className="p-8">
-                    <Empty
-                      variant="default"
-                      title="Chưa có dữ liệu thống kê"
-                      description="Dữ liệu thống kê sẽ xuất hiện khi cửa hàng có hoạt động kinh doanh."
-                      icon="chart"
-                    />
-                  </Card>
-                )}
-              </>
+                <Section>
+                  <CustomerChart customers={analytics.topCustomers || []} />
+                </Section>
+              </div>
             )}
           </>
         )}

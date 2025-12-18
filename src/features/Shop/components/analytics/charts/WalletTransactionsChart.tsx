@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { Wallet } from "lucide-react";
 import { WalletTransactionData } from "./types";
+import Empty from "@/foundation/components/empty/Empty";
 
 interface WalletTransactionsChartProps {
   data: WalletTransactionData[];
@@ -71,49 +72,59 @@ const WalletTransactionsChart: React.FC<WalletTransactionsChartProps> = ({ data 
           <p className="text-sm text-neutral-6">Tiền vào vs Tiền ra theo tháng</p>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={350}>
-        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis
-            dataKey="month"
-            tickFormatter={formatMonth}
-            stroke="#6b7280"
-            style={{ fontSize: "12px" }}
-          />
-          <YAxis
-            tickFormatter={formatCurrency}
-            stroke="#6b7280"
-            style={{ fontSize: "12px" }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            wrapperStyle={{ paddingTop: "20px" }}
-            formatter={(value) => {
-              if (value === "income") return "Tiền vào";
-              if (value === "expense") return "Tiền ra";
-              return value;
-            }}
-          />
-          <Bar
-            dataKey="income"
-            stackId="a"
-            fill="#10b981"
-            stroke="#10b981"
-            strokeWidth={1}
-            name="income"
-            radius={[0, 0, 0, 0]}
-          />
-          <Bar
-            dataKey="expense"
-            stackId="a"
-            fill="#ef4444"
-            stroke="#ef4444"
-            strokeWidth={1}
-            name="expense"
-            radius={[4, 4, 0, 0]}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+      
+      {!data || data.length === 0 ? (
+        <Empty 
+          variant="data" 
+          size="small" 
+          title="Chưa có giao dịch ví" 
+          description="Lịch sử dòng tiền ví sẽ được thống kê tại đây" 
+        />
+      ) : (
+        <ResponsiveContainer width="100%" height={350}>
+          <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis
+              dataKey="month"
+              tickFormatter={formatMonth}
+              stroke="#6b7280"
+              style={{ fontSize: "12px" }}
+            />
+            <YAxis
+              tickFormatter={formatCurrency}
+              stroke="#6b7280"
+              style={{ fontSize: "12px" }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              wrapperStyle={{ paddingTop: "20px" }}
+              formatter={(value) => {
+                if (value === "income") return "Tiền vào";
+                if (value === "expense") return "Tiền ra";
+                return value;
+              }}
+            />
+            <Bar
+              dataKey="income"
+              stackId="a"
+              fill="#10b981"
+              stroke="#10b981"
+              strokeWidth={1}
+              name="income"
+              radius={[0, 0, 0, 0]}
+            />
+            <Bar
+              dataKey="expense"
+              stackId="a"
+              fill="#ef4444"
+              stroke="#ef4444"
+              strokeWidth={1}
+              name="expense"
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </Card>
   );
 };

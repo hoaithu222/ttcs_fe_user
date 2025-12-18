@@ -1,6 +1,7 @@
 import React from "react";
 import { Card } from "@/foundation/components/info/Card";
 import { Users, ShoppingBag, DollarSign, Calendar } from "lucide-react";
+import Empty from "@/foundation/components/empty/Empty";
 
 interface Customer {
   userId: string;
@@ -46,10 +47,12 @@ const CustomerChart: React.FC<CustomerChartProps> = ({ customers }) => {
 
       <div className="space-y-3">
         {customers.length === 0 ? (
-          <div className="py-8 text-center">
-            <Users className="w-12 h-12 mx-auto mb-3 text-neutral-4" />
-            <p className="text-sm text-neutral-6">Chưa có dữ liệu khách hàng</p>
-          </div>
+          <Empty 
+            variant="users" 
+            size="small" 
+            title="Chưa có khách hàng" 
+            description="Thông tin khách hàng mua nhiều nhất sẽ hiển thị ở đây" 
+          />
         ) : (
           customers.map((customer, index) => (
             <div
