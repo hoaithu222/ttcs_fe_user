@@ -156,16 +156,9 @@ const OrderShop: React.FC = () => {
     );
   }, [dispatch, currentPage, activeTab]);
 
-  // Cập nhật statusTotals từ pagination.total khi load thành công
-  // Chỉ cập nhật tab hiện tại để không làm mất số của các tab khác
-  useEffect(() => {
-    if (ordersStatus === ReduxStateType.SUCCESS && pagination?.total !== undefined) {
-      setStatusTotals((prev) => ({
-        ...prev,
-        [activeTab]: pagination.total,
-      }));
-    }
-  }, [ordersStatus, pagination?.total, activeTab]);
+  // Tối ưu: Loại bỏ việc cập nhật statusTotals từ pagination.total để tránh nháy giá trị
+  // Chúng ta sẽ tin tưởng vào API getOrderStatistics (fetchStatusTotals) làm nguồn dữ liệu duy nhất cho các con số tổng quát.
+  // fetchStatusTotals đã được gọi khi mount và sau mỗi lần cập nhật trạng thái đơn hàng thành công.
 
   const dispatchStatusUpdate = useCallback(
     (orderId: string, data: { orderStatus: string; trackingNumber?: string; notes?: string }) => {
