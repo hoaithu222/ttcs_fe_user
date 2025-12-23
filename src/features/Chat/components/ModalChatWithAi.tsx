@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { X, Send, Image as ImageIcon, Smile, Minus } from "lucide-react";
+import { X, Send, Image as ImageIcon, Smile, Minus, Mic, Square } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
 import { useAppDispatch, useAppSelector } from "@/app/store";
 import {
@@ -52,10 +52,18 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
   const [isSending, setIsSending] = useState(false);
   const [isAiResponding, setIsAiResponding] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const [shouldSpeakResponse, setShouldSpeakResponse] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [transcript, setTranscript] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const synthRef = useRef<SpeechSynthesis | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isRecordingRef = useRef(false);
 
   // Helper function to scroll to bottom
   const scrollToBottom = useCallback(() => {
@@ -119,15 +127,190 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
     }
   }, [currentConversation?._id, messages.length, open, status, dispatch]);
 
+  // Initialize speech synthesis
+  useEffect(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      synthRef.current = window.speechSynthesis;
+    }
+  }, []);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = "vi-VN";
+
+      recognitionRef.current.onresult = (event: any) => {
+        let interimTranscript = "";
+        let finalTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + " ";
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        if (finalTranscript) {
+          setTranscript((prev) => prev + finalTranscript);
+          setMessage((prev) => prev + finalTranscript);
+        } else if (interimTranscript) {
+          const currentMessage = message || transcript;
+          if (textareaRef.current) {
+            textareaRef.current.value = currentMessage + interimTranscript;
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+          }
+        }
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        if (event.error === "no-speech" || event.error === "audio-capture") {
+          stopRecording();
+        }
+      };
+
+      recognitionRef.current.onend = () => {
+        if (isRecordingRef.current) {
+          try {
+            recognitionRef.current?.start();
+          } catch (e) {
+            console.error("Error restarting recognition:", e);
+            stopRecording();
+          }
+        }
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    };
+  }, []);
+
+  const startRecording = () => {
+    if (!recognitionRef.current) {
+      alert("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói");
+      return;
+    }
+
+    try {
+      setTranscript("");
+      setMessage("");
+      setIsRecording(true);
+      isRecordingRef.current = true;
+      setRecordingTime(0);
+      recognitionRef.current.start();
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      alert("Không thể bắt đầu ghi âm. Vui lòng kiểm tra quyền microphone.");
+      setIsRecording(false);
+      isRecordingRef.current = false;
+    }
+  };
+
+  const stopRecording = () => {
+    isRecordingRef.current = false;
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error("Error stopping recognition:", e);
+      }
+    }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setIsRecording(false);
+    setRecordingTime(0);
+
+    if (transcript || message) {
+      setMessage(transcript || message);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  // Function to speak text
+  const speakText = (text: string) => {
+    if (!synthRef.current) {
+      console.warn("Speech synthesis not supported");
+      return;
+    }
+
+    // Cancel any ongoing speech
+    synthRef.current.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "vi-VN";
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    // Try to use Vietnamese voice if available
+    const voices = synthRef.current.getVoices();
+    const vietnameseVoice = voices.find(
+      (voice) => voice.lang.includes("vi") || voice.lang.includes("VN")
+    );
+    if (vietnameseVoice) {
+      utterance.voice = vietnameseVoice;
+    }
+
+    synthRef.current.speak(utterance);
+  };
+
   // Reset state when modal closes
   useEffect(() => {
     if (!open) {
       setAttachments([]);
       setMessage("");
+      setTranscript("");
       setIsMinimized(false);
       setIsAiResponding(false);
+      setShouldSpeakResponse(false);
+      setIsRecording(false);
+      setRecordingTime(0);
+      // Stop any ongoing speech
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+      // Stop recording if active
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
     }
   }, [open]);
+
+  // Adjust textarea height
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      const maxHeight = isRecording ? 200 : 120;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, maxHeight)}px`;
+    }
+  }, [message, isRecording, transcript]);
 
   // Handle file selection and upload
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,6 +410,13 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
       name: att.name,
     }));
 
+    // Check if this was a voice message
+    const wasVoiceMessage = isRecording || transcript.length > 0;
+    if (wasVoiceMessage) {
+      setShouldSpeakResponse(true);
+      stopRecording();
+    }
+
     // Determine message type based on content
     let messageType: "text" | "image" | "file" = "text";
     if (attachmentsToSend.length > 0) {
@@ -254,6 +444,7 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
 
         // Clear state
         setMessage("");
+        setTranscript("");
         setAttachments([]);
         if (textareaRef.current) {
           textareaRef.current.style.height = "auto";
@@ -348,6 +539,15 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                 setTimeout(() => {
                   scrollToBottom();
                 }, 100);
+
+                // Speak AI response if user sent voice message
+                if (shouldSpeakResponse && aiResponse.data.response) {
+                  // Wait a bit for the message to appear, then speak
+                  setTimeout(() => {
+                    speakText(aiResponse.data.response);
+                  }, 500);
+                }
+                setShouldSpeakResponse(false);
               }
             }
           } catch (aiError) {
@@ -579,7 +779,7 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading || !isAiConversation || status === "LOADING" || isSending}
+                  disabled={isUploading || !isAiConversation || status === "LOADING" || isSending || isRecording}
                   className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                   title="Đính kèm ảnh"
                 >
@@ -587,6 +787,23 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                     <Spinner size="sm" />
                   ) : (
                     <ImageIcon className="w-4 h-4" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={!isAiConversation || status === "LOADING" || isSending || isUploading}
+                  className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
+                    isRecording
+                      ? "text-red-6 hover:text-red-7 hover:bg-red-1 bg-red-1"
+                      : "text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title={isRecording ? "Dừng ghi âm" : "Ghi âm giọng nói"}
+                >
+                  {isRecording ? (
+                    <Square className="w-4 h-4 fill-current" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
                   )}
                 </button>
                 <Popover
@@ -608,25 +825,36 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                   <button
                     type="button"
                     onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
-                    disabled={!isAiConversation || status === "LOADING" || isSending}
+                    disabled={!isAiConversation || status === "LOADING" || isSending || isRecording}
                     className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                     title="Emoji"
                   >
                     <Smile className="w-4 h-4" />
                   </button>
                 </Popover>
-                <div className="flex-1">
+                <div className="flex-1 relative">
+                  {/* Recording indicator */}
+                  {isRecording && (
+                    <div className="absolute bottom-full left-0 right-0 mb-2 p-2 bg-red-1 rounded-lg border border-red-3 shadow-lg z-10">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-red-6 rounded-full animate-pulse" />
+                        <span className="text-sm text-red-7 font-medium">
+                          Đang ghi âm... {formatTime(recordingTime)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   <TextArea
                     name="message"
                     ref={textareaRef}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    placeholder="Nhập tin nhắn..."
+                    placeholder={isRecording ? "Đang nghe..." : "Nhập tin nhắn..."}
                     rows={1}
-                    className="resize-none min-h-[44px] max-h-[120px]"
+                    className={`resize-none min-h-[44px] ${isRecording ? "max-h-[200px]" : "max-h-[120px]"}`}
                     textSize="large"
-                    disabled={!isAiConversation || status === "LOADING" || isSending}
+                    disabled={!isAiConversation || status === "LOADING" || isSending || isRecording}
                   />
                 </div>
                 <Button

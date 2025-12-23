@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { CircleCheck, X } from "lucide-react";
+import { CircleCheck, X, Phone, Video } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/app/store";
 import {
   selectCurrentConversation,
@@ -24,8 +24,11 @@ import Empty from "@/foundation/components/empty/Empty";
 import MessageItem from "./MessageItem";
 import type { ChatMessage } from "@/core/api/chat/type";
 import { images } from "@/assets/image";
+import { CallComponent } from "./CallComponent";
 
 const ChatWindow: React.FC = () => {
+  const [showCall, setShowCall] = useState(false);
+  const [callType, setCallType] = useState<"voice" | "video" | null>(null);
   const dispatch = useAppDispatch();
   const currentConversation = useAppSelector(selectCurrentConversation);
   const messages = useAppSelector((state) =>
@@ -213,13 +216,38 @@ const ChatWindow: React.FC = () => {
             <p className="text-xs text-neutral-6 text-start">Offline</p>
           )}
         </div>
-        <button
-          onClick={handleClose}
-          className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-neutral-2 flex-shrink-0"
-          aria-label="Đóng cuộc trò chuyện"
-        >
-          <X className="w-4 h-4 text-neutral-7" />
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Call buttons */}
+          <button
+            onClick={() => {
+              setCallType("voice");
+              setShowCall(true);
+            }}
+            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-neutral-2 text-neutral-7 hover:text-primary-7"
+            aria-label="Gọi thoại"
+            title="Gọi thoại"
+          >
+            <Phone className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => {
+              setCallType("video");
+              setShowCall(true);
+            }}
+            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-neutral-2 text-neutral-7 hover:text-primary-7"
+            aria-label="Gọi video"
+            title="Gọi video"
+          >
+            <Video className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-neutral-2 flex-shrink-0"
+            aria-label="Đóng cuộc trò chuyện"
+          >
+            <X className="w-4 h-4 text-neutral-7" />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -278,6 +306,19 @@ const ChatWindow: React.FC = () => {
           </ScrollView>
         )}
       </div>
+
+      {/* Call Component */}
+      {showCall && currentConversation && callType && (
+        <CallComponent
+          conversationId={currentConversation._id}
+          channel={(currentConversation.channel as "admin" | "shop" | "ai") || "shop"}
+          callType={callType}
+          onCallEnd={() => {
+            setShowCall(false);
+            setCallType(null);
+          }}
+        />
+      )}
     </div>
   );
 };

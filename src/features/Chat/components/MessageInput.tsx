@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Smile, X, Image as ImageIcon } from "lucide-react";
+import { Send, Smile, X, Image as ImageIcon, Mic, Square } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
-import { useAppDispatch, useAppSelector } from "@/app/store";
+import { useAppSelector } from "@/app/store";
 import { selectCurrentConversation } from "@/app/store/slices/chat/chat.selector";
-import { selectUser } from "@/features/Auth/components/slice/auth.selector";
 import { socketClients, SOCKET_EVENTS } from "@/core/socket";
 import { imagesApi } from "@/core/api/images";
 import Button from "@/foundation/components/buttons/Button";
@@ -15,6 +14,7 @@ import Popover from "@/foundation/components/popover/Popever";
 
 interface MessageInputProps {
   onSend?: () => void;
+  onVoiceMessageSent?: () => void;
 }
 
 interface ImageAttachment {
@@ -24,18 +24,23 @@ interface ImageAttachment {
   file?: File; // Keep file reference for preview
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
-  const dispatch = useAppDispatch();
+const MessageInput: React.FC<MessageInputProps> = ({ onSend, onVoiceMessageSent }) => {
   const currentConversation = useAppSelector(selectCurrentConversation);
-  const currentUser = useAppSelector(selectUser);
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTypingEmitRef = useRef<number>(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const wasVoiceMessageRef = useRef(false);
+  const isRecordingRef = useRef(false);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -100,11 +105,19 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
       name: att.name,
     }));
 
+    const wasVoice = wasVoiceMessageRef.current;
+    wasVoiceMessageRef.current = false;
+
     // Clear state
     setMessage("");
     setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
+    }
+
+    // Notify if voice message was sent
+    if (wasVoice && onVoiceMessageSent) {
+      onVoiceMessageSent();
     }
 
     // Determine channel and socket client
@@ -113,21 +126,12 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
     let conversationId = currentConversation?._id;
     let type: "admin" | "shop" | undefined;
     let targetId: string | undefined;
-    let metadata: Record<string, any> = {};
     const storedContext = sessionStorage.getItem("chatContext");
 
     if (currentConversation) {
       // Use existing conversation
       conversationId = currentConversation._id;
       channel = (currentConversation.channel as "admin" | "shop" | "ai") || "shop";
-      // Only send shop metadata (shopId, shopName), not product metadata
-      // Product metadata should only be sent in the initial product message
-      const convMetadata = currentConversation.metadata || {};
-      metadata = {
-        shopId: convMetadata.shopId,
-        shopName: convMetadata.shopName,
-        // Explicitly exclude product metadata
-      };
     } else {
       // No conversation - determine type from metadata or default to admin
       // This should be set by CreateConversationButton or ChatTypeSelector
@@ -136,7 +140,6 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
           const context = JSON.parse(storedContext);
           type = context.type || "admin";
           targetId = context.targetId;
-          metadata = context.metadata || {};
           // Set channel based on type
           channel = type === "admin" ? "admin" : "shop";
         } catch (e) {
@@ -182,7 +185,8 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
     let messageType: "text" | "image" | "file" = "text";
     if (attachmentsToSend.length > 0) {
       const hasImages = attachmentsToSend.some((att) => att.type.startsWith("image/"));
-      messageType = hasImages ? "image" : "file";
+      const hasAudio = attachmentsToSend.some((att) => att.type.startsWith("audio/"));
+      messageType = hasImages ? "image" : hasAudio ? "file" : "file";
     }
 
     // Send message via socket without product metadata
@@ -208,17 +212,17 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
 
   const emitTyping = (isTyping: boolean) => {
     if (!currentConversation) return;
-    
+
     const now = Date.now();
     // Throttle typing events (max once per 2 seconds)
     if (isTyping && now - lastTypingEmitRef.current < 2000) {
       return;
     }
     lastTypingEmitRef.current = now;
-    
+
     const channel = (currentConversation.channel as "admin" | "shop" | "ai") || "shop";
     let socketClient;
-    
+
     switch (channel) {
       case "admin":
         socketClient = socketClients.adminChat;
@@ -232,7 +236,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
       default:
         socketClient = socketClients.adminChat;
     }
-    
+
     if (socketClient) {
       const socket = socketClient.connect();
       if (socket && socket.connected) {
@@ -246,16 +250,16 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
 
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
-    
+
     // Emit typing start
     if (e.target.value.trim() && currentConversation) {
       emitTyping(true);
-      
+
       // Clear existing timeout
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      
+
       // Emit typing stop after 2 seconds of inactivity
       typingTimeoutRef.current = setTimeout(() => {
         emitTyping(false);
@@ -286,7 +290,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
     const textBefore = message.substring(0, cursorPosition);
     const textAfter = message.substring(cursorPosition);
     setMessage(textBefore + emojiData.emoji + textAfter);
-    
+
     // Focus back to textarea and set cursor position
     setTimeout(() => {
       if (textareaRef.current) {
@@ -296,7 +300,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
       }
     }, 0);
   };
-  
+
   useEffect(() => {
     // Cleanup typing timeout on unmount
     return () => {
@@ -306,6 +310,120 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
       emitTyping(false);
     };
   }, [currentConversation?._id]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      // Request microphone permission
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Reset audio chunks
+      audioChunksRef.current = [];
+
+      // Create MediaRecorder
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : MediaRecorder.isTypeSupported("audio/ogg")
+            ? "audio/ogg"
+            : "audio/mp4",
+      });
+
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Stop all tracks
+        stream.getTracks().forEach((track) => track.stop());
+
+        // Create audio blob
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mediaRecorder.mimeType || "audio/webm",
+        });
+
+        // Create audio file
+        const audioFile = new File(
+          [audioBlob],
+          `voice-message-${Date.now()}.${mediaRecorder.mimeType?.split("/")[1] || "webm"}`,
+          { type: audioBlob.type }
+        );
+
+        // Upload audio file
+        setIsUploading(true);
+        try {
+          const result = await imagesApi.uploadImage(audioFile);
+          const audioAttachment = {
+            url: result.url,
+            type: audioBlob.type || "audio/webm",
+            name: audioFile.name,
+          };
+
+          // Add to attachments
+          setAttachments((prev) => [...prev, audioAttachment]);
+          wasVoiceMessageRef.current = true;
+        } catch (error) {
+          console.error("Error uploading audio:", error);
+          alert("Lỗi khi upload file audio. Vui lòng thử lại.");
+        } finally {
+          setIsUploading(false);
+        }
+      };
+
+      // Start recording
+      mediaRecorder.start(1000); // Collect data every second
+      setIsRecording(true);
+      isRecordingRef.current = true;
+      setRecordingTime(0);
+
+      // Start timer
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      alert("Không thể bắt đầu ghi âm. Vui lòng kiểm tra quyền microphone.");
+      setIsRecording(false);
+      isRecordingRef.current = false;
+    }
+  };
+
+  const stopRecording = () => {
+    isRecordingRef.current = false;
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    setIsRecording(false);
+    setRecordingTime(0);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -335,14 +453,27 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
+                disabled={isUploading || isRecording}
                 className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Đính kèm ảnh"
               >
-                {isUploading ? (
-                  <Spinner size="sm" />
+                {isUploading ? <Spinner size="sm" /> : <ImageIcon className="w-4 h-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isUploading}
+                className={`p-2 rounded-lg transition-colors ${
+                  isRecording
+                    ? "text-red-6 hover:text-red-7 hover:bg-red-1 bg-red-1"
+                    : "text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                title={isRecording ? "Dừng ghi âm" : "Ghi âm giọng nói"}
+              >
+                {isRecording ? (
+                  <Square className="w-4 h-4 fill-current" />
                 ) : (
-                  <ImageIcon className="w-4 h-4" />
+                  <Mic className="w-4 h-4" />
                 )}
               </button>
               <Popover
@@ -361,14 +492,15 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
                   />
                 }
               >
-              <button
-                type="button"
+                <button
+                  type="button"
                   onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
-                className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors"
-                title="Emoji"
-              >
+                  disabled={isRecording}
+                  className="p-2 text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Emoji"
+                >
                   <Smile className="w-4 h-4" />
-              </button>
+                </button>
               </Popover>
             </div>
 
@@ -408,16 +540,35 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
                   </div>
                 </div>
               )}
+              {/* Recording indicator */}
+              {isRecording && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 p-3 bg-red-1 rounded-lg border border-red-3 shadow-lg z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-6 rounded-full animate-pulse" />
+                    <span className="text-sm text-red-7 font-medium flex-1">
+                      Đang ghi âm... {formatTime(recordingTime)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={stopRecording}
+                      className="px-3 py-1 text-xs bg-red-6 text-white rounded hover:bg-red-7 transition-colors"
+                    >
+                      Dừng
+                    </button>
+                  </div>
+                </div>
+              )}
               <TextArea
                 name="message"
                 ref={textareaRef}
                 value={message}
                 onChange={handleMessageChange}
                 onKeyDown={handleKeyPress}
-                placeholder="Nhập tin nhắn..."
+                placeholder={isRecording ? "Đang ghi âm..." : "Nhập tin nhắn..."}
                 rows={1}
-                className="resize-none min-h-[44px] max-h-[120px] pr-12"
+                className={`resize-none min-h-[44px] max-h-[120px] pr-12`}
                 textSize="large"
+                disabled={isRecording}
               />
             </div>
 
@@ -439,4 +590,3 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend }) => {
 };
 
 export default MessageInput;
-

@@ -1,8 +1,8 @@
-import React, { memo } from "react";
+import React, { memo, useState, useRef, useEffect } from "react";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Check, CheckCheck } from "lucide-react";
+import { Check, CheckCheck, Play, Pause } from "lucide-react";
 import Image from "@/foundation/components/icons/Image";
 import ProductCard from "./ProductCard";
 import ProductCarousel from "./ProductCarousel";
@@ -177,17 +177,123 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
           </div>
         )}
 
-        {/* Check if message has text content */}
+        {/* Audio Player Component */}
         {(() => {
+          const AudioPlayer = ({ url, isOwn }: { url: string; isOwn: boolean }) => {
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [duration, setDuration] = useState(0);
+            const [currentTime, setCurrentTime] = useState(0);
+            const audioRef = useRef<HTMLAudioElement>(null);
+
+            useEffect(() => {
+              const audio = audioRef.current;
+              if (!audio) return;
+
+              const updateDuration = () => setDuration(audio.duration);
+              const updateTime = () => setCurrentTime(audio.currentTime);
+              const handleEnded = () => setIsPlaying(false);
+
+              audio.addEventListener("loadedmetadata", updateDuration);
+              audio.addEventListener("timeupdate", updateTime);
+              audio.addEventListener("ended", handleEnded);
+
+              return () => {
+                audio.removeEventListener("loadedmetadata", updateDuration);
+                audio.removeEventListener("timeupdate", updateTime);
+                audio.removeEventListener("ended", handleEnded);
+              };
+            }, [url]);
+
+            const togglePlay = () => {
+              const audio = audioRef.current;
+              if (!audio) return;
+
+              if (isPlaying) {
+                audio.pause();
+              } else {
+                audio.play();
+              }
+              setIsPlaying(!isPlaying);
+            };
+
+            const formatTime = (seconds: number) => {
+              if (isNaN(seconds)) return "0:00";
+              const mins = Math.floor(seconds / 60);
+              const secs = Math.floor(seconds % 60);
+              return `${mins}:${secs.toString().padStart(2, "0")}`;
+            };
+
+            return (
+              <div className={clsx(
+                "flex items-center gap-3 px-4 py-2 rounded-lg",
+                isOwn ? "bg-white/20" : "bg-neutral-2"
+              )}>
+                <audio ref={audioRef} src={url} preload="metadata" />
+                <button
+                  onClick={togglePlay}
+                  className={clsx(
+                    "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                    isOwn
+                      ? "bg-white/30 hover:bg-white/40 text-white"
+                      : "bg-primary-6 hover:bg-primary-7 text-white"
+                  )}
+                >
+                  {isPlaying ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4 ml-0.5" />
+                  )}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
+                      <div
+                        className={clsx(
+                          "h-full transition-all",
+                          isOwn ? "bg-white/40" : "bg-primary-6"
+                        )}
+                        style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className={clsx(
+                    "text-xs flex items-center justify-between",
+                    isOwn ? "text-white/80" : "text-neutral-7"
+                  )}>
+                    <span>{formatTime(currentTime)}</span>
+                    <span>/ {formatTime(duration)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
           const hasText = message.message && typeof message.message === 'string' && message.message.trim();
           const hasAttachments = message.attachments && message.attachments.length > 0;
-          const onlyImages = hasAttachments && !hasText;
+          const hasAudio = hasAttachments && message.attachments?.some((att) => att.type?.startsWith("audio/"));
+          const onlyImages = hasAttachments && !hasText && !hasAudio;
+          const onlyAudio = hasAttachments && !hasText && hasAudio && message.attachments?.every((att) => att.type?.startsWith("audio/"));
+
+          // If only audio, render without background bubble
+          if (onlyAudio) {
+            return (
+              <div className="space-y-2">
+                {message.attachments?.map((attachment, idx) => (
+                  attachment.type?.startsWith("audio/") ? (
+                    <div key={idx} className="w-full max-w-xs">
+                      <AudioPlayer url={attachment.url} isOwn={isOwn} />
+                    </div>
+                  ) : null
+                ))}
+              </div>
+            );
+          }
 
           // If only images, render without background bubble
           if (onlyImages) {
             return (
               <div className="space-y-2">
-                {message.attachments.map((attachment, idx) => (
+                {message.attachments?.map((attachment, idx) => (
                   <div key={idx} className="rounded-lg overflow-hidden">
                     {attachment.type?.startsWith("image/") ? (
                       <Image
@@ -227,7 +333,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
 
               {hasAttachments && (
                 <div className={clsx("space-y-2", hasText ? "mt-2" : "")}>
-                  {message.attachments.map((attachment, idx) => (
+                  {message.attachments?.map((attachment, idx) => (
                     <div key={idx} className="rounded-lg overflow-hidden">
                       {attachment.type?.startsWith("image/") ? (
                         <Image
@@ -235,6 +341,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
                           alt={attachment.name || "Attachment"}
                           className="max-w-full h-auto rounded-lg"
                         />
+                      ) : attachment.type?.startsWith("audio/") ? (
+                        <div className="w-full max-w-xs">
+                          <AudioPlayer url={attachment.url} isOwn={isOwn} />
+                        </div>
                       ) : (
                         <a
                           href={attachment.url}

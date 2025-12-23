@@ -44,6 +44,12 @@
       content="Mua sắm online với hàng ngàn sản phẩm điện tử chất lượng cao. Từ điện thoại, laptop đến các phụ kiện công nghệ - giao hàng nhanh, giá tốt nhất."
     />
     <meta name="twitter:image" content="./src/assets/kma.jpg" />
+    <!-- Polyfill for Node.js global variable (needed for simple-peer) -->
+    <script>
+      if (typeof global === 'undefined') {
+        var global = globalThis;
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
