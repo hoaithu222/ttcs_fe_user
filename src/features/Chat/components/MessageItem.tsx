@@ -184,27 +184,46 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
             const [duration, setDuration] = useState(0);
             const [currentTime, setCurrentTime] = useState(0);
             const audioRef = useRef<HTMLAudioElement>(null);
+            const animationFrameRef = useRef<number | null>(null);
 
             useEffect(() => {
               const audio = audioRef.current;
               if (!audio) return;
 
               const updateDuration = () => setDuration(audio.duration);
-              const updateTime = () => setCurrentTime(audio.currentTime);
-              const handleEnded = () => setIsPlaying(false);
+              const updateTime = () => {
+                setCurrentTime(audio.currentTime);
+                if (isPlaying) {
+                  animationFrameRef.current = requestAnimationFrame(updateTime);
+                }
+              };
+              const handleEnded = () => {
+                setIsPlaying(false);
+                setCurrentTime(0);
+              };
+              const handlePlay = () => setIsPlaying(true);
+              const handlePause = () => setIsPlaying(false);
 
               audio.addEventListener("loadedmetadata", updateDuration);
               audio.addEventListener("timeupdate", updateTime);
               audio.addEventListener("ended", handleEnded);
+              audio.addEventListener("play", handlePlay);
+              audio.addEventListener("pause", handlePause);
 
               return () => {
                 audio.removeEventListener("loadedmetadata", updateDuration);
                 audio.removeEventListener("timeupdate", updateTime);
                 audio.removeEventListener("ended", handleEnded);
+                audio.removeEventListener("play", handlePlay);
+                audio.removeEventListener("pause", handlePause);
+                if (animationFrameRef.current) {
+                  cancelAnimationFrame(animationFrameRef.current);
+                }
               };
-            }, [url]);
+            }, [url, isPlaying]);
 
-            const togglePlay = () => {
+            const togglePlay = (e?: React.MouseEvent) => {
+              e?.stopPropagation();
               const audio = audioRef.current;
               if (!audio) return;
 
@@ -213,7 +232,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
               } else {
                 audio.play();
               }
-              setIsPlaying(!isPlaying);
             };
 
             const formatTime = (seconds: number) => {
@@ -223,45 +241,77 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
               return `${mins}:${secs.toString().padStart(2, "0")}`;
             };
 
+            // Generate waveform bars (simulated - in real app, you'd analyze audio)
+            const waveformBars = Array.from({ length: 40 }, (_, i) => {
+              const progress = currentTime / duration || 0;
+              const isActive = i / 40 < progress;
+              const height = isPlaying && isActive 
+                ? 20 + Math.sin((Date.now() / 100 + i * 10) % (Math.PI * 2)) * 8
+                : isActive 
+                  ? 20 
+                  : 4 + Math.random() * 8;
+              return { height, isActive };
+            });
+
             return (
-              <div className={clsx(
-                "flex items-center gap-3 px-4 py-2 rounded-lg",
-                isOwn ? "bg-white/20" : "bg-neutral-2"
-              )}>
+              <div
+                onClick={togglePlay}
+                className={clsx(
+                  "flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
+                  isOwn
+                    ? "bg-gradient-to-br from-primary-6 to-primary-7 text-white shadow-lg"
+                    : "bg-gradient-to-br from-background-2 to-background-1 text-neutral-10 border border-neutral-3 shadow-sm"
+                )}
+              >
                 <audio ref={audioRef} src={url} preload="metadata" />
                 <button
-                  onClick={togglePlay}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlay();
+                  }}
                   className={clsx(
-                    "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                    "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl",
                     isOwn
-                      ? "bg-white/30 hover:bg-white/40 text-white"
+                      ? "bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm"
                       : "bg-primary-6 hover:bg-primary-7 text-white"
                   )}
                 >
                   {isPlaying ? (
-                    <Pause className="w-4 h-4" />
+                    <Pause className="w-5 h-5" />
                   ) : (
-                    <Play className="w-4 h-4 ml-0.5" />
+                    <Play className="w-5 h-5 ml-0.5" />
                   )}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
+                  {/* Waveform visualization */}
+                  <div className="flex items-center gap-0.5 mb-2 h-6">
+                    {waveformBars.map((bar, idx) => (
                       <div
+                        key={idx}
                         className={clsx(
-                          "h-full transition-all",
-                          isOwn ? "bg-white/40" : "bg-primary-6"
+                          "w-0.5 rounded-full transition-all duration-150",
+                          isOwn
+                            ? bar.isActive
+                              ? "bg-white/80"
+                              : "bg-white/30"
+                            : bar.isActive
+                              ? "bg-primary-6"
+                              : "bg-neutral-4"
                         )}
-                        style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                        style={{
+                          height: `${bar.height}px`,
+                          minHeight: "4px",
+                        }}
                       />
-                    </div>
+                    ))}
                   </div>
+                  {/* Time display */}
                   <div className={clsx(
-                    "text-xs flex items-center justify-between",
-                    isOwn ? "text-white/80" : "text-neutral-7"
+                    "text-xs font-medium flex items-center justify-between",
+                    isOwn ? "text-white/90" : "text-neutral-7"
                   )}>
                     <span>{formatTime(currentTime)}</span>
-                    <span>/ {formatTime(duration)}</span>
+                    <span className="opacity-70">/ {formatTime(duration)}</span>
                   </div>
                 </div>
               </div>
@@ -280,7 +330,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
               <div className="space-y-2">
                 {message.attachments?.map((attachment, idx) => (
                   attachment.type?.startsWith("audio/") ? (
-                    <div key={idx} className="w-full max-w-xs">
+                    <div key={idx} className="w-full max-w-sm">
                       <AudioPlayer url={attachment.url} isOwn={isOwn} />
                     </div>
                   ) : null
@@ -342,7 +392,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
                           className="max-w-full h-auto rounded-lg"
                         />
                       ) : attachment.type?.startsWith("audio/") ? (
-                        <div className="w-full max-w-xs">
+                        <div className="w-full max-w-sm">
                           <AudioPlayer url={attachment.url} isOwn={isOwn} />
                         </div>
                       ) : (

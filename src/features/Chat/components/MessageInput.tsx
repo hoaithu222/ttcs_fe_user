@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send, Smile, X, Image as ImageIcon, Mic, Square } from "lucide-react";
 import * as Form from "@radix-ui/react-form";
+import clsx from "clsx";
 import { useAppSelector } from "@/app/store";
 import { selectCurrentConversation } from "@/app/store/slices/chat/chat.selector";
 import { socketClients, SOCKET_EVENTS } from "@/core/socket";
@@ -377,6 +378,87 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, onVoiceMessageSent 
           // Add to attachments
           setAttachments((prev) => [...prev, audioAttachment]);
           wasVoiceMessageRef.current = true;
+
+          // Auto-send voice message after upload (like Messenger/Zalo)
+          // Only auto-send if there's no text message
+          if (!message.trim()) {
+            // Prepare attachments for sending
+            const attachmentsToSend = [
+              {
+                url: result.url,
+                type: audioBlob.type || "audio/webm",
+                name: audioFile.name,
+              },
+            ];
+
+            // Clear attachments state
+            setAttachments([]);
+
+            // Determine channel and socket client
+            let socketClient;
+            let channel: "admin" | "shop" | "ai" = "shop";
+            let conversationId = currentConversation?._id;
+            let type: "admin" | "shop" | undefined;
+            let targetId: string | undefined;
+            const storedContext = sessionStorage.getItem("chatContext");
+
+            if (currentConversation) {
+              conversationId = currentConversation._id;
+              channel = (currentConversation.channel as "admin" | "shop" | "ai") || "shop";
+            } else {
+              if (storedContext) {
+                try {
+                  const context = JSON.parse(storedContext);
+                  type = context.type || "admin";
+                  targetId = context.targetId;
+                  channel = type === "admin" ? "admin" : "shop";
+                } catch (e) {
+                  type = "admin";
+                  channel = "admin";
+                }
+              } else {
+                type = "admin";
+                channel = "admin";
+              }
+            }
+
+            switch (channel) {
+              case "admin":
+                socketClient = socketClients.adminChat;
+                break;
+              case "shop":
+                socketClient = socketClients.shopChat;
+                break;
+              case "ai":
+                socketClient = socketClients.aiChat;
+                break;
+              default:
+                socketClient = socketClients.adminChat;
+            }
+
+            if (socketClient) {
+              const socket = socketClient.connect();
+              if (socket && socket.connected) {
+                socket.emit(SOCKET_EVENTS.CHAT_MESSAGE_SEND, {
+                  conversationId,
+                  message: "",
+                  type: "file",
+                  attachments: attachmentsToSend,
+                  conversationType: type,
+                  targetId,
+                });
+                onSend?.();
+                if (onVoiceMessageSent) {
+                  onVoiceMessageSent();
+                }
+              }
+            }
+
+            // Clear stored context after first message
+            if (!currentConversation && storedContext) {
+              sessionStorage.removeItem("chatContext");
+            }
+          }
         } catch (error) {
           console.error("Error uploading audio:", error);
           alert("Lỗi khi upload file audio. Vui lòng thử lại.");
@@ -505,38 +587,55 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, onVoiceMessageSent 
             </div>
 
             <div className="flex-1 relative">
-              {/* Image previews - absolute positioned above input */}
+              {/* Attachment previews - absolute positioned above input */}
               {attachments.length > 0 && (
                 <div className="absolute bottom-full left-0 right-0 mb-2 p-2 bg-background-2 rounded-lg border border-neutral-3 shadow-lg z-10">
                   <div className="flex gap-2 overflow-x-auto">
-                    {attachments.map((attachment, index) => (
-                      <div
-                        key={index}
-                        className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-neutral-3 group"
-                      >
-                        {attachment.file ? (
-                          <img
-                            src={URL.createObjectURL(attachment.file)}
-                            alt={attachment.name || "Preview"}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Image
-                            src={attachment.url}
-                            alt={attachment.name || "Preview"}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveAttachment(index)}
-                          className="absolute top-1 right-1 w-5 h-5 bg-neutral-9/80 hover:bg-neutral-9 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Xóa ảnh"
+                    {attachments.map((attachment, index) => {
+                      const isAudio = attachment.type?.startsWith("audio/");
+                      const isImage = attachment.type?.startsWith("image/");
+                      
+                      return (
+                        <div
+                          key={index}
+                          className={clsx(
+                            "relative flex-shrink-0 rounded-lg overflow-hidden border border-neutral-3 group",
+                            isAudio ? "w-32 h-20" : "w-20 h-20"
+                          )}
                         >
-                          <X className="w-3 h-3 text-white" />
-                        </button>
-                      </div>
-                    ))}
+                          {isImage ? (
+                            attachment.file ? (
+                              <img
+                                src={URL.createObjectURL(attachment.file)}
+                                alt={attachment.name || "Preview"}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Image
+                                src={attachment.url}
+                                alt={attachment.name || "Preview"}
+                                className="w-full h-full object-cover"
+                              />
+                            )
+                          ) : isAudio ? (
+                            <div className="w-full h-full bg-primary-1 flex items-center justify-center gap-2 px-3">
+                              <Mic className="w-5 h-5 text-primary-6" />
+                              <span className="text-xs text-neutral-7 font-medium truncate">
+                                Tin nhắn thoại
+                              </span>
+                            </div>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAttachment(index)}
+                            className="absolute top-1 right-1 w-5 h-5 bg-neutral-9/80 hover:bg-neutral-9 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            title={isAudio ? "Xóa tin nhắn thoại" : "Xóa ảnh"}
+                          >
+                            <X className="w-3 h-3 text-white" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -551,7 +650,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, onVoiceMessageSent 
                     <button
                       type="button"
                       onClick={stopRecording}
-                      className="px-3 py-1 text-xs bg-red-6 text-white rounded hover:bg-red-7 transition-colors"
+                      className="px-3 py-1 text-xs bg-red-6 text-neutral-10 rounded hover:bg-red-7 transition-colors"
                     >
                       Dừng
                     </button>
