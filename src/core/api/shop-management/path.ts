@@ -15,6 +15,10 @@ export const SHOP_MANAGEMENT_ENDPOINTS = {
   FOLLOWERS: "/shops/my-shop/followers",
   REVIEWS: "/shops/my-shop/reviews",
   ANALYTICS: "/shops/my-shop/analytics",
+  ANALYTICS_PORTFOLIO: "/shops/my-shop/analytics/portfolio",
+  ANALYTICS_CUSTOMER_TREND: "/shops/my-shop/analytics/customer-trend",
+  ANALYTICS_ORDER_FORECAST: "/shops/my-shop/analytics/order-forecast",
+  ANALYTICS_CANCELLATION: "/shops/my-shop/analytics/cancellation",
 } as const;
 
 // Generic endpoint builder

@@ -1,12 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, Edit, CheckCircle2, XCircle, Package } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit, CheckCircle2, XCircle, Package, AlertTriangle, Lock, Unlock, Clock } from "lucide-react";
 import { ShopProduct } from "@/core/api/shop-management/type";
 import { ProductService } from "@/features/Shop/api";
 import { addToast } from "@/app/store/slices/toast";
 import Button from "@/foundation/components/buttons/Button";
 import Image from "@/foundation/components/icons/Image";
+import Tooltip from "@/foundation/components/tooltip/Tooltip";
+import ModalChatSupport from "@/features/Chat/components/ModalChatSuppport";
+import { createConversationStart, setCurrentConversation } from "@/app/store/slices/chat/chat.slice";
+import { useAppSelector } from "@/app/store";
+import { selectCurrentConversation, selectConversations } from "@/app/store/slices/chat/chat.selector";
+import { socketClients, SOCKET_EVENTS } from "@/core/socket";
 
 interface TableListProductProps {
   data: ShopProduct[];
@@ -18,6 +24,11 @@ const TableListProduct: React.FC<TableListProductProps> = ({ data, fetchData }) 
   const navigate = useNavigate();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState<string | null>(null);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [productToUnlock, setProductToUnlock] = useState<ShopProduct | null>(null);
+  
+  const conversations = useAppSelector(selectConversations);
+  const currentConversation = useAppSelector(selectCurrentConversation);
 
   const toggleRow = (productId: string) => {
     setExpandedRows((prev) => {
@@ -75,7 +86,130 @@ const TableListProduct: React.FC<TableListProductProps> = ({ data, fetchData }) 
   const handleEdit = (productId: string) => {
     navigate(`/shop/products/${productId}/edit`);
   };
-  console.log("product",data)
+
+  const handleUnlockViolation = async (product: ShopProduct) => {
+    if (loading) return;
+
+    setProductToUnlock(product);
+    
+    // Find existing CSKH conversation
+    const cskhConversation = conversations.find(
+      (conv: any) => conv.type === "admin" && conv.metadata?.context === "CSKH"
+    );
+
+    if (cskhConversation) {
+      // Use existing conversation
+      dispatch(setCurrentConversation(cskhConversation));
+      setIsChatModalOpen(true);
+    } else {
+      // Create new CSKH conversation
+      dispatch(
+        createConversationStart({
+          data: {
+            type: "admin",
+            metadata: {
+              context: "CSKH",
+              isSupport: true,
+            },
+          },
+        })
+      );
+      setIsChatModalOpen(true);
+    }
+  };
+
+  // Send unlock request message when conversation is ready and modal is open
+  useEffect(() => {
+    if (
+      isChatModalOpen &&
+      productToUnlock &&
+      currentConversation &&
+      currentConversation.type === "admin" &&
+      currentConversation.metadata?.context === "CSKH"
+    ) {
+      // Wait a bit for conversation to be fully loaded
+      const timer = setTimeout(() => {
+        const socketClient = socketClients.adminChat;
+        if (socketClient) {
+          const socket = socketClient.connect();
+          if (socket && socket.connected) {
+            const unlockMessage = `Yêu cầu mở khóa sản phẩm vi phạm:\n\n` +
+              `📦 Tên sản phẩm: ${productToUnlock.name}\n` +
+              `🆔 Mã sản phẩm: ${productToUnlock._id}\n` +
+              (productToUnlock.violationNote
+                ? `⚠️ Lý do vi phạm: ${productToUnlock.violationNote}\n`
+                : "") +
+              `\nVui lòng xem xét và mở khóa sản phẩm này.`;
+
+            socket.emit(SOCKET_EVENTS.CHAT_MESSAGE_SEND, {
+              conversationId: currentConversation._id,
+              message: unlockMessage,
+              type: "text",
+              metadata: {
+                productId: productToUnlock._id,
+                productName: productToUnlock.name,
+                requestType: "unlock_violation",
+                violationNote: productToUnlock.violationNote,
+              },
+            });
+
+            // Clear product to unlock after sending
+            setProductToUnlock(null);
+          }
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isChatModalOpen, productToUnlock, currentConversation]);
+
+  const getStatusBadge = (product: ShopProduct) => {
+    const status = product.status || "approved";
+    
+    if (status === "violated") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-error-7 bg-error-1 rounded-md border border-error-3">
+          <AlertTriangle className="w-3.5 h-3.5" />
+          Vi phạm
+        </span>
+      );
+    }
+    
+    if (status === "hidden") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-warning-7 bg-warning-1 rounded-md border border-warning-3">
+          <Lock className="w-3.5 h-3.5" />
+          Đã ẩn
+        </span>
+      );
+    }
+    
+    if (status === "approved" && product.isActive) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-success-7 bg-success-1 rounded-md">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          Đang hiển thị
+        </span>
+      );
+    }
+    
+    if (status === "pending") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-yellow-7 bg-yellow-1 rounded-md">
+          <Clock className="w-3.5 h-3.5" />
+          Chờ duyệt
+        </span>
+      );
+    }
+    
+    // Default: hidden/inactive
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-neutral-7 bg-neutral-1 rounded-md">
+        <XCircle className="w-3.5 h-3.5" />
+        Đã ẩn
+      </span>
+    );
+  };
   return (
     <div className="overflow-hidden bg-background-1 rounded-xl shadow-lg border border-border-1">
       <div className="overflow-x-auto">
@@ -144,7 +278,6 @@ const TableListProduct: React.FC<TableListProductProps> = ({ data, fetchData }) 
                         );
                         const hasDiscount = discountPercent > 0;
                         const finalPrice =
-                          product.finalPrice ??
                           product.price -
                             (product.price * discountPercent) / 100;
                         return (
@@ -169,46 +302,74 @@ const TableListProduct: React.FC<TableListProductProps> = ({ data, fetchData }) 
                     </div>
                   </td>
                   <td className="p-4">
-                    {product.isActive ? (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-success-7 bg-success-1 rounded-md">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Đang hiển thị
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-error-7 bg-error-1 rounded-md">
-                        <XCircle className="w-3.5 h-3.5" />
-                        Đã ẩn
-                      </span>
+                    {getStatusBadge(product)}
+                    {product.status === "violated" && product.violationNote && (
+                      <Tooltip content={product.violationNote} side="top" delayDuration={100}>
+                        <div className="mt-1 text-xs text-error-6 cursor-help line-clamp-1">
+                          Lý do: {product.violationNote}
+                        </div>
+                      </Tooltip>
                     )}
                   </td>
                   <td className="p-4">
-                    <div className="flex gap-2 items-center">
-                      <Button
-                        color={product.isActive ? "red" : "green"}
-                        variant="ghost"
-                        size="sm"
-                        icon={
-                          product.isActive ? (
-                            <XCircle className="w-4 h-4" />
-                          ) : (
-                            <CheckCircle2 className="w-4 h-4" />
-                          )
-                        }
-                        onClick={() => handleToggleStatus(product)}
-                        disabled={loading === product._id}
-                        className="min-w-[100px]"
-                      >
-                        {product.isActive ? "Ẩn" : "Kích hoạt"}
-                      </Button>
-                      <Button
-                        color="blue"
-                        variant="ghost"
-                        size="sm"
-                        icon={<Edit className="w-4 h-4" />}
-                        onClick={() => handleEdit(product._id)}
-                      >
-                        Sửa
-                      </Button>
+                    <div className="flex gap-2 items-center flex-wrap">
+                      {product.status === "violated" ? (
+                        <>
+                          <Tooltip content="Yêu cầu admin/CSKH mở khóa sản phẩm vi phạm" side="top" delayDuration={100}>
+                            <Button
+                              color="blue"
+                              variant="ghost"
+                              size="sm"
+                              icon={<Unlock className="w-4 h-4" />}
+                              onClick={() => handleUnlockViolation(product)}
+                              disabled={loading === product._id}
+                              className="min-w-[120px]"
+                            >
+                              Yêu cầu mở khóa
+                            </Button>
+                          </Tooltip>
+                          <Button
+                            color="blue"
+                            variant="ghost"
+                            size="sm"
+                            icon={<Edit className="w-4 h-4" />}
+                            onClick={() => handleEdit(product._id)}
+                            disabled={loading === product._id}
+                          >
+                            Sửa
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            color={product.isActive ? "red" : "green"}
+                            variant="ghost"
+                            size="sm"
+                            icon={
+                              product.isActive ? (
+                                <XCircle className="w-4 h-4" />
+                              ) : (
+                                <CheckCircle2 className="w-4 h-4" />
+                              )
+                            }
+                            onClick={() => handleToggleStatus(product)}
+                            disabled={loading === product._id || (product.status as string) === "violated"}
+                            className="min-w-[100px]"
+                          >
+                            {product.isActive ? "Ẩn" : "Kích hoạt"}
+                          </Button>
+                          <Button
+                            color="blue"
+                            variant="ghost"
+                            size="sm"
+                            icon={<Edit className="w-4 h-4" />}
+                            onClick={() => handleEdit(product._id)}
+                            disabled={loading === product._id}
+                          >
+                            Sửa
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -312,6 +473,17 @@ const TableListProduct: React.FC<TableListProductProps> = ({ data, fetchData }) 
           </tbody>
         </table>
       </div>
+
+      {/* Chat Modal for unlock request */}
+      <ModalChatSupport
+        open={isChatModalOpen}
+        onOpenChange={(open) => {
+          setIsChatModalOpen(open);
+          if (!open) {
+            setProductToUnlock(null);
+          }
+        }}
+      />
     </div>
   );
 };

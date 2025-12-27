@@ -129,6 +129,47 @@ class ShopManagementApiService extends VpsHttpClient {
     return response.data;
   }
 
+  // Get product portfolio analysis
+  async getProductPortfolioAnalysis(query?: {
+    period?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiSuccess<any>> {
+    const response = await this.get(SHOP_MANAGEMENT_ENDPOINTS.ANALYTICS_PORTFOLIO, { params: query });
+    return response.data;
+  }
+
+  // Get customer trend compass
+  async getCustomerTrendCompass(query?: {
+    period?: string;
+    startDate?: string;
+    endDate?: string;
+    productId?: string;
+  }): Promise<ApiSuccess<any>> {
+    const response = await this.get(SHOP_MANAGEMENT_ENDPOINTS.ANALYTICS_CUSTOMER_TREND, { params: query });
+    return response.data;
+  }
+
+  // Get order forecast
+  async getOrderForecast(query?: {
+    period?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiSuccess<any>> {
+    const response = await this.get(SHOP_MANAGEMENT_ENDPOINTS.ANALYTICS_ORDER_FORECAST, { params: query });
+    return response.data;
+  }
+
+  // Get order cancellation analysis
+  async getOrderCancellationAnalysis(query?: {
+    period?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiSuccess<any>> {
+    const response = await this.get(SHOP_MANAGEMENT_ENDPOINTS.ANALYTICS_CANCELLATION, { params: query });
+    return response.data;
+  }
+
   // Batch print orders
   async batchPrintOrders(orderIds: string[], type: "packing" | "invoice" = "packing"): Promise<ApiSuccess<any>> {
     const response = await this.post("/shops/my-shop/orders/batch-print", { orderIds }, { params: { type } });

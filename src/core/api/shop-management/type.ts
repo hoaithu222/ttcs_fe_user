@@ -71,6 +71,8 @@ export interface ShopProduct {
   dimensions: string;
   metaKeywords: string;
   isActive: boolean;
+  status?: "pending" | "approved" | "hidden" | "violated";
+  violationNote?: string;
   rating?: number;
   reviewCount?: number;
   salesCount?: number;

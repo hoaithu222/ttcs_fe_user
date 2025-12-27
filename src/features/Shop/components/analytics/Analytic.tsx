@@ -8,6 +8,19 @@ import { shopManagementApi } from "@/core/api/shop-management";
 import { TrendingUp, DollarSign, Package, ShoppingCart } from "lucide-react";
 
 import { RevenueData, WalletTransactionData, OrderStatusData } from "./charts";
+import {
+  ProductPortfolioChart,
+  CustomerTrendCompassChart,
+  OrderForecastChart,
+  OrderCancellationChart,
+} from "./charts";
+import DateRangeFilter from "./DateRangeFilter";
+
+interface AnalyticsQuery {
+  startDate?: string;
+  endDate?: string;
+  period?: "day" | "week" | "month" | "year" | "custom";
+}
 
 interface AnalyticsData {
   revenue: number;
@@ -40,24 +53,63 @@ const Analytic: React.FC = () => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<AnalyticsQuery>({ period: "month" });
+
+  // New analytics data states
+  const [portfolioData, setPortfolioData] = useState<any>(null);
+  const [trendData, setTrendData] = useState<any>(null);
+  const [forecastData, setForecastData] = useState<any>(null);
+  const [cancellationData, setCancellationData] = useState<any>(null);
+  const [isLoadingNew, setIsLoadingNew] = useState(false);
+
+  const fetchAnalytics = async (query: AnalyticsQuery = {}) => {
+    try {
+      setIsLoading(true);
+      const response = await shopManagementApi.getAnalytics({
+        period: query.period,
+        startDate: query.startDate,
+        endDate: query.endDate,
+      });
+      if (response.data) {
+        setAnalytics(response.data as AnalyticsData);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể tải thống kê");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchNewAnalytics = async (query: AnalyticsQuery = {}) => {
+    try {
+      setIsLoadingNew(true);
+      const [portfolio, trend, forecast, cancellation] = await Promise.all([
+        shopManagementApi.getProductPortfolioAnalysis(query),
+        shopManagementApi.getCustomerTrendCompass(query),
+        shopManagementApi.getOrderForecast(query),
+        shopManagementApi.getOrderCancellationAnalysis(query),
+      ]);
+
+      if (portfolio.data) setPortfolioData(portfolio.data);
+      if (trend.data) setTrendData(trend.data);
+      if (forecast.data) setForecastData(forecast.data);
+      if (cancellation.data) setCancellationData(cancellation.data);
+    } catch (err) {
+      console.error("Error fetching new analytics:", err);
+    } finally {
+      setIsLoadingNew(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        setIsLoading(true);
-        const response = await shopManagementApi.getAnalytics({});
-        if (response.data) {
-          setAnalytics(response.data as AnalyticsData);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Không thể tải thống kê");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    fetchAnalytics(filters);
+    fetchNewAnalytics(filters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
-    fetchAnalytics();
-  }, []);
+  const handleFilterChange = (query: AnalyticsQuery) => {
+    setFilters(query);
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -130,6 +182,11 @@ const Analytic: React.FC = () => {
           </div>
         </div>
 
+        {/* Date Range Filter */}
+        <div className="mb-6">
+          <DateRangeFilter onFilterChange={handleFilterChange} currentQuery={filters} />
+        </div>
+
         <div className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, idx) => (
             <div
@@ -191,6 +248,30 @@ const Analytic: React.FC = () => {
             </div>
           </Section>
         )}
+
+        {/* 1. Product Portfolio Analysis */}
+        <Section>
+          <SectionTitle>Hiệu quả danh mục đầu tư/Sản phẩm</SectionTitle>
+          <ProductPortfolioChart data={portfolioData} isLoading={isLoadingNew} />
+        </Section>
+
+        {/* 2. Customer Trend Compass */}
+        <Section>
+          <SectionTitle>"La bàn" xu hướng khách hàng</SectionTitle>
+          <CustomerTrendCompassChart data={trendData?.trailData} isLoading={isLoadingNew} />
+        </Section>
+
+        {/* 3. Order Forecast */}
+        <Section>
+          <SectionTitle>Dự báo đơn hàng & Hiệu suất vận hành</SectionTitle>
+          <OrderForecastChart data={forecastData?.forecastData} isLoading={isLoadingNew} />
+        </Section>
+
+        {/* 4. Order Cancellation Analysis */}
+        <Section>
+          <SectionTitle>Tỷ lệ hoàn/Hủy đơn & Lý do</SectionTitle>
+          <OrderCancellationChart data={cancellationData?.cancellationData} isLoading={isLoadingNew} />
+        </Section>
       </div>
     </Page>
   );
