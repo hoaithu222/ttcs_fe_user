@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "@/foundation/components/buttons/Button";
 import Modal from "@/foundation/components/modal/Modal";
 import Input from "@/foundation/components/input/Input";
@@ -15,6 +16,7 @@ import TransactionList from "./TransactionList";
 
 const WalletPage = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const [walletData, setWalletData] = useState<WalletBalanceResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBankInfoModalOpen, setIsBankInfoModalOpen] = useState(false);
@@ -98,6 +100,47 @@ const WalletPage = () => {
   }, [bankInfo, walletTypeForBankInfo, dispatch, loadBalance]);
 
 
+  const handleRetryTransaction = useCallback(async (transactionId: string) => {
+    try {
+      const response = await userWalletApi.retryTransaction(transactionId);
+      console.log("[WalletPage] Retry response:", response);
+      
+      if (response.success && response.data) {
+        console.log("[WalletPage] Retry data:", {
+          transaction: response.data.transaction?._id,
+          qrCode: response.data.qrCode,
+          bankAccount: response.data.bankAccount,
+        });
+        
+        dispatch(
+          addToast({
+            type: "success",
+            message: "Vui lòng hoàn tất thanh toán lại cho giao dịch này",
+          })
+        );
+        
+        // Navigate to deposit page with retry transaction info
+        navigate("/wallet/deposit", {
+          state: {
+            retryTransaction: response.data.transaction,
+            qrCode: response.data.qrCode,
+            bankAccount: response.data.bankAccount,
+            walletType: "user",
+          },
+        });
+      }
+    } catch (error: any) {
+      console.error("[WalletPage] Retry error:", error);
+      dispatch(
+        addToast({
+          type: "error",
+          message: error?.response?.data?.message || "Không thể thử lại giao dịch",
+        })
+      );
+    }
+  }, [dispatch, navigate]);
+
+
   if (isLoading) {
     return (
       <div className="border border-border-1 rounded-2xl p-3 bg-gradient-to-br from-background-2 to-background-1 my-6 mr-4">
@@ -161,6 +204,7 @@ const WalletPage = () => {
           onLoadMore={loadMore}
           hasMore={hasMore}
           onRefresh={refreshTransactions}
+          onRetry={handleRetryTransaction}
         />
       </div>
 

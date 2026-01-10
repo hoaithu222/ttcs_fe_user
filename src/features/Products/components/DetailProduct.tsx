@@ -114,16 +114,22 @@ const DetailProduct: React.FC<DetailProductProps> = ({
   // Use variant price if selected, otherwise use product price
   const currentPrice = localSelectedVariant?.price || product.price || 0;
   const currentStock = localSelectedVariant?.stock ?? product.stock ?? 0;
-  const discountPercent = Math.min(
-    Math.max(product.discount ?? 0, 0),
-    100
-  );
+  
+  // Calculate actual price and discount
   const calculatedPrice = localSelectedVariant
-    ? currentPrice - (currentPrice * discountPercent) / 100
-    : product.finalPrice ??
-      currentPrice - (currentPrice * discountPercent) / 100;
+    ? currentPrice - (currentPrice * (product.discount ?? 0)) / 100
+    : product.finalPrice ?? currentPrice;
+  
   const finalPrice = Math.max(0, calculatedPrice);
-  const hasDiscount = discountPercent > 0;
+  
+  // Calculate actual discount percent from prices
+  const actualDiscountPercent = currentPrice > 0 && finalPrice < currentPrice
+    ? Math.round(((currentPrice - finalPrice) / currentPrice) * 100)
+    : (product.discount ?? 0);
+  
+  const discountPercent = Math.min(Math.max(actualDiscountPercent, 0), 100);
+  const hasDiscount = discountPercent > 0 && finalPrice < currentPrice;
+  const savedAmount = hasDiscount ? currentPrice - finalPrice : 0;
 
   // Update selected variant when prop changes
   useEffect(() => {
@@ -331,6 +337,12 @@ const DetailProduct: React.FC<DetailProductProps> = ({
               </>
             )}
           </div>
+          {hasDiscount && savedAmount > 0 && (
+            <div className="flex items-center gap-1 mt-3 pt-3 border-t border-primary-1">
+              <span className="text-sm text-neutral-6">Tiết kiệm</span>
+              <span className="text-sm font-semibold text-error">{formatPriceVND(savedAmount)}</span>
+            </div>
+          )}
         </div>
 
         {/* Variants Selection */}

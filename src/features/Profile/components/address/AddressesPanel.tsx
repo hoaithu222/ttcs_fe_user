@@ -51,7 +51,7 @@ const AddressesPanel = () => {
                     {addr.city ? `, ${addr.city}` : ""}
                   </div>
                   {addr.isDefault && (
-                    <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-primary-10 text-primary-6">
+                    <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-primary-1 text-primary-6">
                       Mặc định
                     </span>
                   )}

@@ -91,6 +91,17 @@ export interface CreateDepositResponse {
   instructions: string;
 }
 
+export interface RetryTransactionResponse {
+  transaction: WalletTransaction;
+  qrCode: string;
+  bankAccount: {
+    bankName: string;
+    accountNumber: string;
+    accountHolder: string;
+  };
+  message: string;
+}
+
 export interface WalletTransactionsResponse {
   transactions: WalletTransaction[];
   pagination: {

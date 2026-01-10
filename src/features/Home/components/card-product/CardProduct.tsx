@@ -54,11 +54,6 @@ const CardProduct: React.FC<CardProductProps> = ({
     }
   };
 
-  const discountPercent = Math.min(
-    Math.max(product.discount ?? 0, 0),
-    100
-  );
-
   // Format price
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -76,15 +71,21 @@ const CardProduct: React.FC<CardProductProps> = ({
   };
 
   const mainImage = getPrimaryImage(product.images);
-  const hasDiscount = discountPercent > 0;
   const inStock = product.stock === undefined || product.stock > 0;
-  const discountedPrice =
-    product.finalPrice ??
-    product.price - (product.price * discountPercent) / 100;
+  
+  // Calculate price and discount
+  const originalPrice = product.price || 0;
+  const discountedPrice = product.finalPrice ?? originalPrice;
+  
+  // Calculate actual discount percent from prices if finalPrice exists
+  const actualDiscountPercent = originalPrice > 0 && discountedPrice < originalPrice
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+    : (product.discount ?? 0);
+  
+  const discountPercent = Math.min(Math.max(actualDiscountPercent, 0), 100);
+  const hasDiscount = discountPercent > 0 && discountedPrice < originalPrice;
+  const savedAmount = hasDiscount ? originalPrice - discountedPrice : 0;
   const formattedPrice = formatPrice(Math.max(0, discountedPrice));
-  const savedAmount = hasDiscount
-    ? product.price - Math.max(0, discountedPrice)
-    : 0;
 
   return (
     <div
@@ -199,9 +200,9 @@ const CardProduct: React.FC<CardProductProps> = ({
         {/* Price - Style Shopee */}
         <div className="flex items-baseline gap-2 mt-1">
           <span className="text-lg font-bold text-error">{formattedPrice}</span>
-          {hasDiscount && (
+          {hasDiscount && savedAmount > 0 && (
             <span className="text-xs text-neutral-5 line-through">
-              {formatPrice(product.price)}
+              {formatPrice(originalPrice)}
             </span>
           )}
         </div>

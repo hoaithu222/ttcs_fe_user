@@ -13,6 +13,7 @@ interface TransactionListProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   onRefresh?: () => void;
+  onRetry?: (transactionId: string) => Promise<void>;
 }
 
 const TransactionList: React.FC<TransactionListProps> = ({
@@ -21,6 +22,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
   onLoadMore,
   hasMore = false,
   onRefresh,
+  onRetry,
 }) => {
   const getTypeIcon = (type: WalletTransactionType) => {
     switch (type) {
@@ -184,6 +186,16 @@ const TransactionList: React.FC<TransactionListProps> = ({
     );
   }
 
+  const handleRetryClick = async (transactionId: string) => {
+    if (onRetry) {
+      try {
+        await onRetry(transactionId);
+      } catch (error) {
+        // Error handling is done in parent component
+      }
+    }
+  };
+
   return (
     <ScrollView className="overflow-y-auto hidden-scrollbar">
     <div className="border border-border-1 rounded-2xl p-6 bg-gradient-to-br from-background-2 to-background-1">
@@ -237,11 +249,24 @@ const TransactionList: React.FC<TransactionListProps> = ({
                   )}`}
                 >
                   {getAmountPrefix(transaction.type)}
-                  {formatPriceVND(transaction.metadata?.originalAmount)}
+                  {formatPriceVND(transaction.metadata?.originalAmount || transaction.amount)}
                 </p>
-                {transaction.status === WalletTransactionStatus.PENDING && (
-                  <p className="text-xs text-warning mt-1">Đang xử lý...</p>
-                )}
+                {/* {transaction.status === WalletTransactionStatus.PENDING && (
+                  <div className="flex flex-col gap-1 mt-2">
+                    <p className="text-xs text-warning">Đang xử lý...</p>
+                    {onRetry && (
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        color="blue"
+                        onClick={() => handleRetryClick(transaction._id)}
+                        className="text-xs"
+                      >
+                        Thử lại
+                      </Button>
+                    )}
+                  </div>
+                )} */}
               </div>
             </div>
           </div>

@@ -3,6 +3,7 @@ import type {
   WalletBalanceResponse,
   CreateDepositRequest,
   CreateDepositResponse,
+  RetryTransactionResponse,
   WalletTransactionsQuery,
   WalletTransactionsResponse,
   UpdateBankInfoRequest,
@@ -62,6 +63,17 @@ class UserWalletApiService extends VpsHttpClient {
     data: TransferBetweenWalletsRequest
   ): Promise<ApiSuccess<{ userWallet: Wallet; shopWallet: Wallet; message: string }>> {
     const response = await this.post(WALLET_API_PATHS.TRANSFER, data);
+    return response.data;
+  }
+
+  // Retry a pending/failed transaction
+  async retryTransaction(
+    transactionId: string
+  ): Promise<ApiSuccess<RetryTransactionResponse>> {
+    const response = await this.post(
+      `${WALLET_API_PATHS.TRANSACTIONS}/${transactionId}/retry`,
+      {}
+    );
     return response.data;
   }
 }

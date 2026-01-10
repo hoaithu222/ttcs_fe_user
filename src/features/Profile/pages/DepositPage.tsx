@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import Button from "@/foundation/components/buttons/Button";
 import Input from "@/foundation/components/input/Input";
 import Loading from "@/foundation/components/loading/Loading";
@@ -23,6 +23,7 @@ const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000, 2000000, 3000000];
 
 const DepositPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const { subscribeDepositRefresh } = useSocketRefresh();
@@ -108,6 +109,39 @@ const DepositPage = () => {
       }, 2000);
     }
   }, [searchParams, loadBalance, dispatch]);
+
+  // Handle retry transaction from WalletPage
+  useEffect(() => {
+    const state = (location.state as any);
+    console.log("[DepositPage] location.state:", state);
+    
+    if (state?.retryTransaction) {
+      // Set deposit data from retry
+      const amount = state.retryTransaction.amount || 0;
+      
+      console.log("[DepositPage] Processing retry transaction:", {
+        transactionId: state.retryTransaction._id,
+        amount,
+        qrCode: state.qrCode,
+        bankAccount: state.bankAccount,
+      });
+      
+      setDepositData({
+        transactionId: state.retryTransaction._id,
+        qrCode: state.qrCode,
+        bankAccount: state.bankAccount,
+        instructions: "Vui lòng chuyển khoản lại cho giao dịch nạp tiền này. Hệ thống sẽ tự động cập nhật số dư sau khi nhận được chuyển khoản.",
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+      });
+      setDepositStatus("processing");
+      setDepositAmount(amount.toString());
+      
+      dispatch(addToast({
+        type: "info",
+        message: "Thử lại giao dịch - Vui lòng hoàn tất thanh toán",
+      }));
+    }
+  }, [dispatch, location.state]);
 
   const handleDeposit = useCallback(async () => {
     const amount = parseFloat(depositAmount);
