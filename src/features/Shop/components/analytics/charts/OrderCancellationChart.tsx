@@ -44,7 +44,16 @@ const OrderCancellationChart: React.FC<OrderCancellationChartProps> = ({
     );
   }
 
-  if (!data || data.length === 0) {
+  // Check if data is empty or has no meaningful data
+  const hasData = data && data.length > 0 && data.some((item) => 
+    (item.totalOrders || 0) > 0 || 
+    (item.totalFailed || 0) > 0 ||
+    (item.notReceived || 0) > 0 ||
+    (item.damaged || 0) > 0 ||
+    (item.shopCancelled || 0) > 0
+  );
+
+  if (!hasData) {
     return (
       <Card className="p-6">
         <Empty variant="data" title="Chưa có dữ liệu" description="Chưa có dữ liệu hủy đơn" />
@@ -53,6 +62,17 @@ const OrderCancellationChart: React.FC<OrderCancellationChartProps> = ({
   }
 
   const formatPercent = (value: number) => `${value.toFixed(1)}%`;
+
+  // Ensure all required fields exist with default values
+  const normalizedData = data.map((item) => ({
+    period: item.period || "",
+    notReceived: item.notReceived || 0,
+    damaged: item.damaged || 0,
+    shopCancelled: item.shopCancelled || 0,
+    totalFailed: item.totalFailed || 0,
+    totalOrders: item.totalOrders || 0,
+    complaintRate: item.complaintRate || 0,
+  }));
 
   return (
     <Card className="p-6">
@@ -69,7 +89,7 @@ const OrderCancellationChart: React.FC<OrderCancellationChartProps> = ({
       </div>
 
       <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+        <ComposedChart data={normalizedData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis
             dataKey="period"
@@ -115,17 +135,17 @@ const OrderCancellationChart: React.FC<OrderCancellationChartProps> = ({
             }}
           />
           <Bar yAxisId="left" dataKey="notReceived" stackId="a" fill="#f59e0b" name="notReceived">
-            {data.map((entry, index) => (
+            {normalizedData.map((entry, index) => (
               <Cell key={`cell-notReceived-${index}`} fill="#f59e0b" />
             ))}
           </Bar>
           <Bar yAxisId="left" dataKey="damaged" stackId="a" fill="#f97316" name="damaged">
-            {data.map((entry, index) => (
+            {normalizedData.map((entry, index) => (
               <Cell key={`cell-damaged-${index}`} fill="#f97316" />
             ))}
           </Bar>
           <Bar yAxisId="left" dataKey="shopCancelled" stackId="a" fill="#ef4444" name="shopCancelled">
-            {data.map((entry, index) => (
+            {normalizedData.map((entry, index) => (
               <Cell key={`cell-shopCancelled-${index}`} fill="#ef4444" />
             ))}
           </Bar>

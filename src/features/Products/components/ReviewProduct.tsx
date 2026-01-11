@@ -54,7 +54,7 @@ const ReviewProduct: React.FC<ReviewProductProps> = ({
         <div className="mb-8 p-6 bg-gradient-to-r from-primary-6/10 to-primary-6/5 rounded-xl border border-primary-6/20">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Average Rating */}
-            <div className="flex flex-col items-center justify-center">
+            <div className="flex flex-col items-start justify-start">
               <div className="flex items-baseline gap-1 mb-2">
                 <span className="text-4xl font-bold text-primary-6">
                   {averageRating.toFixed(1)}
@@ -160,7 +160,7 @@ const ReviewProduct: React.FC<ReviewProductProps> = ({
 
                 {/* Review Comment */}
                 {review.comment && (
-                  <p className="mb-3 text-sm text-neutral-7 leading-relaxed">{review.comment}</p>
+                  <p className="mb-3 text-sm text-neutral-7 leading-relaxed text-justify">{review.comment}</p>
                 )}
 
                 {/* Review Images */}
@@ -178,12 +178,12 @@ const ReviewProduct: React.FC<ReviewProductProps> = ({
                 )}
 
                 {/* Helpful Count */}
-                <div className="flex gap-4 items-center">
+                {/* <div className="flex gap-4 items-center">
                   <button className="flex gap-1 items-center text-xs text-neutral-6 hover:text-primary-6 transition-colors">
                     <ThumbsUp className="w-4 h-4" />
                     <span>Hữu ích ({review.helpfulCount || 0})</span>
                   </button>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

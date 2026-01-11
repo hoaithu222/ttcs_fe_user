@@ -135,7 +135,7 @@ const ShopProducts: React.FC<ShopProductsProps> = ({
             {products.length > 0 ? `${products.length} sản phẩm đang hiển thị` : "Đang cập nhật sản phẩm"}
           </p>
         </div>
-        <Button
+        {/* <Button
           color="gray"
           variant="ghost"
           size="sm"
@@ -144,7 +144,7 @@ const ShopProducts: React.FC<ShopProductsProps> = ({
           iconPosition="right"
         >
           Xem tất cả
-        </Button>
+        </Button> */}
       </div>
 
       {/* Tabs */}

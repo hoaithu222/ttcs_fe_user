@@ -27,7 +27,7 @@ import { ReduxStateType } from "@/app/store/types";
 import { ShopInfo } from "@/core/api/shop-management/type";
 import { ShopStatus } from "@/features/Shop/slice/shop.type";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
-import { Store, Package, ShoppingCart, Settings, Users, DollarSign } from "lucide-react";
+// Icons - removed unused imports
 import { shopManagementApi } from "@/core/api/shop-management";
 import {
   RevenueChart,
@@ -50,12 +50,8 @@ const ShopDashboardPage: React.FC = () => {
   const shopInfo = useSelector(selectShopInfo) as ShopInfo | null;
   const shopInfoStatus = useSelector(selectShopInfoStatus);
   const shopInfoError = useSelector(selectShopInfoError);
-  const products = useSelector(selectProducts);
   const productsStatus = useSelector(selectProductsStatus);
-  const orders = useSelector(selectOrders);
   const ordersStatus = useSelector(selectOrdersStatus);
-  const currentStatus = useSelector(selectShopCurrentStatus);
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [analytics, setAnalytics] = useState<any>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
@@ -87,26 +83,29 @@ const ShopDashboardPage: React.FC = () => {
   const [cancellationData, setCancellationData] = useState<any>(null);
   const [newAnalyticsLoading, setNewAnalyticsLoading] = useState(false);
 
-  const handleImageError = (id: string) => {
-    setImageErrors((prev) => new Set(prev).add(id));
-  };
-
   // Fetch analytics function (old analytics)
   const fetchAnalytics = async () => {
     try {
       setAnalyticsLoading(true);
       setAnalyticsError(null);
+      
+      console.log("[ShopDashboard] Fetching analytics with filters:", filters);
       const response = await shopManagementApi.getAnalytics(filters);
+      console.log("[ShopDashboard] Analytics API Response:", response);
+      
       if (response.success && response.data) {
+        console.log("[ShopDashboard] Analytics data received:", response.data);
         setAnalytics(response.data);
+        setAnalyticsError(null);
       } else {
+        console.warn("[ShopDashboard] Analytics API failed:", response.message, response);
         setAnalytics(null);
         setAnalyticsError(response.message || "Không thể tải dữ liệu thống kê");
       }
     } catch (error) {
-      console.error("Failed to fetch analytics:", error);
+      console.error("[ShopDashboard] Failed to fetch analytics:", error);
       setAnalytics(null);
-      setAnalyticsError("Lỗi kết nối khi tải dữ liệu thống kê");
+      setAnalyticsError(error instanceof Error ? error.message : "Lỗi kết nối khi tải dữ liệu thống kê");
     } finally {
       setAnalyticsLoading(false);
     }
@@ -116,6 +115,8 @@ const ShopDashboardPage: React.FC = () => {
   const fetchNewAnalytics = async () => {
     try {
       setNewAnalyticsLoading(true);
+      
+      console.log("[ShopDashboard] Fetching new analytics with filters:", filters);
       const [portfolio, trend, forecast, cancellation] = await Promise.all([
         shopManagementApi.getProductPortfolioAnalysis(filters),
         shopManagementApi.getCustomerTrendCompass(filters),
@@ -123,12 +124,50 @@ const ShopDashboardPage: React.FC = () => {
         shopManagementApi.getOrderCancellationAnalysis(filters),
       ]);
 
-      if (portfolio.data) setPortfolioData(portfolio.data);
-      if (trend.data) setTrendData(trend.data);
-      if (forecast.data) setForecastData(forecast.data);
-      if (cancellation.data) setCancellationData(cancellation.data);
+      console.log("[ShopDashboard] New Analytics Responses:", {
+        portfolio,
+        trend,
+        forecast,
+        cancellation,
+      });
+
+      if (portfolio.success && portfolio.data) {
+        console.log("[ShopDashboard] Portfolio data:", portfolio.data);
+        setPortfolioData(portfolio.data);
+      } else {
+        console.warn("[ShopDashboard] Portfolio failed:", portfolio.message);
+        setPortfolioData(null);
+      }
+
+      if (trend.success && trend.data) {
+        console.log("[ShopDashboard] Trend data:", trend.data);
+        setTrendData(trend.data);
+      } else {
+        console.warn("[ShopDashboard] Trend failed:", trend.message);
+        setTrendData(null);
+      }
+
+      if (forecast.success && forecast.data) {
+        console.log("[ShopDashboard] Forecast data:", forecast.data);
+        setForecastData(forecast.data);
+      } else {
+        console.warn("[ShopDashboard] Forecast failed:", forecast.message);
+        setForecastData(null);
+      }
+
+      if (cancellation.success && cancellation.data) {
+        console.log("[ShopDashboard] Cancellation data:", cancellation.data);
+        setCancellationData(cancellation.data);
+      } else {
+        console.warn("[ShopDashboard] Cancellation failed:", cancellation.message);
+        setCancellationData(null);
+      }
     } catch (error) {
-      console.error("Error fetching new analytics:", error);
+      console.error("[ShopDashboard] Error fetching new analytics:", error);
+      setPortfolioData(null);
+      setTrendData(null);
+      setForecastData(null);
+      setCancellationData(null);
     } finally {
       setNewAnalyticsLoading(false);
     }
@@ -284,73 +323,124 @@ const ShopDashboardPage: React.FC = () => {
               </Card>
             )}
 
+            {/* Analytics Empty State - No Data */}
+            {!analyticsLoading && !analyticsError && !analytics && (
+              <Card className="p-8">
+                <Empty
+                  variant="data"
+                  title="Chưa có dữ liệu thống kê"
+                  description="Chưa có dữ liệu thống kê để hiển thị. Hãy thử chọn khoảng thời gian khác."
+                />
+              </Card>
+            )}
+
             {/* Analytics Charts */}
             {!analyticsLoading && !analyticsError && analytics && (
               <div className="space-y-6">
-                {/* Existing Charts Row */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                  <RevenueProfitChart data={analytics.revenueVsProfit || []} />
-                  <WalletTransactionsChart data={analytics.walletTransactions || []} />
+                {/* Debug Info - Remove in production */}
+                {/* {process.env.NODE_ENV === "development" && (
+                  <Card className="p-4 bg-yellow-50 border-yellow-200">
+                    <details className="text-xs">
+                      <summary className="cursor-pointer font-semibold text-yellow-800">
+                        Debug Info (Development Only)
+                      </summary>
+                      <pre className="mt-2 p-2 overflow-auto text-xs bg-white rounded border max-h-64">
+                        {JSON.stringify({ analytics, portfolioData, trendData, forecastData, cancellationData }, null, 2)}
+                      </pre>
+                    </details>
+                  </Card>
+                )} */}
+
+                {/* Gộp tất cả các chart dạng Card/Widget vào MỘT Grid duy nhất */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 auto-rows-min">
+                  {/* 1. Doanh thu vs Lợi nhuận */}
+                  {analytics.revenueVsProfit && analytics.revenueVsProfit.length > 0 && (
+                    <RevenueProfitChart data={analytics.revenueVsProfit || []} />
+                  )}
+
+                  {/* 2. Giao dịch ví */}
+                  {analytics.walletTransactions && analytics.walletTransactions.length > 0 && (
+                    <WalletTransactionsChart data={analytics.walletTransactions || []} />
+                  )}
+
+                  {/* 3. Doanh thu theo ngày */}
+                  {analytics.revenueByDate && analytics.revenueByDate.length > 0 && (
+                    <RevenueChart data={analytics.revenueByDate || []} type="day" />
+                  )}
+
+                  {/* 4. Trạng thái đơn hàng */}
+                  {analytics.orderStatusWithColors && analytics.orderStatusWithColors.length > 0 && (
+                    <OrderStatusChart data={analytics.orderStatusWithColors || []} />
+                  )}
+
+                  {/* 5. Thống kê tồn kho */}
+                  {analytics.inventory && (
+                    <InventoryChart
+                      totalStock={analytics.inventory?.totalStock || 0}
+                      lowStockCount={analytics.inventory?.lowStockCount || 0}
+                      outOfStockCount={analytics.inventory?.outOfStockCount || 0}
+                      productsCount={analytics.productsCount || 0}
+                    />
+                  )}
+
+                  {/* 6. Sản phẩm bán chạy */}
+                  {analytics.topProducts && analytics.topProducts.length > 0 && (
+                    <div className="bg-white rounded-lg shadow-sm p-4 border border-border-1">
+                      <h3 className="text-base font-bold text-neutral-9 mb-4">Sản phẩm bán chạy</h3>
+                      <TopProductsChart products={analytics.topProducts} />
+                    </div>
+                  )}
+
+                  {/* 7. Khách hàng thân thiết */}
+                  {analytics.topCustomers && analytics.topCustomers.length > 0 && (
+                    <div className="bg-white rounded-lg shadow-sm p-4 border border-border-1">
+                      <h3 className="text-base font-bold text-neutral-9 mb-4">Khách hàng thân thiết</h3>
+                      <CustomerChart customers={analytics.topCustomers} />
+                    </div>
+                  )}
                 </div>
 
-                {/* Second Row */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                  <RevenueChart data={analytics.revenueByDate || []} type="day" />
-                  <OrderStatusChart data={analytics.orderStatusWithColors || []} />
-                </div>
+                {/* CÁC SECTION LỚN (Full width) - Những chart này thường to nên để riêng bên dưới */}
+                {/* Product Portfolio */}
+                {(portfolioData || newAnalyticsLoading) && (
+                  <Section>
+                    <SectionTitle>Hiệu quả danh mục đầu tư/Sản phẩm</SectionTitle>
+                    <ProductPortfolioChart data={portfolioData} isLoading={newAnalyticsLoading} />
+                  </Section>
+                )}
 
-                {/* Third Row */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                  <InventoryChart
-                    totalStock={analytics.inventory?.totalStock || 0}
-                    lowStockCount={analytics.inventory?.lowStockCount || 0}
-                    outOfStockCount={analytics.inventory?.outOfStockCount || 0}
-                    productsCount={analytics.productsCount || 0}
-                  />
-                  {/* Placeholder for future chart or spacing */}
-                  <div className="hidden lg:block"></div>
-                </div>
+                {/* Trend Compass */}
+                {(trendData?.trailData?.length > 0 || newAnalyticsLoading) && (
+                  <Section>
+                    <SectionTitle>"La bàn" xu hướng khách hàng</SectionTitle>
+                    <CustomerTrendCompassChart
+                      data={trendData?.trailData}
+                      isLoading={newAnalyticsLoading}
+                    />
+                  </Section>
+                )}
 
-                {/* NEW ANALYTICS CHARTS - 4 Tính năng mới */}
-                <Section>
-                  <SectionTitle>Hiệu quả danh mục đầu tư/Sản phẩm</SectionTitle>
-                  <ProductPortfolioChart data={portfolioData} isLoading={newAnalyticsLoading} />
-                </Section>
+                {/* Order Forecast */}
+                {(forecastData?.forecastData?.length > 0 || newAnalyticsLoading) && (
+                  <Section>
+                    <SectionTitle>Dự báo đơn hàng & Hiệu suất vận hành</SectionTitle>
+                    <OrderForecastChart
+                      data={forecastData?.forecastData}
+                      isLoading={newAnalyticsLoading}
+                    />
+                  </Section>
+                )}
 
-                <Section>
-                  <SectionTitle>"La bàn" xu hướng khách hàng</SectionTitle>
-                  <CustomerTrendCompassChart
-                    data={trendData?.trailData}
-                    isLoading={newAnalyticsLoading}
-                  />
-                </Section>
-
-                <Section>
-                  <SectionTitle>Dự báo đơn hàng & Hiệu suất vận hành</SectionTitle>
-                  <OrderForecastChart
-                    data={forecastData?.forecastData}
-                    isLoading={newAnalyticsLoading}
-                  />
-                </Section>
-
-                <Section>
-                  <SectionTitle>Tỷ lệ hoàn/Hủy đơn & Lý do</SectionTitle>
-                  <OrderCancellationChart
-                    data={cancellationData?.cancellationData}
-                    isLoading={newAnalyticsLoading}
-                  />
-                </Section>
-
-                {/* Existing Charts */}
-                <Section>
-                  <SectionTitle>Sản phẩm bán chạy</SectionTitle>
-                  <TopProductsChart products={analytics.topProducts || []} />
-                </Section>
-
-                <Section>
-                  <SectionTitle>Khách hàng thân thiết</SectionTitle>
-                  <CustomerChart customers={analytics.topCustomers || []} />
-                </Section>
+                {/* Order Cancellation */}
+                {(cancellationData?.cancellationData?.length > 0 || newAnalyticsLoading) && (
+                  <Section>
+                    <SectionTitle>Tỷ lệ hoàn/Hủy đơn & Lý do</SectionTitle>
+                    <OrderCancellationChart
+                      data={cancellationData?.cancellationData || []}
+                      isLoading={newAnalyticsLoading}
+                    />
+                  </Section>
+                )}
               </div>
             )}
           </>

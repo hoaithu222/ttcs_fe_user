@@ -65,16 +65,30 @@ const Analytic: React.FC = () => {
   const fetchAnalytics = async (query: AnalyticsQuery = {}) => {
     try {
       setIsLoading(true);
+      setError(null);
+      
       const response = await shopManagementApi.getAnalytics({
         period: query.period,
         startDate: query.startDate,
         endDate: query.endDate,
       });
-      if (response.data) {
+      
+      console.log("[Analytics] API Response:", response);
+      
+      if (response.success && response.data) {
         setAnalytics(response.data as AnalyticsData);
+        setError(null);
+      } else {
+        const errorMessage = response.message || "Không thể tải dữ liệu thống kê";
+        console.error("[Analytics] API Error:", errorMessage, response);
+        setError(errorMessage);
+        setAnalytics(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể tải thống kê");
+      const errorMessage = err instanceof Error ? err.message : "Không thể tải thống kê";
+      console.error("[Analytics] Fetch Error:", err);
+      setError(errorMessage);
+      setAnalytics(null);
     } finally {
       setIsLoading(false);
     }
@@ -83,6 +97,7 @@ const Analytic: React.FC = () => {
   const fetchNewAnalytics = async (query: AnalyticsQuery = {}) => {
     try {
       setIsLoadingNew(true);
+      
       const [portfolio, trend, forecast, cancellation] = await Promise.all([
         shopManagementApi.getProductPortfolioAnalysis(query),
         shopManagementApi.getCustomerTrendCompass(query),
@@ -90,12 +105,41 @@ const Analytic: React.FC = () => {
         shopManagementApi.getOrderCancellationAnalysis(query),
       ]);
 
-      if (portfolio.data) setPortfolioData(portfolio.data);
-      if (trend.data) setTrendData(trend.data);
-      if (forecast.data) setForecastData(forecast.data);
-      if (cancellation.data) setCancellationData(cancellation.data);
+      console.log("[Analytics] New Analytics Responses:", { portfolio, trend, forecast, cancellation });
+
+      if (portfolio.success && portfolio.data) {
+        setPortfolioData(portfolio.data);
+      } else {
+        console.warn("[Analytics] Portfolio analysis failed:", portfolio.message);
+        setPortfolioData(null);
+      }
+
+      if (trend.success && trend.data) {
+        setTrendData(trend.data);
+      } else {
+        console.warn("[Analytics] Customer trend failed:", trend.message);
+        setTrendData(null);
+      }
+
+      if (forecast.success && forecast.data) {
+        setForecastData(forecast.data);
+      } else {
+        console.warn("[Analytics] Order forecast failed:", forecast.message);
+        setForecastData(null);
+      }
+
+      if (cancellation.success && cancellation.data) {
+        setCancellationData(cancellation.data);
+      } else {
+        console.warn("[Analytics] Cancellation analysis failed:", cancellation.message);
+        setCancellationData(null);
+      }
     } catch (err) {
-      console.error("Error fetching new analytics:", err);
+      console.error("[Analytics] Error fetching new analytics:", err);
+      setPortfolioData(null);
+      setTrendData(null);
+      setForecastData(null);
+      setCancellationData(null);
     } finally {
       setIsLoadingNew(false);
     }
@@ -134,6 +178,25 @@ const Analytic: React.FC = () => {
     );
   }
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Page>
+        <Loading layout="centered" message="Đang tải thống kê..." />
+      </Page>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <Page>
+        <Empty variant="default" title="Lỗi tải dữ liệu" description={error || undefined} />
+      </Page>
+    );
+  }
+
+  // Show empty state only if no error and no data
   if (!analytics) {
     return (
       <Page>
@@ -145,25 +208,25 @@ const Analytic: React.FC = () => {
   const stats = [
     {
       label: "Tổng doanh thu",
-      value: formatPrice(analytics.revenue),
+      value: formatPrice(analytics.revenue || 0),
       icon: <DollarSign className="w-6 h-6" />,
       color: "bg-success/20 text-success",
     },
     {
       label: "Tổng đơn hàng",
-      value: analytics.totalOrders.toString(),
+      value: (analytics.totalOrders || 0).toString(),
       icon: <ShoppingCart className="w-6 h-6" />,
       color: "bg-primary-6/20 text-primary-6",
     },
     {
       label: "Sản phẩm",
-      value: analytics.productsCount.toString(),
+      value: (analytics.productsCount || 0).toString(),
       icon: <Package className="w-6 h-6" />,
       color: "bg-brand/20 text-brand",
     },
     {
       label: "Đơn đã giao",
-      value: (analytics.ordersByStatus.delivered || 0).toString(),
+      value: ((analytics.ordersByStatus && analytics.ordersByStatus.delivered) || 0).toString(),
       icon: <TrendingUp className="w-6 h-6" />,
       color: "bg-primary-8/20 text-primary-8",
     },
@@ -206,20 +269,22 @@ const Analytic: React.FC = () => {
           ))}
         </div>
 
-        <Section>
-          <SectionTitle>Đơn hàng theo trạng thái</SectionTitle>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-            {Object.entries(analytics.ordersByStatus).map(([status, count]) => (
-              <div
-                key={status}
-                className="p-4 text-center rounded-lg border bg-background-1 border-border-1"
-              >
-                <p className="mb-1 text-2xl font-bold text-primary-6">{count}</p>
-                <p className="text-sm capitalize text-neutral-6">{status}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
+        {analytics.ordersByStatus && Object.keys(analytics.ordersByStatus).length > 0 && (
+          <Section>
+            <SectionTitle>Đơn hàng theo trạng thái</SectionTitle>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+              {Object.entries(analytics.ordersByStatus).map(([status, count]) => (
+                <div
+                  key={status}
+                  className="p-4 text-center rounded-lg border bg-background-1 border-border-1"
+                >
+                  <p className="mb-1 text-2xl font-bold text-primary-6">{count || 0}</p>
+                  <p className="text-sm capitalize text-neutral-6">{status}</p>
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
 
         {analytics.topProducts && analytics.topProducts.length > 0 && (
           <Section>
