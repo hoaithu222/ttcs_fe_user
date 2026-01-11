@@ -632,7 +632,7 @@ export default function ProductVariantsManager({
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 {/* Variant Image */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 p-2">
                   <label className="block text-xs font-semibold text-neutral-7">
                     Hình ảnh biến thể
                   </label>
@@ -649,7 +649,7 @@ export default function ProductVariantsManager({
                     onUpload={onImageUpload}
                     aspectRatio="square"
                     width="w-full"
-                    height="h-24"
+                    height="h-28 md:h-32"
                   />
                 </div>
 
