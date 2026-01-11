@@ -253,7 +253,7 @@ export default function SelectAttribute({
             onClick={() => handleBooleanChange("true")}
             className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
               selectedValue === "true"
-                ? "border-primary-6 bg-primary-10 text-primary-7"
+                ? "border-primary-6 bg-primary-5 text-primary-1"
                 : "border-border-1 bg-neutral-2 text-neutral-7 hover:border-primary-6"
             }`}
           >
@@ -265,7 +265,7 @@ export default function SelectAttribute({
             onClick={() => handleBooleanChange("false")}
             className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
               selectedValue === "false"
-                ? "border-primary-6 bg-primary-10 text-primary-7"
+                ? "border-primary-6 bg-primary-4 text-primary-1"
                 : "border-border-1 bg-neutral-2 text-neutral-7 hover:border-primary-6"
             }`}
           >
@@ -359,7 +359,7 @@ export default function SelectAttribute({
                 onClick={() => handleMultiSelectChange(value.value || value.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
                   isSelected
-                    ? "border-primary-6 bg-primary-10 text-primary-7"
+                    ? "border-primary-6 bg-primary-4 text-primary-1"
                     : "border-border-1 bg-neutral-2 text-neutral-7 hover:border-primary-6"
                 }`}
               >

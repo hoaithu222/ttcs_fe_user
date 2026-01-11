@@ -196,7 +196,7 @@ const OrdersPanel = () => {
   const shippingStatusMap = useMemo(
     () => ({
       pending: { label: "Đang chờ xử lý", className: "bg-warning/15 text-warning" },
-      processing: { label: "Đang chuẩn bị", className: "bg-primary-10 text-primary-6" },
+      processing: { label: "Đang chuẩn bị", className: "bg-primary-5 text-primary-1" },
       shipped: { label: "Đang vận chuyển", className: "bg-blue-100 text-blue-600" },
       delivered: { label: "Đã giao", className: "bg-success/10 text-success" },
       cancelled: { label: "Đã hủy", className: "bg-error/10 text-error" },
@@ -207,7 +207,7 @@ const OrdersPanel = () => {
   const paymentStatusMap = useMemo(
     () => ({
       pending: { label: "Chưa thanh toán", className: "bg-warning/15 text-warning" },
-      processing: { label: "Đang thanh toán", className: "bg-primary-10 text-primary-6" },
+      processing: { label: "Đang thanh toán", className: "bg-primary-5 text-primary-1" },
       completed: { label: "Đã thanh toán", className: "bg-success/10 text-success" },
       failed: { label: "Thanh toán thất bại", className: "bg-error/10 text-error" },
       cancelled: { label: "Đã hủy thanh toán", className: "bg-neutral-2 text-neutral-6" },
