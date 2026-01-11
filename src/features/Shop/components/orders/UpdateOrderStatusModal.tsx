@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import * as Form from "@radix-ui/react-form";
 import Input from "@/foundation/components/input/Input";
 import TextArea from "@/foundation/components/input/TextArea";
@@ -31,6 +31,10 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
   const [trackingNumber, setTrackingNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [cancelReason, setCancelReason] = useState("out_of_stock");
+  const [errors, setErrors] = useState<{
+    trackingNumber?: string;
+    notes?: string;
+  }>({});
   const formRef = useRef<HTMLFormElement>(null);
 
   const getStatusLabel = (status: string) => {
@@ -46,6 +50,7 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
 
   const requiresTrackingNumber = newStatus === "shipped";
   const requiresNotes = newStatus === "cancelled" || newStatus === "processing";
+  const isNotesRequired = newStatus === "cancelled";
 
   // Helper function to derive order number with fallback
   const getOrderNumber = (order: ShopOrder | null): string => {
@@ -55,28 +60,73 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
     return "#UNKNOWN";
   };
 
-  const handleSubmit = () => {
+  const validateForm = (): boolean => {
+    const newErrors: { trackingNumber?: string; notes?: string } = {};
+
+    // Validate tracking number for shipped status
+    if (requiresTrackingNumber && !trackingNumber.trim()) {
+      newErrors.trackingNumber = "Mã vận đơn là bắt buộc";
+    }
+
+    // Validate notes for cancelled status
+    if (isNotesRequired && !notes.trim()) {
+      newErrors.notes = "Lý do hủy đơn là bắt buộc";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (event?: React.FormEvent) => {
+    if (event) {
+      event.preventDefault();
+    }
+
+    // Validate form before submitting
+    if (!validateForm()) {
+      return;
+    }
+
     const finalNotes =
       newStatus === "cancelled"
         ? [cancelReasons.find((reason) => reason.value === cancelReason)?.label, notes.trim()]
             .filter(Boolean)
             .join(" - ")
         : notes.trim();
+
     onConfirm({
       orderStatus: newStatus,
       trackingNumber: trackingNumber.trim() || undefined,
       notes: finalNotes || undefined,
     });
-    // Reset form
+
+    // Reset form and errors
     setTrackingNumber("");
     setNotes("");
+    setErrors({});
   };
 
   const handleClose = () => {
     setTrackingNumber("");
     setNotes("");
     setCancelReason("out_of_stock");
+    setErrors({});
     onClose();
+  };
+
+  // Clear errors when inputs change
+  const handleTrackingNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTrackingNumber(e.target.value);
+    if (errors.trackingNumber) {
+      setErrors((prev) => ({ ...prev, trackingNumber: undefined }));
+    }
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNotes(e.target.value);
+    if (errors.notes) {
+      setErrors((prev) => ({ ...prev, notes: undefined }));
+    }
   };
 
   const triggerSubmit = () => {
@@ -111,10 +161,7 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
       <Form.Root
         ref={formRef}
         className="space-y-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          handleSubmit();
-        }}
+        onSubmit={handleSubmit}
       >
         <AlertMessage
           type="info"
@@ -140,15 +187,18 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
         )}
 
         {requiresTrackingNumber && (
-          <Input
-            name="trackingNumber"
-            label="Mã vận đơn (bắt buộc)"
-            placeholder="Nhập mã vận đơn"
-            value={trackingNumber}
-            onChange={(e) => setTrackingNumber(e.target.value)}
-            required
-            description="Mã từ đối tác vận chuyển giúp khách hàng theo dõi đơn"
-          />
+          <div className="space-y-1">
+            <Input
+              name="trackingNumber"
+              label="Mã vận đơn (bắt buộc)"
+              placeholder="Nhập mã vận đơn"
+              value={trackingNumber}
+              onChange={handleTrackingNumberChange}
+              error={errors.trackingNumber}
+              errorBorder={!!errors.trackingNumber}
+              description="Mã từ đối tác vận chuyển giúp khách hàng theo dõi đơn"
+            />
+          </div>
         )}
 
         {newStatus === "cancelled" && (
@@ -163,27 +213,29 @@ const UpdateOrderStatusModal: React.FC<UpdateOrderStatusModalProps> = ({
         )}
 
         {requiresNotes ? (
-          <TextArea
-            name="notes"
-            label={newStatus === "cancelled" ? "Lý do hủy đơn (bắt buộc)" : "Ghi chú"}
-            placeholder={
-              newStatus === "cancelled"
-                ? "Nhập lý do hủy để thông báo cho khách hàng..."
-                : "Nhập ghi chú cho đơn hàng..."
-            }
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={4}
-            required={newStatus === "cancelled"}
-            description="Thông tin này hiển thị trong lịch sử đơn hàng của khách"
-          />
+          <div className="space-y-1">
+            <TextArea
+              name="notes"
+              label={newStatus === "cancelled" ? "Lý do hủy đơn (bắt buộc)" : "Ghi chú"}
+              placeholder={
+                newStatus === "cancelled"
+                  ? "Nhập lý do hủy để thông báo cho khách hàng..."
+                  : "Nhập ghi chú cho đơn hàng..."
+              }
+              value={notes}
+              onChange={handleNotesChange}
+              rows={4}
+              error={errors.notes}
+              description="Thông tin này hiển thị trong lịch sử đơn hàng của khách"
+            />
+          </div>
         ) : (
           <TextArea
             name="optionalNotes"
             label="Ghi chú (tùy chọn)"
             placeholder="Bạn có thể cung cấp thêm thông điệp tới khách hàng..."
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={handleNotesChange}
             rows={3}
           />
         )}
