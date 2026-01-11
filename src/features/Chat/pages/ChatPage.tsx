@@ -7,6 +7,7 @@ import MessageInput from "../components/MessageInput";
 import { MessageSquare } from "lucide-react";
 import { getConversationsStart } from "@/app/store/slices/chat/chat.slice";
 import { useAppDispatch } from "@/app/store";
+import { setCurrentConversation } from "@/app/store/slices/chat/chat.slice";
 
 const ChatPage: React.FC = () => {
   const currentConversation = useAppSelector(selectCurrentConversation);
@@ -27,6 +28,12 @@ const ChatPage: React.FC = () => {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+    useEffect(() => {
+    return () => {
+      // Reset conversation state when leaving chat to avoid stale selections
+      dispatch(setCurrentConversation(null));
+    };
+  }, [dispatch]);
 
   if (isMobile) {
     return (
