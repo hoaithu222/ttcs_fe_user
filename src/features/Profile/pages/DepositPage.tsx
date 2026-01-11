@@ -21,6 +21,12 @@ type DepositMethod = "bank";
 
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000, 2000000, 3000000];
 
+const formatNumberVN = (num: number) => new Intl.NumberFormat("vi-VN").format(num);
+const parseNumberInput = (value: string) => {
+  const numeric = Number((value || "").replace(/[^\d]/g, ""));
+  return Number.isNaN(numeric) ? 0 : numeric;
+};
+
 const DepositPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,6 +51,8 @@ const DepositPage = () => {
     instructions?: string;
   } | null>(null);
   const [depositStatus, setDepositStatus] = useState<"form" | "processing" | "completed">("form");
+
+  const depositAmountValue = parseNumberInput(depositAmount);
 
   const loadBalance = useCallback(async () => {
     try {
@@ -134,7 +142,7 @@ const DepositPage = () => {
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
       });
       setDepositStatus("processing");
-      setDepositAmount(amount.toString());
+      setDepositAmount(amount ? formatNumberVN(amount) : "");
       
       dispatch(addToast({
         type: "info",
@@ -144,7 +152,7 @@ const DepositPage = () => {
   }, [dispatch, location.state]);
 
   const handleDeposit = useCallback(async () => {
-    const amount = parseFloat(depositAmount);
+    const amount = depositAmountValue;
     if (!amount || amount <= 0) {
       dispatch(addToast({ type: "error", message: "Vui lòng nhập số tiền hợp lệ" }));
       return;
@@ -183,7 +191,7 @@ const DepositPage = () => {
     } finally {
       setIsCreatingDeposit(false);
     }
-  }, [depositAmount, depositMethod, walletType, dispatch]);
+  }, [depositAmountValue, depositMethod, walletType, dispatch]);
 
   // Ví đã gộp: luôn dùng ví theo user
   const currentWallet = walletData?.wallet;
@@ -254,21 +262,19 @@ const DepositPage = () => {
                   </div>
 
                   {/* Thông tin số tiền muốn nạp & số dư dự kiến */}
-                  {depositAmount && parseFloat(depositAmount) > 0 && (
+                  {depositAmountValue > 0 && (
                     <div className="mt-4 rounded-2xl bg-white/10 px-4 py-4 space-y-3 text-sm backdrop-blur-md border border-white/10">
                       <div className="flex items-center justify-between gap-2">
                         <span className="opacity-90">Số tiền muốn nạp</span>
                         <span className="font-bold text-lg">
-                          {formatPriceVND(parseFloat(depositAmount) || 0)}
+                          {formatPriceVND(depositAmountValue)}
                         </span>
                       </div>
                       <div className="h-px bg-white/20" />
                       <div className="flex items-center justify-between gap-2">
                         <span className="opacity-90">Số dư sau nạp</span>
                         <span className="font-bold text-lg">
-                          {formatPriceVND(
-                            (currentWallet?.balance || 0) + (parseFloat(depositAmount) || 0)
-                          )}
+                          {formatPriceVND((currentWallet?.balance || 0) + depositAmountValue)}
                         </span>
                       </div>
                     </div>
@@ -317,22 +323,24 @@ const DepositPage = () => {
                     </div>
                     <Input
                       name="amount"
-                      type="number"
+                      type="text"
                       placeholder="0"
                       value={depositAmount}
+                      inputMode="numeric"
                       onChange={(e) => {
-                        const value = e.target.value;
-                        // Chỉ cho phép số dương
-                        if (value === "" || (!isNaN(parseFloat(value)) && parseFloat(value) >= 0)) {
-                          setDepositAmount(value);
-                        }
+                        const sanitized = e.target.value.replace(/[^\d]/g, "");
+                        setDepositAmount(sanitized);
                       }}
+                      onBlur={() =>
+                        setDepositAmount(depositAmountValue ? formatNumberVN(depositAmountValue) : "")
+                      }
+                      onFocus={() =>
+                        setDepositAmount(depositAmountValue ? String(depositAmountValue) : "")
+                      }
                       required
                       className="text-xl font-bold pl-10 pr-4 py-4 h-16 border-2 focus:border-primary-6 transition-colors"
-                      min="10000"
-                      step="1000"
                     />
-                    {depositAmount && parseFloat(depositAmount) > 0 && (
+                    {depositAmountValue > 0 && (
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                         <span className="text-sm font-medium text-neutral-5">VNĐ</span>
                       </div>
@@ -340,18 +348,18 @@ const DepositPage = () => {
                   </div>
                   
                   {/* Amount Preview */}
-                  {depositAmount && parseFloat(depositAmount) >= 10000 && (
+                  {depositAmountValue >= 10000 && (
                     <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-primary-1 to-primary-2 border border-primary-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-neutral-7">Số tiền sẽ nạp:</span>
                         <span className="text-lg font-bold text-primary-7">
-                          {formatPriceVND(parseFloat(depositAmount))}
+                          {formatPriceVND(depositAmountValue)}
                         </span>
                       </div>
                     </div>
                   )}
                   
-                  {depositAmount && parseFloat(depositAmount) > 0 && parseFloat(depositAmount) < 10000 && (
+                  {depositAmountValue > 0 && depositAmountValue < 10000 && (
                     <div className="mt-3 p-3 rounded-xl bg-error/10 border border-error/20">
                       <p className="text-sm text-error flex items-center gap-2">
                         <span>⚠️</span>
@@ -372,12 +380,12 @@ const DepositPage = () => {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   {QUICK_AMOUNTS.map((amount) => {
-                    const isSelected = depositAmount === amount.toString();
+                    const isSelected = depositAmountValue === amount;
                     return (
                       <button
                         key={amount}
                         type="button"
-                        onClick={() => setDepositAmount(amount.toString())}
+                        onClick={() => setDepositAmount(formatNumberVN(amount))}
                         className={`group relative p-4 rounded-xl border-2 transition-all duration-200 ${
                           isSelected
                             ? "border-primary-6 bg-gradient-to-br from-primary-6 to-primary-7 text-white shadow-lg shadow-primary-6/30 scale-105"
@@ -432,7 +440,7 @@ const DepositPage = () => {
                 fullWidth
                 onClick={handleDeposit}
                 loading={isCreatingDeposit}
-                disabled={!depositAmount || parseFloat(depositAmount) <= 0}
+                disabled={depositAmountValue <= 0}
               >
                 Tạo yêu cầu nạp tiền
               </Button>
@@ -464,7 +472,7 @@ const DepositPage = () => {
                   <>
                     Số tiền bạn cần chuyển:{" "}
                     <span className="font-semibold text-primary-6">
-                      {formatPriceVND(parseFloat(depositAmount))} VNĐ
+                      {formatPriceVND(depositAmountValue)} VNĐ
                     </span>
                     . Hệ thống có thể hiển thị số tiền trên QR nhỏ hơn để phục vụ chế độ test SePay,
                     nhưng khi nhận đúng nội dung giao dịch, ví vẫn được cộng chính xác.

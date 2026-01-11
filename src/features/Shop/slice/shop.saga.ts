@@ -265,10 +265,19 @@ function* updateOrderStatusWorker(action: UpdateOrderStatusAction): Generator {
     yield put(updateOrderStatusSuccess());
     yield put(addToast({ type: "success", message: "Cập nhật trạng thái đơn hàng thành công" }));
 
-    // Refresh orders list
+    // Refresh orders list with the same filter
     const state: any = yield select((rootState: any) => rootState);
     const currentPage = state?.shop?.orders?.pagination?.page || 1;
-    yield put(getOrdersStart({ page: currentPage, limit: 10 }));
+    const lastQuery = state?.shop?.orders?.lastQuery || {};
+    const orderStatus = lastQuery.orderStatus;
+    
+    // Refresh orders with the current filter, or switch to the new status tab if different
+    const newStatus = data.orderStatus;
+    yield put(getOrdersStart({ 
+      page: 1, // Reset to page 1 when status changes
+      limit: 10,
+      orderStatus: orderStatus === "all" ? undefined : (newStatus || orderStatus),
+    }));
   } catch (error: unknown) {
     const message = getErrorMessage(error, "Failed to update order status");
     yield put(updateOrderStatusFailure(message));

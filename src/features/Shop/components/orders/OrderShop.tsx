@@ -70,7 +70,12 @@ const STATUS_WORKFLOW: Record<string, { next: string[]; actions: Array<{ status:
 };
 
 const deriveOrderStatus = (order: Partial<ShopOrder> & Record<string, any>) => {
-  return order.orderStatus || order.status || "pending";
+  // Prioritize orderStatus (frontend format), fallback to status (backend format)
+  const status = order.orderStatus || order.status;
+  if (status) return status;
+  
+  // Default to pending if no status found
+  return "pending";
 };
 
 const deriveOrderNumber = (order: Partial<ShopOrder> & Record<string, any>) => {
@@ -114,6 +119,7 @@ const OrderShop: React.FC = () => {
   const [updateStatus, setUpdateStatus] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [lastUpdatedStatus, setLastUpdatedStatus] = useState<string | null>(null);
   const [statusTotals, setStatusTotals] = useState<Record<string, number>>(() =>
     ORDER_TABS.reduce(
       (acc, tab) => ({
@@ -185,27 +191,51 @@ const OrderShop: React.FC = () => {
     notes?: string;
   }) => {
     if (!selectedOrder) return;
+    // Store the new status for use after update completes
+    setLastUpdatedStatus(data.orderStatus);
     dispatchStatusUpdate(selectedOrder._id, data);
   };
 
   // Listen for update success
   useEffect(() => {
-    if (updatingOrderId && ordersStatus === ReduxStateType.SUCCESS) {
-      dispatch(addToast({ type: "success", message: "Đã cập nhật trạng thái đơn hàng thành công" }));
+    if (updatingOrderId && ordersStatus === ReduxStateType.SUCCESS && lastUpdatedStatus) {
+      const newStatus = lastUpdatedStatus;
+      
+      // Close modal and reset state
       setIsModalOpen(false);
       setSelectedOrder(null);
       setUpdatingOrderId(null);
-      // Refresh orders
-      dispatch(
-        getOrdersStart({
-          page: currentPage,
-          limit: 10,
-          orderStatus: activeTab === "all" ? undefined : activeTab,
-        })
-      );
+      setLastUpdatedStatus(null);
+      
+      // If status changed and we're on a specific status tab, switch to the new status tab
+      // This mimics Shopee behavior where orders move to their new status tab
+      if (newStatus && newStatus !== activeTab && activeTab !== "all") {
+        // Switch to the new status tab
+        setActiveTab(newStatus);
+        setCurrentPage(1);
+        dispatch(
+          getOrdersStart({
+            page: 1,
+            limit: 10,
+            orderStatus: newStatus === "all" ? undefined : newStatus,
+          })
+        );
+      } else {
+        // If staying on same tab or "all", refresh current tab
+        // But if order moved to different status and we're on "all", it will still appear
+        dispatch(
+          getOrdersStart({
+            page: 1, // Reset to page 1 to ensure we see the updated order
+            limit: 10,
+            orderStatus: activeTab === "all" ? undefined : activeTab,
+          })
+        );
+      }
+      
+      // Refresh statistics to update counts
       fetchStatusTotals();
     }
-  }, [ordersStatus, updatingOrderId, dispatch, currentPage, activeTab, fetchStatusTotals]);
+  }, [ordersStatus, updatingOrderId, lastUpdatedStatus, dispatch, activeTab, fetchStatusTotals]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {

@@ -67,7 +67,7 @@ const statusConfig: Record<
   },
   processing: {
     label: "Đang xử lý",
-    badgeClass: "bg-primary-10 text-primary-6",
+    badgeClass: "bg-primary-4 text-primary-1",
     icon: <Package className="h-4 w-4" />,
   },
   shipped: {
@@ -150,7 +150,7 @@ const ShopOrderCard = ({
       if (score <= 40) return { label: "Cần chú ý", className: "bg-warning/20 text-warning" };
     }
     if ((order as any).orderHistory?.length > 3) {
-      return { label: "Khách quen", className: "bg-primary-10 text-primary-6" };
+      return { label: "Khách quen", className: "bg-primary-5 text-primary-1" };
     }
     return { label: "Khách mới", className: "bg-neutral-2 text-neutral-6" };
   }, [order]);
@@ -395,7 +395,7 @@ const ShopOrderCard = ({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {onQuickConfirm && (
+            {/* {onQuickConfirm && (
               <Button
                 size="sm"
                 color="green"
@@ -404,8 +404,8 @@ const ShopOrderCard = ({
               >
                 Xác nhận & đóng gói
               </Button>
-            )}
-            {onQuickCancel && (
+            )} */}
+            {/* {onQuickCancel && (
               <Button
                 size="sm"
                 color="red"
@@ -415,7 +415,7 @@ const ShopOrderCard = ({
               >
                 Hủy nhanh
               </Button>
-            )}
+            )} */}
             {actions.length > 0 ? (
               actions.map((action) => (
                 <Button

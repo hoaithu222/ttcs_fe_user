@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Form from "@radix-ui/react-form";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-import { Pencil, CheckCircle2, FolderTree, Edit, Sparkles, CircleStop, Cpu, MemoryStick } from "lucide-react";
+import { Pencil, CheckCircle2, FolderTree, Edit, Sparkles, CircleStop } from "lucide-react";
 import Input from "@/foundation/components/input/Input";
 import Button from "@/foundation/components/buttons/Button";
 import ImageUploadMulti from "@/foundation/components/input/upload/ImageUploadMulti";
@@ -670,7 +670,7 @@ type ProductFormState = {
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {/* <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <Input
                   name="ramSpec"
                   label="RAM (tùy chọn)"
@@ -697,7 +697,7 @@ type ProductFormState = {
                   }
                   iconLeft={<Cpu className="w-4 h-4 text-neutral-5" />}
                 />
-              </div>
+              </div> */}
               {aiState.error && <p className="text-sm text-error">{aiState.error}</p>}
               {aiState.isStreaming && (
                 <p className="flex items-center gap-2 text-xs font-medium text-warning">

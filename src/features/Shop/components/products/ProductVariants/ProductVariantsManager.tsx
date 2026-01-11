@@ -11,6 +11,12 @@ import type { UploadedImageAsset } from "../types";
 
 const SKU_PREFIX = "SSKU";
 
+const formatNumberVN = (num: number) => new Intl.NumberFormat("vi-VN").format(num);
+const parseNumberInput = (value: string) => {
+  const numeric = Number((value || "").replace(/[^\d]/g, ""));
+  return Number.isNaN(numeric) ? 0 : numeric;
+};
+
 const normalizeValue = (value: string): string =>
   (value || "")
     .normalize("NFD")
@@ -94,6 +100,7 @@ export default function ProductVariantsManager({
   categoryId,
 }: ProductVariantsManagerProps) {
   const [localVariants, setLocalVariants] = useState<ProductVariant[]>(variants);
+  const [priceDisplays, setPriceDisplays] = useState<Record<number, string>>({});
   const [fetchedVariantAttributes, setFetchedVariantAttributes] = useState<
     Array<{
       id: string;
@@ -138,6 +145,12 @@ export default function ProductVariantsManager({
 
     if (variantsChanged) {
       setLocalVariants(variants);
+      // Initialize price displays
+      const newPriceDisplays: Record<number, string> = {};
+      variants.forEach((v, idx) => {
+        newPriceDisplays[idx] = v.price ? formatNumberVN(v.price) : "";
+      });
+      setPriceDisplays(newPriceDisplays);
     }
   }, [variants]);
 
@@ -267,6 +280,12 @@ export default function ProductVariantsManager({
 
     const combinations = ensureAutoSku(generateCombinations());
     setLocalVariants(combinations);
+    // Initialize price displays for new combinations
+    const newPriceDisplays: Record<number, string> = {};
+    combinations.forEach((v, idx) => {
+      newPriceDisplays[idx] = v.price ? formatNumberVN(v.price) : "";
+    });
+    setPriceDisplays(newPriceDisplays);
     onChange(combinations);
   };
 
@@ -290,6 +309,12 @@ export default function ProductVariantsManager({
   const handleRemoveVariant = (index: number) => {
     const updated = ensureAutoSku(localVariants.filter((_, i) => i !== index));
     setLocalVariants(updated);
+    // Update price displays after removing variant
+    setPriceDisplays((prev) => {
+      const newDisplays = { ...prev };
+      delete newDisplays[index];
+      return newDisplays;
+    });
     onChange(updated);
   };
 
@@ -633,13 +658,33 @@ export default function ProductVariantsManager({
                   <Input
                     name={`variant_price_${index}`}
                     label="Giá (VNĐ)"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="Nhập giá"
-                    value={variant.price || ""}
-                    onChange={(e) =>
-                      handleVariantChange(index, "price", Number(e.target.value) || 0)
-                    }
-                    min={0}
+                    value={priceDisplays[index] || ""}
+                    onChange={(e) => {
+                      const sanitized = e.target.value.replace(/[^\d]/g, "");
+                      setPriceDisplays((prev) => ({
+                        ...prev,
+                        [index]: sanitized,
+                      }));
+                      const numeric = parseNumberInput(sanitized);
+                      handleVariantChange(index, "price", numeric);
+                    }}
+                    onBlur={() => {
+                      const numeric = parseNumberInput(priceDisplays[index] || "");
+                      setPriceDisplays((prev) => ({
+                        ...prev,
+                        [index]: numeric ? formatNumberVN(numeric) : "",
+                      }));
+                    }}
+                    onFocus={() => {
+                      const numeric = parseNumberInput(priceDisplays[index] || "");
+                      setPriceDisplays((prev) => ({
+                        ...prev,
+                        [index]: numeric ? String(numeric) : "",
+                      }));
+                    }}
                     iconLeft={<DollarSign className="w-4 h-4 text-primary-6" />}
                   />
                 </div>
