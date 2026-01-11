@@ -160,13 +160,13 @@ const AlertMessage: React.FC<AlertMessageProps> = ({
           <div className="flex-1 min-w-0">
             {title && (
               <div
-                className={`font-semibold ${compact ? "text-sm" : "text-sm"} ${styles.titleColor} mb-1`}
+                className={`font-semibold text-start ${compact ? "text-sm" : "text-sm"} ${styles.titleColor} mb-1`}
               >
                 {title}
               </div>
             )}
             {message && (
-              <div className={`${compact ? "text-xs" : "text-sm"} ${styles.messageColor}`}>
+              <div className={ `${compact ? "text-xs text-start" : "text-sm text-start"} ${styles.messageColor}`}>
                 {message}
               </div>
             )}

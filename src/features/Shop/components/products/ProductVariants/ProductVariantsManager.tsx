@@ -417,7 +417,7 @@ export default function ProductVariantsManager({
                         key={attr.id}
                         className={`flex items-center justify-between rounded-md border px-3 py-2 ${
                           isSelected
-                            ? "bg-primary-10/40 border-primary-6/40"
+                            ? "bg-primary-6/10 border-primary-6/40"
                             : "bg-neutral-1 border-border-1"
                         }`}
                       >
@@ -484,7 +484,7 @@ export default function ProductVariantsManager({
                         return (
                           <span
                             key={key}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-10 rounded-md border border-primary-6/20"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-3 rounded-md border border-primary-6/20"
                           >
                             {attrValue?.colorCode && (
                               <div

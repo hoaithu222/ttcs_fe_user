@@ -18,6 +18,7 @@ import type {
   fetchWishlistStart,
   checkShopFollowingStart,
 } from "./profile.slice";
+import { updateUserProfile } from "@/features/Auth/components/slice/auth.slice";
 import {
   fetchProfileSuccess,
   fetchProfileFailure,
@@ -297,6 +298,8 @@ function* updateProfileWorker(
     const response = yield call([authAPI, authAPI.updateProfile], action.payload as Partial<User>);
     if (response.data) {
       yield put(updateProfileSuccess(response.data));
+      // Sync auth.user so header and other components reflect latest profile
+      yield put(updateUserProfile(response.data));
       yield put(
         addToast({ type: "success", message: response.message || "Cập nhật hồ sơ thành công" })
       );

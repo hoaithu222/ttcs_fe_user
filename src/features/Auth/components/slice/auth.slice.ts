@@ -2,6 +2,7 @@ import { IAuthState, ILoginStep, stepRegister } from "./auth.types";
 import { createResettableSlice } from "@/app/store/create-resettabable-slice";
 import { AppReducerType, ReduxStateType } from "@/app/store/types";
 import { LoginRequest } from "@/core/api/auth/type";
+import type { User } from "@/core/api/auth/type";
 import { PayloadAction } from "@reduxjs/toolkit";
 
 
@@ -203,6 +204,15 @@ export const { slice, reducer } = createResettableSlice({
       state.user = null;
       state.logout.logoutStatus = ReduxStateType.ERROR;
     },
+    // Update current user fields (e.g., after profile update)
+    updateUserProfile: (state, action: PayloadAction<Partial<User>>) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload } as any;
+      } else {
+        // If user not set yet, initialize with payload
+        state.user = action.payload as any;
+      }
+    },
     // First login flow: 2FA reminder
     acknowledgeTwoFactorReminder: (state) => {
       state.firstLoginFlow.show2FAReminder = false;
@@ -370,6 +380,7 @@ export const {
   submitPostLoginOtpSuccess,
   submitPostLoginOtpFailed,
   resendPostLoginOtp,
+  updateUserProfile,
 } = slice.actions;
 
 export default reducer;

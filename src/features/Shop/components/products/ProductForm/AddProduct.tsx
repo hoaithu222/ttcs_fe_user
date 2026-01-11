@@ -130,6 +130,8 @@ type ProductFormState = {
     isGeneratingMeta: false,
     error: "",
   });
+  // Hiển thị giá với format nghìn (VNĐ) trong input
+  const [priceDisplay, setPriceDisplay] = useState<string>("");
   const streamingTimerRef = useRef<number | null>(null);
   const streamingPlainRef = useRef("");
 
@@ -210,7 +212,7 @@ type ProductFormState = {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (name === "price" || name === "stock" || name === "weight") {
+    if (name === "stock" || name === "weight") {
       setData((prev) => ({
         ...prev,
         [name]: Number(value) || 0,
@@ -232,6 +234,33 @@ type ProductFormState = {
       [name]: value,
     }));
   };
+
+  // Helpers cho format giá VNĐ
+  const formatNumberVN = (num: number) => new Intl.NumberFormat("vi-VN").format(num);
+  const parseNumber = (str: string) => {
+    const n = Number((str || "").replace(/[^\d]/g, ""));
+    return Number.isNaN(n) ? 0 : n;
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const numeric = parseNumber(raw);
+    setPriceDisplay(raw);
+    setData((prev) => ({ ...prev, price: numeric }));
+  };
+
+  const handlePriceBlur = () => {
+    setPriceDisplay(data.price ? formatNumberVN(data.price) : "");
+  };
+
+  const handlePriceFocus = () => {
+    setPriceDisplay(data.price ? String(data.price) : "");
+  };
+
+  // Đồng bộ hiển thị khi giá thay đổi từ nơi khác (AI fill/reset)
+  useEffect(() => {
+    setPriceDisplay(data.price ? formatNumberVN(data.price) : "");
+  }, [data.price]);
 
   const handleClose = () => {
     setOpenCategory(false);
@@ -705,12 +734,14 @@ type ProductFormState = {
               <Input
                 name="price"
                 label="Giá sản phẩm (VNĐ)"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 placeholder="Nhập giá sản phẩm"
-                value={data.price || ""}
-                onChange={handleChange}
+                value={priceDisplay}
+                onChange={handlePriceChange}
+                onBlur={handlePriceBlur}
+                onFocus={handlePriceFocus}
                 required
-                min={0}
               />
               <Input
                 name="stock"
