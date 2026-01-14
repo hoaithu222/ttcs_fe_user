@@ -9,6 +9,9 @@ import ProductCarousel from "./ProductCarousel";
 import ShopCard from "./ShopCard";
 import ShopCarousel from "./ShopCarousel";
 import CategoryCard from "./CategoryCard";
+import OrderCard from "./OrderCard";
+import CartItemCard from "./CartItemCard";
+import WalletInfoCard from "./WalletInfoCard";
 import type { ChatMessage, ChatConversation } from "@/core/api/chat/type";
 import { images } from "@/assets/image";
 
@@ -40,9 +43,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
             return images.CSKH;
           }
           // Check if this is an AI message
-          const isAiMessage = conversation?.type === "ai" && 
-                             (message.metadata?.isAiMessage === true || 
-                              message.senderName === "Chatbot");
+          const isAiMessage = conversation?.type === "ai" &&
+            (message.metadata?.isAiMessage === true ||
+              message.senderName === "Chatbot");
           if (isAiMessage) {
             return images.chatAi; // Use AI avatar
           }
@@ -52,22 +55,22 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
         const senderAvatar = getSenderAvatar();
 
         return (
-        <div className="flex-shrink-0">
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-primary-5 to-primary-7 flex items-center justify-center shadow-sm">
+          <div className="flex-shrink-0">
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-primary-5 to-primary-7 flex items-center justify-center shadow-sm">
               {senderAvatar ? (
-              <Image
+                <Image
                   src={senderAvatar}
-                alt={message.senderName || "User"}
-                rounded
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-primary-6 text-neutral-1 flex items-center justify-center text-sm font-semibold">
-                {(message.senderName || "U")[0].toUpperCase()}
-              </div>
-            )}
+                  alt={message.senderName || "User"}
+                  rounded
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-primary-6 text-neutral-1 flex items-center justify-center text-sm font-semibold">
+                  {(message.senderName || "U")[0].toUpperCase()}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         );
       })()}
 
@@ -80,100 +83,148 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
 
         {/* Product Carousel - Render for messages with suggested products */}
         {/* Show for AI messages that have suggestedProducts in metadata */}
-        {message.metadata?.suggestedProducts && 
-         Array.isArray(message.metadata.suggestedProducts) &&
-         message.metadata.suggestedProducts.length > 0 && (
-          <div className="mb-2 w-full">
-            {message.metadata.suggestedProducts.length > 1 ? (
-              <ProductCarousel
-                products={message.metadata.suggestedProducts.map((product: any) => ({
-                  productId: product.productId,
-                  productName: product.productName,
-                  productImage: product.productImage,
-                  productPrice: product.productPrice,
-                  shopId: product.shopId,
-                  shopName: product.shopName,
-                }))}
-              />
-            ) : (
-              <ProductCard
-                productId={message.metadata.suggestedProducts[0]?.productId}
-                productName={message.metadata.suggestedProducts[0]?.productName}
-                productImage={message.metadata.suggestedProducts[0]?.productImage}
-                productPrice={message.metadata.suggestedProducts[0]?.productPrice}
-                shopId={message.metadata.suggestedProducts[0]?.shopId}
-                shopName={message.metadata.suggestedProducts[0]?.shopName}
-                showActions={true}
-              />
-            )}
-          </div>
-        )}
+        {message.metadata?.suggestedProducts &&
+          Array.isArray(message.metadata.suggestedProducts) &&
+          message.metadata.suggestedProducts.length > 0 && (
+            <div className="mb-2 w-full">
+              {message.metadata.suggestedProducts.length > 1 ? (
+                <ProductCarousel
+                  products={message.metadata.suggestedProducts.map((product: any) => ({
+                    productId: product.productId,
+                    productName: product.productName,
+                    productImage: product.productImage,
+                    productPrice: product.productPrice,
+                    shopId: product.shopId,
+                    shopName: product.shopName,
+                  }))}
+                />
+              ) : (
+                <ProductCard
+                  productId={message.metadata.suggestedProducts[0]?.productId}
+                  productName={message.metadata.suggestedProducts[0]?.productName}
+                  productImage={message.metadata.suggestedProducts[0]?.productImage}
+                  productPrice={message.metadata.suggestedProducts[0]?.productPrice}
+                  shopId={message.metadata.suggestedProducts[0]?.shopId}
+                  shopName={message.metadata.suggestedProducts[0]?.shopName}
+                  showActions={true}
+                />
+              )}
+            </div>
+          )}
 
         {/* Single Product Card - Render for messages with single product metadata (backward compatibility) */}
         {!message.metadata?.suggestedProducts &&
-         message.metadata?.productId && 
-         message.metadata?.productName && (
-          <div className="mb-2 w-full">
-            <ProductCard
-              productId={message.metadata.productId}
-              productName={message.metadata.productName}
-              productImage={message.metadata.productImage}
-              productPrice={message.metadata.productPrice}
-            />
-          </div>
-        )}
+          message.metadata?.productId &&
+          message.metadata?.productName && (
+            <div className="mb-2 w-full">
+              <ProductCard
+                productId={message.metadata.productId}
+                productName={message.metadata.productName}
+                productImage={message.metadata.productImage}
+                productPrice={message.metadata.productPrice}
+              />
+            </div>
+          )}
 
         {/* Shop Carousel - Render for messages with suggested shops */}
-        {message.metadata?.suggestedShops && 
-         Array.isArray(message.metadata.suggestedShops) &&
-         message.metadata.suggestedShops.length > 0 && (
-          <div className="mb-2 w-full">
-            {message.metadata.suggestedShops.length > 1 ? (
-              <ShopCarousel
-                shops={message.metadata.suggestedShops.map((shop: any) => ({
-                  shopId: shop.shopId,
-                  shopName: shop.shopName,
-                  shopLogo: shop.shopLogo,
-                  shopDescription: shop.shopDescription,
-                  rating: shop.rating,
-                  followCount: shop.followCount,
-                  productCount: shop.productCount,
-                  reviewCount: shop.reviewCount,
-                  isVerified: shop.isVerified,
-                }))}
-              />
-            ) : (
-              <ShopCard
-                shopId={message.metadata.suggestedShops[0]?.shopId}
-                shopName={message.metadata.suggestedShops[0]?.shopName}
-                shopLogo={message.metadata.suggestedShops[0]?.shopLogo}
-                shopDescription={message.metadata.suggestedShops[0]?.shopDescription}
-                rating={message.metadata.suggestedShops[0]?.rating}
-                followCount={message.metadata.suggestedShops[0]?.followCount}
-                productCount={message.metadata.suggestedShops[0]?.productCount}
-                reviewCount={message.metadata.suggestedShops[0]?.reviewCount}
-                isVerified={message.metadata.suggestedShops[0]?.isVerified}
-              />
-            )}
-          </div>
-        )}
+        {message.metadata?.suggestedShops &&
+          Array.isArray(message.metadata.suggestedShops) &&
+          message.metadata.suggestedShops.length > 0 && (
+            <div className="mb-2 w-full">
+              {message.metadata.suggestedShops.length > 1 ? (
+                <ShopCarousel
+                  shops={message.metadata.suggestedShops.map((shop: any) => ({
+                    shopId: shop.shopId,
+                    shopName: shop.shopName,
+                    shopLogo: shop.shopLogo,
+                    shopDescription: shop.shopDescription,
+                    rating: shop.rating,
+                    followCount: shop.followCount,
+                    productCount: shop.productCount,
+                    reviewCount: shop.reviewCount,
+                    isVerified: shop.isVerified,
+                  }))}
+                />
+              ) : (
+                <ShopCard
+                  shopId={message.metadata.suggestedShops[0]?.shopId}
+                  shopName={message.metadata.suggestedShops[0]?.shopName}
+                  shopLogo={message.metadata.suggestedShops[0]?.shopLogo}
+                  shopDescription={message.metadata.suggestedShops[0]?.shopDescription}
+                  rating={message.metadata.suggestedShops[0]?.rating}
+                  followCount={message.metadata.suggestedShops[0]?.followCount}
+                  productCount={message.metadata.suggestedShops[0]?.productCount}
+                  reviewCount={message.metadata.suggestedShops[0]?.reviewCount}
+                  isVerified={message.metadata.suggestedShops[0]?.isVerified}
+                />
+              )}
+            </div>
+          )}
 
         {/* Category Cards - Render for messages with suggested categories */}
-        {message.metadata?.suggestedCategories && 
-         Array.isArray(message.metadata.suggestedCategories) &&
-         message.metadata.suggestedCategories.length > 0 && (
-          <div className="mb-2 w-full space-y-2">
-            {message.metadata.suggestedCategories.map((category: any, index: number) => (
-              <CategoryCard
-                key={category.categoryId || category._id || index}
-                categoryId={category.categoryId || category._id}
-                categoryName={category.categoryName || category.name}
-                categoryImage={category.categoryImage || category.image}
-                categoryDescription={category.categoryDescription || category.description}
-                productCount={category.productCount}
-                slug={category.slug}
-              />
-            ))}
+        {message.metadata?.suggestedCategories &&
+          Array.isArray(message.metadata.suggestedCategories) &&
+          message.metadata.suggestedCategories.length > 0 && (
+            <div className="mb-2 w-full space-y-2">
+              {message.metadata.suggestedCategories.map((category: any, index: number) => (
+                <CategoryCard
+                  key={category.categoryId || category._id || index}
+                  categoryId={category.categoryId || category._id}
+                  categoryName={category.categoryName || category.name}
+                  categoryImage={category.categoryImage || category.image}
+                  categoryDescription={category.categoryDescription || category.description}
+                  productCount={category.productCount}
+                  slug={category.slug}
+                />
+              ))}
+            </div>
+          )}
+
+        {/* Order Cards - Render for messages with orders */}
+        {message.metadata?.orders &&
+          Array.isArray(message.metadata.orders) &&
+          message.metadata.orders.length > 0 && (
+            <div className="mb-2 w-full space-y-2">
+              {message.metadata.orders.slice(0, 5).map((order: any, index: number) => (
+                <OrderCard
+                  key={order._id || index}
+                  orderId={order._id}
+                  orderNumber={order.orderNumber}
+                  status={order.status}
+                  totalAmount={order.totalAmount || 0}
+                  itemCount={order.orderItems?.length || 0}
+                  createdAt={order.createdAt}
+                />
+              ))}
+            </div>
+          )}
+
+        {/* Cart Items - Render for messages with cart */}
+        {message.metadata?.cart &&
+          Array.isArray(message.metadata.cart) &&
+          message.metadata.cart.length > 0 && (
+            <div className="mb-2 w-full space-y-2">
+              {message.metadata.cart.slice(0, 5).map((item: any, index: number) => (
+                <CartItemCard
+                  key={item.productId?._id || index}
+                  productId={item.productId?._id}
+                  productName={item.productId?.name || "Sản phẩm"}
+                  productImage={item.productId?.images?.[0]?.url}
+                  productPrice={item.productId?.price || 0}
+                  quantity={item.quantity || 1}
+                  shopName={item.shopId?.name}
+                />
+              ))}
+            </div>
+          )}
+
+        {/* Wallet Info - Render for messages with wallet */}
+        {message.metadata?.wallet && (
+          <div className="mb-2 w-full">
+            <WalletInfoCard
+              balance={message.metadata.wallet.balance || 0}
+              currency={message.metadata.wallet.currency}
+            />
           </div>
         )}
 
@@ -245,10 +296,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isOwn, conversation 
             const waveformBars = Array.from({ length: 40 }, (_, i) => {
               const progress = currentTime / duration || 0;
               const isActive = i / 40 < progress;
-              const height = isPlaying && isActive 
+              const height = isPlaying && isActive
                 ? 20 + Math.sin((Date.now() / 100 + i * 10) % (Math.PI * 2)) * 8
-                : isActive 
-                  ? 20 
+                : isActive
+                  ? 20
                   : 4 + Math.random() * 8;
               return { height, isActive };
             });

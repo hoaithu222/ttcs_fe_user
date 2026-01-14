@@ -54,7 +54,7 @@ export interface User {
   email: string;
   phone?: string;
   avatar?: string;
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "suspended";
   role: "user" | "shop_owner" | "admin";
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
@@ -68,7 +68,7 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   // Shop status (added when fetching profile)
-  shopStatus?: "not_registered" |  "pending_review" | "approved" | "rejected" | "active" | "blocked" | "suspended";
+  shopStatus?: "not_registered" | "pending_review" | "approved" | "rejected" | "active" | "blocked" | "suspended";
   shop?: {
     id: string;
     name: string;

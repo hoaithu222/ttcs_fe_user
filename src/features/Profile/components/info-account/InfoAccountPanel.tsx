@@ -17,7 +17,7 @@ const InfoAccountPanel = () => {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  
+
 
   console.log("profile", profile);
 
@@ -42,32 +42,39 @@ const InfoAccountPanel = () => {
         colorClass: "border border-warning text-warning bg-warning/10",
       };
     }
+    if (status === "suspended") {
+      return {
+        id: "status-suspended",
+        label: "Trạng thái: Bị khóa",
+        colorClass: "border border-error text-error bg-error/10",
+      };
+    }
     return status
       ? {
-          id: "status-generic",
-          label: `Trạng thái: ${status}`,
-          colorClass: "border border-neutral-3 text-neutral-7 bg-neutral-2",
-        }
+        id: "status-generic",
+        label: `Trạng thái: ${status}`,
+        colorClass: "border border-neutral-3 text-neutral-7 bg-neutral-2",
+      }
       : null;
   })();
 
   const roleMeta = profileData?.role
     ? {
-        id: "role",
-        label: `Vai trò: ${profileData.role === "admin" ? "Quản trị" : profileData.role}`,
-        colorClass: "border border-primary-6 text-primary-6 bg-primary-10",
-      }
+      id: "role",
+      label: `Vai trò: ${profileData.role === "admin" ? "Quản trị" : profileData.role}`,
+      colorClass: "border border-primary-6 text-primary-6 bg-primary-10",
+    }
     : null;
 
   const shopStatusMeta = profileData?.shopStatus
     ? {
-        id: "shop-status",
-        label:
-          profileData.shopStatus === "not_registered"
-            ? "Cửa hàng: Chưa đăng ký"
-            : `Cửa hàng: ${profileData.shopStatus}`,
-        colorClass: "border border-neutral-4 text-neutral-7 bg-background-2",
-      }
+      id: "shop-status",
+      label:
+        profileData.shopStatus === "not_registered"
+          ? "Cửa hàng: Chưa đăng ký"
+          : `Cửa hàng: ${profileData.shopStatus}`,
+      colorClass: "border border-neutral-4 text-neutral-7 bg-background-2",
+    }
     : null;
 
   const overviewChips = [statusMeta, roleMeta, shopStatusMeta].filter(
@@ -124,6 +131,13 @@ const InfoAccountPanel = () => {
   return (
     <Section title="Thông tin tài khoản">
       <Card className="space-y-6 py-7 mr-6 lg:mr-0  max-h-[calc(100vh-110px)] min-h-[calc(100vh-110px)] overflow-y-auto" >
+        {profileData?.status === "suspended" && (
+          <AlertMessage
+            type="error"
+            title="Tài khoản bị khóa"
+            message="Tài khoản của bạn đã bị khóa bởi quản trị viên(CSKH). Bạn không thể thực hiện các thao tác như đăng ký shop, đặt hàng, hoặc thanh toán. Vui lòng liên hệ với quản trị viên để biết thêm chi tiết."
+          />
+        )}
         <AlertMessage
           type="info"
           title="Cập nhật hồ sơ"
@@ -218,7 +232,7 @@ const InfoAccountPanel = () => {
             </div>
           </div>
         </div>
-       
+
       </Card>
     </Section>
   );

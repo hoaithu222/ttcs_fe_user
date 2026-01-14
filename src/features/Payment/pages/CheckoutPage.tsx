@@ -107,7 +107,7 @@ const CheckoutPage: React.FC = () => {
     Array<{ orderId: string; shopId: string; shopName?: string }>
   >([]);
   const [isMultiShopModalOpen, setIsMultiShopModalOpen] = useState(false);
-  
+
   // Wallet state
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
@@ -193,7 +193,7 @@ const CheckoutPage: React.FC = () => {
       dispatch(addToast({ type: "error", message: "Vui lòng chọn phương thức thanh toán" }));
       return false;
     }
-    
+
     // Check wallet balance if wallet payment method is selected
     if (selectedPaymentConfig?.type === "wallet") {
       if (walletBalance === null) {
@@ -201,15 +201,15 @@ const CheckoutPage: React.FC = () => {
         return false;
       }
       if (walletBalance < totalAmount) {
-        dispatch(addToast({ 
-          type: "error", 
-          message: `Số dư ví không đủ. Số dư hiện tại: ${formatPriceVND(walletBalance)}. Vui lòng nạp thêm tiền.` 
+        dispatch(addToast({
+          type: "error",
+          message: `Số dư ví không đủ. Số dư hiện tại: ${formatPriceVND(walletBalance)}. Vui lòng nạp thêm tiền.`
         }));
         setIsDepositModalOpen(true);
         return false;
       }
     }
-    
+
     return true;
   };
 
@@ -345,7 +345,7 @@ const CheckoutPage: React.FC = () => {
           shopId,
           shopName: group.shopName,
         });
-        
+
         console.log("[CheckoutPage] Order added to createdOrders:", {
           orderId: response.data._id,
           totalCreated: createdOrders.length,
@@ -396,10 +396,11 @@ const CheckoutPage: React.FC = () => {
         }
       }
     } catch (error: any) {
+      console.log("[CheckoutPage] Error creating order:", error);
       dispatch(
         addToast({
           type: "error",
-          message: error?.response?.data?.message || "Có lỗi xảy ra khi tạo đơn hàng",
+          message: error?.message || "Có lỗi xảy ra khi tạo đơn hàng",
         })
       );
     } finally {
@@ -424,7 +425,7 @@ const CheckoutPage: React.FC = () => {
         willRedirectToPayment: methodType === "wallet" || methodType === "bank_transfer",
         willRedirectToResult: methodType !== "wallet" && methodType !== "bank_transfer",
       });
-      
+
       // Với các phương thức cần thanh toán online (wallet, bank_transfer) -> sang màn thanh toán
       if (methodType === "wallet" || methodType === "bank_transfer") {
         console.log("[CheckoutPage] Redirecting to payment page:", `/payment/${createdOrderId}`);
@@ -483,7 +484,7 @@ const CheckoutPage: React.FC = () => {
       </Page>
     );
   }
-  
+
   // Check if wallet payment is selected and balance is insufficient
   const isWalletSelected = selectedPaymentConfig?.type === "wallet";
   const isWalletInsufficient = isWalletSelected && walletBalance !== null && walletBalance < totalAmount;
@@ -553,8 +554,8 @@ const CheckoutPage: React.FC = () => {
                       }, {});
 
                       return Object.entries(shopGroups).map(([shopId, group]) => (
-                        <div 
-                          key={shopId} 
+                        <div
+                          key={shopId}
                           className="border border-border-1 rounded-xl p-5 bg-background-1 shadow-sm hover:shadow-md transition-shadow duration-200"
                         >
                           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border-1">
@@ -711,7 +712,7 @@ const CheckoutPage: React.FC = () => {
                                 return method.name || type;
                             }
                           };
-                          
+
                           // Check if this is wallet method and show balance
                           const isWalletMethod = method.type === "wallet";
                           const showWalletBalance = isWalletMethod && walletBalance !== null;
@@ -722,19 +723,17 @@ const CheckoutPage: React.FC = () => {
                               key={method.id}
                               type="button"
                               onClick={() => setSelectedPaymentMethod(method.id)}
-                              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                                selectedPaymentMethod === method.id
-                                  ? "border-primary-6 bg-primary-1 shadow-sm"
-                                  : "border-border-1 bg-background-1 hover:border-primary-3 hover:shadow-sm"
-                              }`}
+                              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${selectedPaymentMethod === method.id
+                                ? "border-primary-6 bg-primary-1 shadow-sm"
+                                : "border-border-1 bg-background-1 hover:border-primary-3 hover:shadow-sm"
+                                }`}
                             >
                               <div className="flex items-center gap-2">
                                 <div
-                                  className={`flex justify-center items-center w-8 h-8 rounded ${
-                                    selectedPaymentMethod === method.id
-                                      ? "bg-primary-6 text-white"
-                                      : "bg-neutral-2 text-neutral-7"
-                                  }`}
+                                  className={`flex justify-center items-center w-8 h-8 rounded ${selectedPaymentMethod === method.id
+                                    ? "bg-primary-6 text-white"
+                                    : "bg-neutral-2 text-neutral-7"
+                                    }`}
                                 >
                                   {getMethodIcon(method.type)}
                                 </div>
@@ -755,11 +754,10 @@ const CheckoutPage: React.FC = () => {
                                   )}
                                 </div>
                                 <div
-                                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                                    selectedPaymentMethod === method.id
-                                      ? "border-primary-6 bg-primary-6"
-                                      : "border-neutral-4 bg-transparent"
-                                  }`}
+                                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selectedPaymentMethod === method.id
+                                    ? "border-primary-6 bg-primary-6"
+                                    : "border-neutral-4 bg-transparent"
+                                    }`}
                                 >
                                   {selectedPaymentMethod === method.id && (
                                     <div className="w-1.5 h-1.5 rounded-full bg-white" />
@@ -832,7 +830,7 @@ const CheckoutPage: React.FC = () => {
                       }
                     />
                   )}
-                  
+
                   {isWalletInsufficient && (
                     <AlertMessage
                       type="warning"
@@ -1002,7 +1000,7 @@ const CheckoutPage: React.FC = () => {
                 setIsDepositModalOpen(false);
                 navigate(`/wallet/deposit?walletType=user&returnUrl=${encodeURIComponent("/checkout")}`);
               }}
-             
+
               className="flex-1 flex items-center justify-center gap-2"
             >
               Đi đến nạp tiền

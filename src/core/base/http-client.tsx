@@ -252,6 +252,30 @@ export abstract class VpsHttpClient {
         }
 
         const message = errorData.message || "An error occurred";
+        const errorCode = errorData.code;
+
+        // Handle account suspended/inactive errors
+        if (errorCode === "ACCOUNT_SUSPENDED" || errorCode === "ACCOUNT_INACTIVE") {
+          // Dispatch custom event for suspended/inactive account
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("ACCOUNT_STATUS_ERROR", {
+                detail: { code: errorCode, message },
+              })
+            );
+          }
+
+          // Don't show toast for these errors (will be handled by modal)
+          const standardError: ErrorData = {
+            message: message,
+            name: "ACCOUNT_STATUS_ERROR",
+            code: errorCode,
+            httpStatus: response?.status,
+            requestId: config?.headers?.["x-request-id"] as string,
+            originalError: error,
+          };
+          return Promise.reject(standardError);
+        }
 
         // Only show toast if skipToast is not true
         if (!errorData.skipToast) {

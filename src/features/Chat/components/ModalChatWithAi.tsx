@@ -118,9 +118,9 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
   // Mark as read when modal is open and messages are loaded
   useEffect(() => {
     if (
-      currentConversation && 
-      messages.length > 0 && 
-      open && 
+      currentConversation &&
+      messages.length > 0 &&
+      open &&
       status !== "LOADING"
     ) {
       dispatch(markAsReadStart({ conversationId: currentConversation._id }));
@@ -464,9 +464,9 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
               .slice(-10) // Last 10 messages
               .map((msg) => {
                 // Check if message is from AI
-                const isAiMsg = currentConversation?.type === "ai" && 
-                              (msg.metadata?.isAiMessage === true || 
-                               msg.senderName === "Chatbot");
+                const isAiMsg = currentConversation?.type === "ai" &&
+                  (msg.metadata?.isAiMessage === true ||
+                    msg.senderName === "Chatbot");
                 return {
                   role: (isAiMsg ? "assistant" : "user") as "user" | "assistant",
                   content: msg.message || "",
@@ -482,6 +482,7 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
             // Call AI endpoint
             const aiResponse = await aiAssistantApi.generateChatResponse({
               message: messageText,
+              userId: user?._id, // Pass userId for personalized responses
               conversationHistory,
               language: "vi",
             });
@@ -523,6 +524,10 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                     productCount: category.productCount,
                     slug: category.slug,
                   })),
+                  // Store system data for display
+                  orders: aiResponse.data.orders,
+                  cart: aiResponse.data.cart,
+                  wallet: aiResponse.data.wallet,
                   responseType: aiResponse.data.responseType,
                 },
               });
@@ -578,7 +583,7 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
     const textBefore = message.substring(0, cursorPosition);
     const textAfter = message.substring(cursorPosition);
     setMessage(textBefore + emojiData.emoji + textAfter);
-    
+
     // Focus back to textarea and set cursor position
     setTimeout(() => {
       if (textareaRef.current) {
@@ -592,17 +597,16 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
   if (!open) return null;
 
   // Check if current conversation is AI conversation (if exists)
-  const isAiConversation = currentConversation 
+  const isAiConversation = currentConversation
     ? (currentConversation.type === "ai" || currentConversation.channel === "ai")
     : true; // Allow showing UI even if no conversation yet (will be created)
 
   return (
     <div
-      className={`fixed right-4 bottom-4 z-50 flex flex-col transition-all duration-300 ${
-        isMinimized
+      className={`fixed right-4 bottom-4 z-50 flex flex-col transition-all duration-300 ${isMinimized
           ? "h-[60px] w-[60px]"
           : "h-[600px] w-[420px] lg:h-[650px] lg:w-[480px] xl:h-[750px] xl:w-[580px] 2xl:h-[800px] 2xl:w-[600px]"
-      }`}
+        }`}
       style={{
         borderRadius: isMinimized ? "50%" : "12px",
       }}
@@ -685,14 +689,14 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                       const msgSenderId = String(msg.senderId || "").trim();
                       const userSenderId = String(currentUserId || "").trim();
                       const isSenderMe = msgSenderId === userSenderId && msgSenderId !== "";
-                      
+
                       // Message is "own" (user's message) if:
                       // 1. senderId matches currentUserId AND
                       // 2. It's NOT explicitly marked as AI message (metadata.isAiMessage !== true)
                       // IMPORTANT: AI messages should ALWAYS be isOwn = false (display on left)
                       // This logic ensures user messages are on the right, AI messages on the left
                       const isOwn = isSenderMe && msg.metadata?.isAiMessage !== true;
-                      
+
                       return (
                         <MessageItem
                           key={msg._id}
@@ -793,11 +797,10 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                   type="button"
                   onClick={isRecording ? stopRecording : startRecording}
                   disabled={!isAiConversation || status === "LOADING" || isSending || isUploading}
-                  className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
-                    isRecording
+                  className={`p-2 rounded-lg transition-colors flex-shrink-0 ${isRecording
                       ? "text-red-6 hover:text-red-7 hover:bg-red-1 bg-red-1"
                       : "text-neutral-6 hover:text-neutral-10 hover:bg-neutral-2"
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   title={isRecording ? "Dừng ghi âm" : "Ghi âm giọng nói"}
                 >
                   {isRecording ? (
@@ -862,7 +865,7 @@ const ModalChatWithAi: React.FC<ModalChatWithAiProps> = ({ open, onOpenChange })
                   disabled={(!message.trim() && attachments.length === 0) || !isAiConversation || status === "LOADING" || isUploading || isSending}
                   size="md"
                   rounded="full"
-                  icon={ <Send className="w-4 h-4 text-white" />}
+                  icon={<Send className="w-4 h-4 text-white" />}
                   className="flex-shrink-0"
                 >
                   <span className="text-neutral-1">Gửi</span>

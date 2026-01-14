@@ -219,6 +219,11 @@ export const useAuth = () => {
     user,
     logoutStatus,
 
+    // User status
+    userStatus: user?.status,
+    isSuspended: user?.status === "suspended",
+    isInactive: user?.status === "inactive",
+
     // Forgot password state
     forgotPasswordStatus,
     forgotPasswordStep,
