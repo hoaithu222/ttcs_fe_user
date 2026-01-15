@@ -191,7 +191,7 @@ const Login = () => {
           </form>
 
           {/* Social Login Buttons */}
-          <SocialLoginButtons />
+          {/* <SocialLoginButtons /> */}
 
           {/* Register link */}
           <div className="mt-8 text-center">
