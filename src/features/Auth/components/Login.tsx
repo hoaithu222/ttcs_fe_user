@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "@/features/Auth/hooks/useAuth";
 import { NAVIGATION_CONFIG } from "@/app/router/naviagtion.config";
+import SocialLoginButtons from "./SocialLoginButtons";
 
 const Login = () => {
   const { isLoadingLogin, onSubmitLogin } = useAuth();
@@ -60,7 +61,7 @@ const Login = () => {
           "backdrop-blur-xl bg-white/80",
           "border border-white/20",
           "rounded-3xl shadow-2xl shadow-indigo-500/10",
-          "p-8 lg:p-12",
+          "p-4 lg:p-6",
           "overflow-hidden relative",
           "transition-all duration-500 transform hover:shadow-3xl hover:shadow-indigo-500/20"
         )}
@@ -85,11 +86,11 @@ const Login = () => {
           </div>
 
           {/* Header section */}
-          <div className="mb-4 space-y-4 text-center">
-            <h2 className="text-3xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 lg:text-4xl">
+          <div className="mb-2 space-y-4 text-center">
+            <h2 className="text-xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 lg:text-4xl">
               Chào mừng trở lại!
             </h2>
-            <p className="text-gray-600 text-lg">Đăng nhập để tiếp tục mua sắm</p>
+            <p className="text-gray-600 text-sm">Đăng nhập để tiếp tục mua sắm</p>
 
             {/* Decorative line */}
             <div className="flex justify-center items-center mt-6">
@@ -107,7 +108,7 @@ const Login = () => {
               onSubmitLogin(data);
             }}
           >
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="relative group">
                 <FloatingInput
                   label="Email"
@@ -151,7 +152,7 @@ const Login = () => {
             </div>
 
             {/* Enhanced submit button */}
-            <div className="pt-4">
+            <div >
               <Button
                 variant="primary"
                 size="lg"
@@ -188,6 +189,9 @@ const Login = () => {
               </Button>
             </div>
           </form>
+
+          {/* Social Login Buttons */}
+          <SocialLoginButtons />
 
           {/* Register link */}
           <div className="mt-8 text-center">

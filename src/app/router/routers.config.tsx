@@ -28,6 +28,8 @@ const ListProductPage = lazy(() => import("@/features/Shop/pages/ListProductPage
 const OrderShopPage = lazy(() => import("@/features/Shop/pages/OrderShopPage"));
 const ShopDetailPage = lazy(() => import("@/features/Shop/pages/ShopDetailPage"));
 const ChatPage = lazy(() => import("@/features/Chat/pages/ChatPage"));
+const AuthCallback = lazy(() => import("@/features/Auth/components/AuthCallback"));
+
 const defaultOptions = {
 
   requireAuth: false,
@@ -64,6 +66,12 @@ export const ROUTE = {
   forgotPassword: {
     path: "/forgot-password",
     element: <AuthPage />,
+    layout: "auth",
+    options: defaultAuthOptions,
+  },
+  authCallback: {
+    path: "/auth/callback",
+    element: <AuthCallback />,
     layout: "auth",
     options: defaultAuthOptions,
   },
